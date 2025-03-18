@@ -35,6 +35,41 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
 ### or Creating Your Own Agents
 Here is an example of running tasks from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
+```python
+from aworld import Client
+from aworld.agents import AssistantAgent, UserAgent
+from aworld.config import AgentConfig, TaskConfig
+from aworld.core import Swarm, Task
+from aworld.dataset.mock import mock_dataset
+
+# Initialize client
+client = Client()
+
+# Create agents
+agent1 = UserAgent(conf=AgentConfig(model="gpt-4o",))
+agent2 = AssistantAgent(conf=AgentConfig(model="gpt-4o",))
+
+# Create swarm for multi-agents
+# define (head_node, tail_node) edge in the topology graph
+swarm = Swarm({(agent1, agent2), (agent2, agent1)})
+
+# Create tools
+# The tool is globally visible by default, so there is no need for explicit settings
+
+# One sample for example.
+one_sample = mock_dataset("gaia")
+
+# Define a task
+task = Task(swarm=swarm, input=one_sample, metrics=None)
+
+# Run tasks
+result = client.submit(tasks=[task], parallel=False)
+
+# Print the result
+print(f"Task completed: {result['success']}")
+print(f"Time cost: {len(result['time_cost'])}")
+```
+
 ## Contributing
 
 If you use AWorld in your research or wish to contact us, please use the following BibTeX entry:
