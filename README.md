@@ -29,6 +29,10 @@ aworld-web start
 Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
 
 
+https://github.com/user-attachments/assets/01ea37e8-6544-4632-b2c3-29a7e356dba8
+
+
+
 ### or Creating Your Own Agents
 Here is an example of running tasks from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
