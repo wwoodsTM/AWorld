@@ -50,12 +50,12 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
 Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
-from core.client import Client
-from task.gaia.agent import PlanAgent, ExcuteAgent
-from task.gaia.gaia_task import GeneralTask
-from task.gaia.swarm import Swarm
-from config.conf import AgentConfig, TaskConfig
-from task.gaia.tools import mock_dataset
+from aworld.agents.gaia import PlanAgent, ExcuteAgent
+from aworld.core.client import Client
+from aworld.core.swarm import Swarm
+from aworld.core.task import GeneralTask
+from aworld.config.conf import AgentConfig, TaskConfig
+from aworld.dataset.mock import mock_dataset
 
 # Initialize client
 client = Client()
@@ -85,6 +85,106 @@ print(f"Task completed: {result['success']}")
 print(f"Time cost: {result['time_cost']}")
 print(f"Task Answer: {result['task_0']['answer']}")
 ```
+```
+Task completed: True
+Time cost: 26.431413888931274
+Task Answer: Time-Parking 2: Parallel Universe
+```
+
+## Framework Architecture
+
+AWorld uses a client-server architecture with three main components:
+
+1. **Client-Server Architecture**: Similar to [ray](https://github.com/ray-project/ray), this architecture:
+    - Decouples agents and environments for better scalability and flexibility
+    - Provides a unified interaction protocol for all agent-environment interactions
+
+2. **Agent/Actor**: 
+   - Encapsulates system prompts, tools, and models with the capability to hand off execution to other agents
+   - Agent fields and properties:
+
+   | Field | Type | Description |
+   |-------|------|-------------|
+   | `id` | string | Unique identifier for the agent |
+   | `name` | string | Human-readable name of the agent |
+   | `model` | string | LLM model used by the agent (e.g., "gpt-4", "claude-3") |
+   | `system_prompt` | string | Instructions that define the agent's behavior and capabilities |
+   | `tools` | array | List of tools the agent can use to interact with the environment |
+   | `memory` | object | Storage for maintaining context across interactions |
+   | `max_tokens` | integer | Maximum token limit for agent responses |
+   | `temperature` | float | Sampling temperature for controlling randomness (0.0-1.0) |
+   | `stop_sequences` | array | Sequences that will stop the agent's generation |
+   | `metadata` | object | Additional configuration parameters |
+   | `callbacks` | object | Event handlers for monitoring agent behavior |
+   | `parent_id` | string | ID of parent agent (for hierarchical agent structures) |
+
+3. **Environment/World Model**: Various tools and models in the environment
+   - Computer interfaces (browser, shell, functions)
+   - World Model (see our [paper]())
+
+   | Tools | Type | Description |
+   |-------|------|-------------|
+   | `browser` | object | Controls web browsers for navigation, form filling, and interaction with web pages |
+   | `android` | object | Manages Android device simulation for mobile app testing and automation |
+   | `shell` | function | Executes shell commands for file operations and system interactions |
+   | `code` | function | Runs code snippets in various languages for data processing and automation |
+   | `google_search` | function | Performs web searches and returns structured results for information gathering |
+   | `file_system` | object | Handles file operations including reading, writing, and managing directories |
+   | `screenshot` | function | Captures visual state of applications for analysis and verification |
+   | `clipboard` | object | Manages copy/paste operations across different applications |
+   | `keyboard` | object | Simulates keyboard input for text entry and shortcuts |
+   | `mouse` | object | Controls cursor movement and clicking for GUI interaction |
+   | `vision` | object | Analyzes visual elements on screen to identify interactive components |
+   | `memory` | object | Stores and retrieves information across agent interactions |
+
+
+## Dual Purpose Framework
+
+AWorld serves two complementary purposes:
+
+### Agent Evaluation
+Standardized benchmarking of agent capabilities under a unified protocol:
+- Unified task definitions to run both customized and public benchmarks
+- Efficient and stable execution environment
+- Detailed test reports measuring efficiency (steps to completion), completion rates, and token costs
+
+### Model Training
+Continuous improvement through a collaborative competition cycle:
+- Agent models improve to overcome challenges 
+- World models (environments) evolve to present new, more complex scenarios
+
+## Key Features
+
+- 🌐 **Environment Multi-Tool Support**: 
+  - [x] Browsers (Chrome, Firefox)
+  - [x] Android device simulation
+  - [x] Shell, code, and functions (e.g., google_search)
+  - [x] File system
+  - [ ] Cloud sandbox for quick and stable deployment
+
+- 🤖 **AI-Powered Agents**:
+  - [x] Agent initialization
+  - [x] Delegation between multiple agents
+  - [ ] Asynchronous delegation
+  - [ ] Human delegation (e.g., for password entry)
+  - [ ] Pre-deployed open source LLMs powered by state-of-the-art [inference frameworks](https://github.com/alipay/PainlessInferenceAcceleration)
+
+
+- 🔄 **Standardized Protocol**:
+  - [ ] Client-server protocol compatible with Model Contest Protocol (MCP)
+  - [x] Environment interfaces following [gymnasium](https://gymnasium.farama.org/api/env/#gymnasium.Env.step) standards
+  - [x] Custom agent-environment protocol
+
+- 🎛️ **Web Interface**:
+  - [x] Chat interface for diverse user queries
+  - [x] Server configuration dashboard
+  - [ ] Real-time monitoring tools
+  - [ ] Performance reporting
+
+- 🧠 **Benchmarks and Samples**:
+  - [ ] Support standardized benchmarks by default, e.g., GAIA, WebArena
+  - [ ] Support customized benchmarks by inheriting [Task]()
+  - [ ] Support generating training samples
 
 ## Contributing
 
