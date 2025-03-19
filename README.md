@@ -33,41 +33,43 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
 </p>
 
 ### or Creating Your Own Agents
-Here is an example of running tasks from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
+Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
-from aworld import Client
-from aworld.agents import AssistantAgent, UserAgent
-from aworld.config import AgentConfig, TaskConfig
-from aworld.core import Swarm, Task
-from aworld.dataset.mock import mock_dataset
+from core.client import Client
+from task.gaia.agent import PlanAgent, ExcuteAgent
+from task.gaia.gaia_task import GeneralTask
+from task.gaia.swarm import Swarm
+from config.conf import AgentConfig, TaskConfig
+from task.gaia.tools import mock_dataset
 
 # Initialize client
 client = Client()
 
+# One sample for example
+test_sample = mock_dataset("gaia")
+
 # Create agents
-agent1 = UserAgent(conf=AgentConfig(model="gpt-4o",))
-agent2 = AssistantAgent(conf=AgentConfig(model="gpt-4o",))
+agent_config = AgentConfig(
+    llm_provider="openai",
+    llm_model_name="gpt-4o",
+)
+agent1 = PlanAgent(conf=agent_config)
+agent2 = ExcuteAgent(conf=agent_config)
 
 # Create swarm for multi-agents
 # define (head_node, tail_node) edge in the topology graph
-swarm = Swarm({(agent1, agent2), (agent2, agent1)})
-
-# Create tools
-# The tool is globally visible by default, so there is no need for explicit settings
-
-# One sample for example.
-one_sample = mock_dataset("gaia")
+swarm = Swarm((agent1, agent2))
 
 # Define a task
-task = Task(swarm=swarm, input=one_sample, metrics=None)
+task = GeneralTask(input=test_sample, swarm=swarm, conf=TaskConfig())
 
-# Run tasks
-result = client.submit(tasks=[task], parallel=False)
+# Run task
+result = client.submit(task=[task])
 
-# Print the result
 print(f"Task completed: {result['success']}")
 print(f"Time cost: {result['time_cost']}")
+print(f"Task Answer: {result['task_0']['answer']}")
 ```
 
 ## Contributing
@@ -76,13 +78,13 @@ If you use AWorld in your research or wish to contact us, please use the followi
 
 ```bibtex
 @software{aworld2025,
-  author = {Agent Team @ Ant Group},
+  author = {Agent Team at Ant Group},
   title = {AWorld: A Unified Agent Playground for Computer and Phone Use Tasks},
   year = {2025},
   url = {https://github.com/inclusionAI/AWorld},
   version = {0.1.0},
   publisher = {GitHub},
-  email = {chenyi.zcy@antgroup.com}
+  email = {chenyi.zcy at antgroup.com}
 }
 ```
 
