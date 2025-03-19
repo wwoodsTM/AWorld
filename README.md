@@ -21,6 +21,20 @@ With pip (Python>=3.11):
 pip install aworld
 ```
 
+## Environment Configuration
+Configure the following environment variables according to your selected AI models:
+```plaintext
+# AI Model API Keys
+CLAUDE_API_KEY=sk-xxxx        # Anthropic Claude
+DEEP_SEEK_API_KEY=sk-xxxx     # DeepSeek AI
+MISTRAL_API_KEY=sk-xxxx       # Mistral AI
+OPENAI_API_KEY=sk-xxxx        # OpenAI
+GOOGLE_API_KEY=sk-xxxx        # Google AI
+AZURE_OPENAI_API_KEY=sk-xxxx  # Azure OpenAI
+QWEN_API_KEY=sk-xxxx          # Alibaba Qwen
+MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
+```
+
 ## Usage
 Easily configure and run a pre-defined agent through our web interface:
 ```bash
