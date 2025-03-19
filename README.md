@@ -67,7 +67,7 @@ result = client.submit(tasks=[task], parallel=False)
 
 # Print the result
 print(f"Task completed: {result['success']}")
-print(f"Time cost: {len(result['time_cost'])}")
+print(f"Time cost: {result['time_cost']}")
 ```
 
 ## Contributing
@@ -77,9 +77,9 @@ If you use AWorld in your research or wish to contact us, please use the followi
 ```bibtex
 @software{aworld2025,
   author = {Agent Team @ Ant Group},
-  title = {AWorld: A Unified Sandbox for Computer Use Tasks},
+  title = {AWorld: A Unified Agent Playground for Computer and Phone Use Tasks},
   year = {2025},
-  url = {https://github.com/yourusername/aworld},
+  url = {https://github.com/inclusionAI/AWorld},
   version = {0.1.0},
   publisher = {GitHub},
   email = {chenyi.zcy@antgroup.com}
