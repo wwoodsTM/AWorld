@@ -113,39 +113,29 @@ AWorld uses a client-server architecture with three main components:
    - Encapsulates system prompts, tools, and models with the capability to hand off execution to other agents
    - Agent fields and properties:
 
-   | Field | Type | Description |
-   |-------|------|-------------|
-   | `id` | string | Unique identifier for the agent |
-   | `name` | string | Human-readable name of the agent |
-   | `model` | string | LLM model used by the agent (e.g., "gpt-4", "claude-3") |
-   | `system_prompt` | string | Instructions that define the agent's behavior and capabilities |
-   | `tools` | array | List of tools the agent can use to interact with the environment |
-   | `memory` | object | Storage for maintaining context across interactions |
-   | `max_tokens` | integer | Maximum token limit for agent responses |
-   | `temperature` | float | Sampling temperature for controlling randomness (0.0-1.0) |
-   | `stop_sequences` | array | Sequences that will stop the agent's generation |
-   | `metadata` | object | Additional configuration parameters |
-   | `callbacks` | object | Event handlers for monitoring agent behavior |
-   | `parent_id` | string | ID of parent agent (for hierarchical agent structures) |
+   | Field            | Type      | Description                                                     |
+   |------------------|-----------|-----------------------------------------------------------------|
+   | `name`           | string    | Unique identifier for the agent                                 |
+   | `model_name`     | string    | LLM model name of the agent                                     |
+   | `llm`            | object    | LLM model instance used by the agent (e.g., "gpt-4", "claude-3") |
+   | `conf`           | BaseModel | Config of inherit pydantic BaseModel                            |
+   | `dict_conf`      | dict      | Config of dict structure for no error get key              |
+   | `memory`         | object    | Storage for maintaining context across interactions             |
+   | `handoffs`       | list      | An agent can delegate tasks to other agent                      |
+   | `finished`       | bool      | Has the agent completed the task                                |
 
 3. **Environment/World Model**: Various tools and models in the environment
    - Computer interfaces (browser, shell, functions)
    - World Model (see our [paper]())
 
-   | Tools | Type | Description |
-   |-------|------|-------------|
-   | `browser` | object | Controls web browsers for navigation, form filling, and interaction with web pages |
-   | `android` | object | Manages Android device simulation for mobile app testing and automation |
-   | `shell` | function | Executes shell commands for file operations and system interactions |
-   | `code` | function | Runs code snippets in various languages for data processing and automation |
-   | `google_search` | function | Performs web searches and returns structured results for information gathering |
-   | `file_system` | object | Handles file operations including reading, writing, and managing directories |
-   | `screenshot` | function | Captures visual state of applications for analysis and verification |
-   | `clipboard` | object | Manages copy/paste operations across different applications |
-   | `keyboard` | object | Simulates keyboard input for text entry and shortcuts |
-   | `mouse` | object | Controls cursor movement and clicking for GUI interaction |
-   | `vision` | object | Analyzes visual elements on screen to identify interactive components |
-   | `memory` | object | Stores and retrieves information across agent interactions |
+   | Tools | Description |
+   |-------|-------------|
+   | `browser` | Controls web browsers for navigation, form filling, and interaction with web pages |
+   | `android` | Manages Android device simulation for mobile app testing and automation |
+   | `shell` | Executes shell commands for file operations and system interactions |
+   | `code` | Runs code snippets in various languages for data processing and automation |
+   | `search` | Performs web searches and returns structured results for information gathering and summary |
+   | `document` | Handles file operations including reading, writing, and managing directories |
 
 
 ## Dual Purpose Framework
@@ -168,8 +158,8 @@ Continuous improvement through a collaborative competition cycle:
 - 🌐 **Environment Multi-Tool Support**: 
   - [x] Browsers (Chrome, Firefox)
   - [x] Android device simulation
-  - [x] Shell, code, and functions (e.g., google_search)
-  - [x] File system
+  - [x] Shell, code (Python), and apis (e.g., google_search)
+  - [x] File system (writing, managing on going)
   - [ ] Cloud sandbox for quick and stable deployment
 
 - 🤖 **AI-Powered Agents**:
