@@ -198,8 +198,8 @@ extra = os.getenv(AWorldInstaller.EXTRA_ENV, None)
 setup(
     name='aworld',
     version=aworld.__version__,
-    description='Ant AI World Package',
-    url='https://code.alipay.com/SOTA/aworld',
+    description='Ant Agent Package',
+    url='https://github.com/inclusionAI/AWorld',
     author='Ant AI',
     author_email='',
     long_description='',
@@ -207,7 +207,7 @@ setup(
     packages=find_packages(where=".", exclude=['tests', 'tests.*', '*.tests', '*.tests.*', '*.test', '*.test.*']),
     package_data={
         'aworld': [
-            'virtual_environments/browsers/config/*.js', 'agents/browser/system_prompt.md',
+            'virtual_environments/browsers/config/*.js',
             'requirements.txt'
         ]
     },

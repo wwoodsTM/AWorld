@@ -2,7 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 import os
 
-from aworld import Client
+from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExcuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.swarm import Swarm

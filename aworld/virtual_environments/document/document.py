@@ -6,7 +6,6 @@ import subprocess
 from typing import Any, Dict, Tuple
 from urllib.parse import urlparse
 
-import xmltodict
 from pydantic import BaseModel
 
 from aworld.agents.browser.utils import encode_image_from_file, encode_image_from_url
@@ -100,6 +99,8 @@ class DocumentTool(EnvTool[Observation, ActionModel]):
                 })
 
     def document_analysis(self, document_path):
+        import xmltodict
+
         error = None
         try:
             if any(document_path.endswith(ext) for ext in [".jpg", ".jpeg", ".png"]):
