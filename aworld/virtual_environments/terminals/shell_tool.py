@@ -11,6 +11,7 @@ from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import ShellAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
 from aworld.core.envs.env_tool import EnvTool, AgentInput, ToolFactory
+from aworld.logs.util import logger
 
 
 @ToolFactory.register(name=Tools.SHELL.value, desc="shell execute tool", supported_action=ShellAction)
@@ -87,9 +88,9 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
                         else:
                             process.terminate()
                     except Exception as e:
-                        print(f"An error occurred while terminating the process. e: {str(e)}")
+                        logger.error(f"An error occurred while terminating the process. e: {str(e)}")
         except Exception as e:
-            print(f"Error while exiting Shell Executor. e: {str(e)}")
+            logger.error(f"Error while exiting Shell Executor. e: {str(e)}")
         finally:
             # Clear process list
             self.processes = []
@@ -221,7 +222,7 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
             self.processes.append(process_)
             return process_
         except Exception as e:
-            print(f"An error occurred while executing the script asynchronously. e: {str(e)}")
+            logger.error(f"An error occurred while executing the script asynchronously. e: {str(e)}")
             return None
 
 
@@ -231,16 +232,16 @@ if __name__ == "__main__":
     # Execute script and capture output
     result = shell.execute("whoami")
     if result['success']:
-        print("stdout:", result['stdout'])
+        logger.info("stdout:", result['stdout'])
     else:
-        print("stderr:", result['stderr'])
+        logger.warning("stderr:", result['stderr'])
 
     # Execute script with environment variables
     custom_env = os.environ.copy()
     custom_env['CUSTOM_VAR'] = 'custom_value'
     shell_with_env = ShellTool(env=custom_env)
     result = shell_with_env.execute("echo $CUSTOM_VAR")
-    print("stdout:", result['stdout'])
+    logger.info("stdout:", result['stdout'])
 
     # Asynchronously executing long-running scripts
     process = shell.execute_async("sleep 5 && echo 'Async command completed'")
@@ -249,7 +250,7 @@ if __name__ == "__main__":
     temp_dir = "/tmp"
     shell_with_dir = ShellTool(working_dir=temp_dir)
     result = shell_with_dir.execute("pwd")
-    print(f"Results of executing pwd in {temp_dir}::", result['stdout'])
+    logger.info(f"Results of executing pwd in {temp_dir}::", result['stdout'])
 
     # Execute multiple scripts
     scripts = [
@@ -260,8 +261,8 @@ if __name__ == "__main__":
 
     for cmd in scripts:
         result = shell.execute(cmd)
-        print(f"\nexecute '{cmd}':")
-        print(result['stdout'])
+        logger.info(f"\nexecute '{cmd}':")
+        logger.info(result['stdout'])
 
     # Exit Executor
     shell.close()

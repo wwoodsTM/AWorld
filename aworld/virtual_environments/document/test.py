@@ -1,3 +1,4 @@
+from aworld import logger
 from aworld.config import ToolConfig
 from aworld.virtual_environments.document.document import DocumentTool
 import traceback
@@ -12,12 +13,10 @@ class TestDocumentTool():
         try:
             content, keyframes, error = self.document_tool.document_analysis(document_path)
             # content, keyframes, error
-            print(f"document_path:{document_path}")
-            #print(f"content:{content}")
-            print(f"keyframes:{keyframes}")
-            #print(f"error:{error}")
+            logger.info(f"document_path:{document_path}")
+            logger.info(f"keyframes:{keyframes}")
         except Exception as e:
-            print(f"error: {e}")
+            logger.error(f"error: {e}")
             traceback.print_exc()
 
 

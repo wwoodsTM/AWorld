@@ -6,6 +6,7 @@ from typing import Any, Tuple, List, Dict
 
 from aworld.core.envs.tool_action import AndroidAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
+from aworld.logs.util import logger
 from aworld.virtual_environments.android.action.adb_controller import ADBController
 from aworld.virtual_environments.android.action.executor import AndroidToolActionExecutor
 from aworld.virtual_environments.conf import AndroidToolConfig
@@ -32,7 +33,7 @@ class AndroidTool(EnvTool[Observation, List[ActionModel]]):
         Observation, Dict[str, Any]]:
         # self.controller.stop_emulator()
         self.controller.start_emulator()
-        print("start emulator successfully...")
+        logger.info("start emulator successfully...")
         # snapshot screen and annotate
         xml, pic_base64 = self.get_observation()
         action_result_list = [ActionResult(content='start', keep=True)]

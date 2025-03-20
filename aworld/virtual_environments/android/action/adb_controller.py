@@ -87,7 +87,7 @@ def create_directory_for_file(file_path):
         os.makedirs(directory)
         # Print the absolute path of the directory
         absolute_directory_path = os.path.abspath(directory)
-        print(f"Directory absolute path: {absolute_directory_path}")
+        logger.info(f"Directory absolute path: {absolute_directory_path}")
 
 
 def draw_bbox_multi(img_path, output_path, elem_list):
@@ -189,7 +189,7 @@ class ADBController:
         for attempt in range(max_retry + 1):
             if self._start_emulator_process(avd, headless):
                 if self._wait_for_device():
-                    print(f"start success，attempt count：{attempt + 1}")
+                    logger.info(f"start success，attempt count：{attempt + 1}")
                     self.width, self.height = self.get_screen_size()
                     return True
                 self.stop_emulator()
@@ -215,7 +215,7 @@ class ADBController:
             )
             return True
         except Exception as e:
-            print(f"adb start fail: {str(e)}")
+            logger.warning(f"adb start fail: {str(e)}")
             return False
 
     def stop_emulator(self) -> bool:
@@ -286,11 +286,11 @@ class ADBController:
         remote_path = "/sdcard/ui_dump.xml"
         success, _ = self.execute_adb(["shell", "uiautomator", "dump", remote_path])
         if not success:
-            print("dump ui xml fail")
+            logger.info("dump ui xml fail")
             return None
         success = self._pull_file(remote_path, save_path)
         if not success:
-            print("pull ui xml fail")
+            logger.info("pull ui xml fail")
             return None
 
         with open(save_path, 'r', encoding='utf-8') as f:
@@ -354,7 +354,7 @@ class ADBController:
         xml_path = os.path.join(tmp_files_dir, f"{name_prefix}.xml")
         xml_res = self.dump_ui_xml(xml_path)
         if screenshot_res == "ERROR" or xml_res is None:
-            print(f"Failed to take screenshot or read XML")
+            logger.warning(f"Failed to take screenshot or read XML")
             return None, None
 
         # Parsing interactive elements
@@ -395,7 +395,7 @@ class ADBController:
                 base64_str = base64.b64encode(buffer).decode("utf-8")
 
         self.current_elem_list = elem_list.copy()
-        print(f"Current elem size{len(self.current_elem_list)}")
+        logger.info(f"Current elem size{len(self.current_elem_list)}")
         return xml_res, base64_str
 
     def setup_connection(self) -> bool:
@@ -418,7 +418,7 @@ class ADBController:
             return False
 
         self.device = devices[0]
-        print(f"Connected physical device: {self.device}")
+        logger.info(f"Connected physical device: {self.device}")
         self.device_serial = self.device
         self.width, self.height = self.get_screen_size()
         return True
@@ -514,9 +514,9 @@ if __name__ == "__main__":
 
     # controller.stop_emulator()
     if controller.setup_connection():
-        print("Simulator started successfully")
+        logger.info("Simulator started successfully")
         width, height = controller.get_screen_size()
-        print(f"Get the screen size{width},{height}")
+        logger.info(f"Get the screen size{width},{height}")
 
         # Take screenshots and annotate them
         controller.screenshot_and_annotate()
@@ -525,7 +525,7 @@ if __name__ == "__main__":
         # controller.screenshot_and_annotate()
         # controller.tap(6)
         xml_txt, base64_txt = controller.screenshot_and_annotate()
-        print(xml_txt)
+        logger.info(xml_txt)
 
         # controller.stop_emulator()
-        print("Close the simulator")
+        logger.info("Close the simulator")

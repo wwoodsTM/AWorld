@@ -3,6 +3,7 @@
 
 import unittest
 
+from aworld.logs.util import logger
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 
 
@@ -32,7 +33,7 @@ class OpenAIGymTest(unittest.TestCase):
         state, reward, terminal, _, _ = self.gym.step(0)
         transform_state = self.gym.transform_state(state)
 
-        print(transform_state)
+        logger.info(transform_state)
         self.assertEqual(len(state), 4)
         self.assertTrue((state == transform_state).all())
 
