@@ -10,10 +10,10 @@ from typing import Union, Dict, Any, List
 
 from pydantic import BaseModel
 
-from aworld.agents.base import Agent
+from aworld.core.agents.agent import BaseAgent
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.core.common import Observation
-from aworld.core.env_tool import EnvTool, ToolFactory
+from aworld.core.env.env_tool import EnvTool, ToolFactory
 from aworld.core.swarm import Swarm
 from aworld.logs.util import logger, color_log
 
@@ -22,7 +22,7 @@ class Task(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self,
-                 agent: Agent = None,
+                 agent: BaseAgent = None,
                  swarm: Swarm = None,
                  name: str = uuid.uuid1().hex,
                  input: Any = None,
@@ -91,7 +91,7 @@ class Task(object):
 
 class GeneralTask(Task):
     def __init__(self,
-                 agent: Agent = None,
+                 agent: BaseAgent = None,
                  swarm: Swarm = None,
                  name: str = uuid.uuid1().hex,
                  input: Any = None,

@@ -6,13 +6,13 @@ import time
 import traceback
 from typing import Dict, Any, List
 
-from aworld.agents.base import BaseAgent, AgentFactory
-from aworld.agents.utils import tool_openai_desc_transform
+from aworld.core.agents.agent import BaseAgent, AgentFactory
+from aworld.models.utils import tool_desc_transform
 from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Agents
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
-from aworld.virtual_environments.tools_desc import tool_action_desc_dict
+from aworld.core.env.tools_desc import tool_action_desc_dict
 
 init_prompt = f"""
 Now please give me instructions to solve over overall task step by step. If the task requires some specific knowledge, please instruct me to use tools to complete the task.
@@ -56,7 +56,7 @@ class ExcuteAgent(BaseAgent):
         super(ExcuteAgent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_model_name
         self.llm = get_llm_model(conf)
-        self.tools = tool_openai_desc_transform(tool_action_desc_dict)
+        self.tools = tool_desc_transform(tool_action_desc_dict)
 
     def name(self) -> str:
         return Agents.EXECUTE.value

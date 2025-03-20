@@ -1,6 +1,8 @@
+# coding: utf-8
+# Copyright (c) 2025 inclusionAI.
+
 import importlib
 import subprocess
-import logging
 from typing import Optional
 from importlib import metadata
 from aworld.logs.util import logger

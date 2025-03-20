@@ -4,12 +4,12 @@
 import traceback
 from typing import Any, Tuple, List, Dict
 
-from aworld.core.action import AndroidAction
+from aworld.core.env.tool_action import AndroidAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
 from aworld.virtual_environments.android.action.adb_controller import ADBController
 from aworld.virtual_environments.android.action.executor import AndroidToolActionExecutor
 from aworld.virtual_environments.conf import AndroidToolConfig
-from aworld.core.env_tool import ToolFactory, EnvTool
+from aworld.core.env.env_tool import ToolFactory, EnvTool
 
 ALL_UNICODE_CHARS = frozenset(chr(i) for i in range(0x10FFFF + 1))
 

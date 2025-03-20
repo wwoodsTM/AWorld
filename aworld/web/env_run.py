@@ -10,7 +10,7 @@ from gradio.themes import Default, Base
 from aworld.agents import BrowserAgent, AndroidAgent
 from aworld.config import AgentConfig
 from aworld.models.llm import model_names
-from aworld.task.base import GeneralTask
+from aworld.core.task import GeneralTask
 from aworld.virtual_environments import BrowserTool, AndroidTool
 from aworld.virtual_environments.conf import BrowserToolConfig, AndroidToolConfig
 
@@ -110,8 +110,8 @@ def default_config():
         "max_actions_per_step": 10,
         "use_vision": True,
         "tool_calling_method": "auto",
-        "llm_provider": "**",
-        "llm_model_name": "**",
+        "llm_provider": "openai",
+        "llm_model_name": "gpt-4o",
         "llm_num_ctx": 32000,
         "llm_temperature": 1.0,
         "llm_base_url": "",
@@ -152,11 +152,39 @@ def update_model_dropdown(llm_provider, api_key=None, base_url=None):
 
 
 # Chat
-
-
-def chat_with_bot(query, **kwargs):
+def chat_with_bot(query, state, tool, llm_provider, llm_model_name, llm_num_ctx, llm_temperature,
+                  llm_base_url,
+                  llm_api_key,
+                  use_own_browser, keep_browser_open, headless, disable_security, window_w, window_h,
+                  save_recording_path, save_agent_history_path, save_trace_path,  # Include the new path
+                  enable_recording, max_steps, max_actions_per_step, avd_name, adb_path, emulator_path):
+    kwargs = {
+        "state": state,
+        "tool": tool,
+        "llm_provider": llm_provider,
+        "llm_model_name": llm_model_name,
+        "llm_num_ctx": llm_num_ctx,
+        "llm_temperature": llm_temperature,
+        "llm_base_url": llm_base_url,
+        "llm_api_key": llm_api_key,
+        "use_own_browser": use_own_browser,
+        "keep_browser_open": keep_browser_open,
+        "headless": headless,
+        "disable_security": disable_security,
+        "window_w": window_w,
+        "window_h": window_h,
+        "save_recording_path": save_recording_path,
+        "save_agent_history_path": save_agent_history_path,
+        "save_trace_path": save_trace_path,
+        "enable_recording": enable_recording,
+        "max_steps": max_steps,
+        "max_actions_per_step": max_actions_per_step,
+        "avd_name": avd_name,
+        "adb_path": adb_path,
+        "emulator_path": emulator_path
+    }
     agent_config = AgentConfig(**kwargs)
-    if(kwargs.get("tool") == "browserTool"):
+    if (kwargs.get("tool") == "browserTool"):
         agent = BrowserAgent(agent_config)
         tool_config = BrowserToolConfig(**kwargs)
         tool = BrowserTool(tool_config)
@@ -165,7 +193,7 @@ def chat_with_bot(query, **kwargs):
         tool_config = AndroidToolConfig(**kwargs)
         tool = AndroidTool(tool_config)
 
-    response = GeneralTask(input=query, agent=agent,tools=[tool]).run()
+    response = GeneralTask(input=query, agent=agent, tools=[tool]).run()
 
     return response
 

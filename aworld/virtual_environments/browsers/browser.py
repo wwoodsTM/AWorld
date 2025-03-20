@@ -9,12 +9,13 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from aworld.core.action import BrowserAction
-from aworld.core.common import Observation, ActionModel, DomTree, ActionResult, Tools
+from aworld.core.env.tool_action import BrowserAction
+from aworld.core.common import Observation, ActionModel, ActionResult, Tools
 from aworld.logs.util import logger
-from aworld.core.env_tool import action_executor, ToolFactory
-from aworld.core.env_tool import EnvTool
+from aworld.core.env.env_tool import action_executor, ToolFactory
+from aworld.core.env.env_tool import EnvTool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
+from aworld.virtual_environments.browsers.util.dom import DomTree
 from aworld.virtual_environments.conf import BrowserToolConfig
 from aworld.virtual_environments.browsers.util.dom_build import build_dom_tree
 
@@ -25,8 +26,6 @@ ASCII = "".join(chr(x) for x in range(32, 128))
 
 @ToolFactory.register(name=Tools.BROWSER.value, desc="browser", supported_action=BrowserAction)
 class BrowserTool(EnvTool[Observation, List[ActionModel]]):
-    END_ACTIONS = ["write_to_file"]
-
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
@@ -257,8 +256,8 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
 
         try:
             action_result, self.page = self.action_executor.execute_action(action,
-                                                                           observation=self.cur_observation,
-                                                                           **kwargs)
+                                                                      observation=self.cur_observation,
+                                                                      **kwargs)
             reward = 1
         except Exception as e:
             fail_error = str(e)
@@ -271,19 +270,11 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
                     self._finish = True
 
         info = {"exception": fail_error}
-        if fail_error or any(act.action_name in self.END_ACTIONS for act in action if act):
-            # return empty observation
-            return (Observation(),
-                    reward,
-                    terminated,
-                    kwargs.get("truncated", False),
-                    info)
-        else:
-            observation = self._get_observation()
-            observation.action_result = action_result
-            self.cur_observation = observation
-            return (observation,
-                    reward,
-                    terminated,
-                    kwargs.get("truncated", False),
-                    info)
+        observation = self._get_observation()
+        observation.action_result = action_result
+        self.cur_observation = observation
+        return (observation,
+                reward,
+                terminated,
+                kwargs.get("truncated", False),
+                info)

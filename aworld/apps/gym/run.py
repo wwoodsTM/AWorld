@@ -5,18 +5,18 @@ import asyncio
 import time
 
 from aworld import Client
-from aworld.agents.base import Agent
+from aworld.core.agents.agent import BaseAgent
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.core.env_tool import EnvTool, AsyncEnvTool
+from aworld.core.env.env_tool import AsyncEnvTool
 from aworld.core.task import GeneralTask
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym
 
 
-async def async_run_gym_game(agent: Agent, tool: AsyncEnvTool):
+async def async_run_gym_game(agent: BaseAgent, tool: AsyncEnvTool):
     gym_tool = tool
     logger.info('observation space: {}'.format(gym_tool.env.observation_space))
     logger.info('action space: {}'.format(gym_tool.env.action_space))
@@ -54,5 +54,5 @@ if __name__ == "__main__":
 
     # We can run the task use utility method, as follows:
     # async run gym
-    agym_tool = AOpenAIGym({'env_id': 'CartPole-v1'})
-    asyncio.run(async_run_gym_game(agent=agent, tool=agym_tool))
+    # agym_tool = AOpenAIGym({'env_id': 'CartPole-v1'})
+    # asyncio.run(async_run_gym_game(agent=agent, tool=agym_tool))

@@ -8,13 +8,13 @@ from typing import Dict, Any, Optional, List, Union
 from langchain_core.messages import HumanMessage, BaseMessage
 from pydantic import ValidationError
 
-from aworld.agents.base import AgentFactory, BaseAgent
+from aworld.core.agents.agent import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.memory import MessageManager, MessageManagerSettings
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output
-from aworld.agents.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain, LlmResult
+from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
-from aworld.core.action import BrowserAction
+from aworld.core.env.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
@@ -124,7 +124,7 @@ class BrowserAgent(BaseAgent):
 
         return tool_action
 
-    def _do_policy(self, input_messages: list[BaseMessage]) -> LlmResult:
+    def _do_policy(self, input_messages: list[BaseMessage]) -> AgentResult:
         THINK_TAGS = re.compile(r'<think>.*?</think>', re.DOTALL)
 
         def _remove_think_tags(text: str) -> str:
@@ -138,12 +138,17 @@ class BrowserAgent(BaseAgent):
             output_message.content = _remove_think_tags(output_message.content)
         try:
             parsed_json = extract_json_from_model_output(output_message.content)
-            print((f"llm response: {parsed_json}"))
+            logger.info((f"llm response: {parsed_json}"))
             agent_brain = AgentBrain(**parsed_json['current_state'])
             actions = parsed_json.get('action')
             result = []
             if not actions:
                 actions = parsed_json.get("actions")
+            if not actions:
+                logger.warning("agent not policy  an action.")
+                return AgentResult(current_state=agent_brain,
+                                   actions=[ActionModel(tool_name=Tools.BROWSER.value,
+                                                        action_name="done")])
 
             for action in actions:
                 if "action_name" in action:
@@ -163,7 +168,7 @@ class BrowserAgent(BaseAgent):
 
                         action_model = ActionModel(tool_name=Tools.BROWSER.value, action_name=k, params=v)
                         result.append(action_model)
-            return LlmResult(current_state=agent_brain, actions=result)
+            return AgentResult(current_state=agent_brain, actions=result)
         except (ValueError, ValidationError) as e:
             logger.warning(f'Failed to parse model output: {output_message} {str(e)}')
             raise ValueError('Could not parse response.')
@@ -176,7 +181,7 @@ class BrowserAgent(BaseAgent):
             return input_messages
 
     def _make_history_item(self,
-                           model_output: LlmResult | None,
+                           model_output: AgentResult | None,
                            state: Observation,
                            metadata: Optional[PolicyMetadata] = None) -> None:
         history_item = AgentHistory(model_output=model_output,

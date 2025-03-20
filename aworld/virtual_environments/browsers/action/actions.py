@@ -8,10 +8,10 @@ from typing import Tuple, Any
 
 from langchain_core.prompts import PromptTemplate
 
-from aworld.core.action import BrowserAction
-from aworld.core.action_factory import ActionFactory
+from aworld.core.env.tool_action import BrowserAction
+from aworld.core.env.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult, Observation, Tools
-from aworld.core.dom import DOMElementNode
+from aworld.virtual_environments.browsers.util.dom import DOMElementNode
 from aworld.logs.util import logger
 from aworld.virtual_environments.browsers.action.utils import DomUtil
 from aworld.virtual_environments.action import ExecutableAction
@@ -618,31 +618,6 @@ class SendKeys(ExecutableAction):
             raise e
 
         return ActionResult(content=f"Sent keys: {keys}", keep=True), page
-
-
-@ActionFactory.register(name=BrowserAction.WRITE_TO_FILE.value.name,
-                        desc=BrowserAction.WRITE_TO_FILE.value.desc,
-                        tool_name=Tools.BROWSER.value)
-class WriteToFile(ExecutableAction):
-    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
-        file_path = action.params.get("file_path", "tmp_result.md")
-        content = action.params.get("content", "")
-        mode = action.params.get("mode", "a")  # Default to append mode
-        try:
-            with open(file_path, mode, encoding='utf-8') as f:
-                f.write(content + '\n')
-
-            msg = f'Successfully wrote content to {file_path}'
-            logger.info(msg)
-            return ActionResult(content=msg, keep=True), kwargs.get('page')
-        except Exception as e:
-            error_msg = f'Failed to write to file {file_path}: {str(e)}'
-            logger.error(error_msg)
-            return ActionResult(content=error_msg, keep=True, error=error_msg), kwargs.get('page')
-
-    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
-        # For file operations, we don't need to make this asynchronous
-        return self.act(action, **kwargs)
 
 
 @ActionFactory.register(name=BrowserAction.DONE.value.name,

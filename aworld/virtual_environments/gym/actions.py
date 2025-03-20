@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-from aworld.core.action import GymAction
-from aworld.core.action_factory import ActionFactory
+from aworld.core.env.tool_action import GymAction
+from aworld.core.env.action_factory import ActionFactory
 from aworld.core.common import Tools
 from aworld.virtual_environments import ExecutableAction
 

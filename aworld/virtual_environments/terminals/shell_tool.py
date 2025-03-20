@@ -1,4 +1,6 @@
 # coding: utf-8
+# Copyright (c) 2025 inclusionAI.
+
 import subprocess
 import os
 import signal
@@ -6,9 +8,9 @@ import sys
 from typing import Any, Dict, Tuple, List
 
 from aworld.config.conf import ToolConfig
-from aworld.core.action import ShellAction
+from aworld.core.env.tool_action import ShellAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
-from aworld.core.env_tool import EnvTool, AgentInput, ToolFactory
+from aworld.core.env.env_tool import EnvTool, AgentInput, ToolFactory
 
 
 @ToolFactory.register(name=Tools.SHELL.value, desc="shell execute tool", supported_action=ShellAction)

@@ -14,8 +14,9 @@ from langchain_core.messages import (
 from pydantic import BaseModel
 
 from aworld.agents.browser.prompts import AgentMessagePrompt
-from aworld.agents.common import AgentStepInfo, MessageManagerState, MessageMetadata, LlmResult
-from aworld.core.common import ActionModel, Observation, ActionResult
+from aworld.agents.browser.common import AgentStepInfo, MessageManagerState, MessageMetadata
+from aworld.core.agents.agent import AgentResult
+from aworld.core.common import Observation, ActionResult
 from aworld.logs.util import logger
 
 
@@ -133,11 +134,11 @@ class MessageManager:
         ).get_user_message(use_vision)
         self._add_message_with_tokens(state_message)
 
-    def add_model_output(self, model_output: LlmResult) -> None:
+    def add_model_output(self, model_output: AgentResult) -> None:
         """Add model output as AI message"""
         tool_calls = [
             {
-                'name': 'LlmResult',
+                'name': 'AgentResult',
                 'args': model_output.model_dump(mode='json', exclude_unset=True),
                 'id': str(self.state.tool_id),
                 'type': 'tool_call',

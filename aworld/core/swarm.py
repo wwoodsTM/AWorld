@@ -5,12 +5,12 @@ import time
 import traceback
 from typing import Dict, Any, List
 
-from aworld.agents.base import Agent, BaseAgent
-from aworld.core.env_tool import ToolFactory
+from aworld.core.agents.agent import Agent, BaseAgent
+from aworld.core.env.env_tool import ToolFactory
 from aworld.logs.util import logger, color_log
 from aworld.core.common import Observation, ActionModel
 from aworld.config.conf import ToolConfig, load_config
-from aworld.virtual_environments.tools_desc import get_actions_by_tools
+from aworld.core.env.tools_desc import get_actions_by_tools
 
 
 class Swarm(object):

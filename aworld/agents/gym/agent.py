@@ -3,7 +3,7 @@
 
 from typing import Any, Dict, Union, List
 
-from aworld.agents.base import BaseAgent, AgentFactory
+from aworld.core.agents.agent import BaseAgent, AgentFactory
 from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Tools, Agents
 

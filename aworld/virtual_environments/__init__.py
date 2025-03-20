@@ -10,4 +10,3 @@ from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenA
 from aworld.virtual_environments.browsers.action.actions import *
 from aworld.virtual_environments.android.action.adb_actions import *
 
-from aworld.virtual_environments.tools_desc import get_desc_by_tool

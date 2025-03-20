@@ -6,8 +6,6 @@ from enum import Enum
 from pydantic import BaseModel
 from typing import Dict, Any, Union, List
 
-from aworld.core.dom import DOMElementNode
-
 
 class ActionResult(BaseModel):
     """Result of executing an action by use tool."""
@@ -46,13 +44,10 @@ class Agents(Enum):
     EXECUTE = "execute_agent"
 
 
-class DomTree(BaseModel):
-    element_tree: DOMElementNode
-    element_map: Dict[int, DOMElementNode]
-
 
 class Observation(BaseModel):
-    dom_tree: Union[str, DomTree] = None
+    # dom_tree is a str or DomTree object
+    dom_tree: Union[str, Any] = None
     image: str = None  # base64
     content: Any = None
     action_result: List[ActionResult] = None

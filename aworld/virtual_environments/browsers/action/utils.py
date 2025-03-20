@@ -5,7 +5,7 @@ import re
 import traceback
 from typing import Optional
 
-from aworld.core.dom import DOMElementNode
+from aworld.virtual_environments.browsers.util.dom import DOMElementNode
 from aworld.logs.util import logger
 
 

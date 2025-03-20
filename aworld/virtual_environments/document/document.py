@@ -3,7 +3,7 @@ import os
 import base64
 import tempfile
 import subprocess
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple
 from urllib.parse import urlparse
 
 import xmltodict
@@ -11,9 +11,9 @@ from pydantic import BaseModel
 
 from aworld.agents.browser.utils import encode_image_from_file, encode_image_from_url
 from aworld.config import ToolConfig
-from aworld.core.action import DocumentExecuteAction
-from aworld.core.common import Tools, Observation, ToolActionModel, ActionResult
-from aworld.core.env_tool import ToolFactory, EnvTool
+from aworld.core.env.tool_action import DocumentExecuteAction
+from aworld.core.common import Tools, Observation, ActionModel, ActionResult
+from aworld.core.env.env_tool import ToolFactory, EnvTool
 from aworld.logs.util import logger
 
 
@@ -23,7 +23,7 @@ class InputDocument(BaseModel):
 
 @ToolFactory.register(name=Tools.DOCUMENT_ANALYSIS.value, desc="document analysis",
                       supported_action=DocumentExecuteAction)
-class DocumentTool(EnvTool[Observation, ToolActionModel]):
+class DocumentTool(EnvTool[Observation, ActionModel]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         """Init document tool."""
         super(DocumentTool, self).__init__(conf, **kwargs)
@@ -65,7 +65,7 @@ class DocumentTool(EnvTool[Observation, ToolActionModel]):
     def finished(self) -> bool:
         return self.step_finished
 
-    def step(self, actions: list[ToolActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
+    def step(self, actions: list[ActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
         self.step_finished = False
         reward = 0
         fail_error = ""
@@ -109,13 +109,12 @@ class DocumentTool(EnvTool[Observation, ToolActionModel]):
                     base64_image = encode_image_from_file(document_path)
                 else:
                     base64_image = encode_image_from_url(document_path)
-                self.conf = f"data:image/jpeg;base64,{base64_image}"
+                self.content = f"data:image/jpeg;base64,{base64_image}"
 
             if any(document_path.endswith(ext) for ext in ["xls", "xlsx"]):
                 try:
                     try:
                         import pandas as pd
-                        import json
                     except ImportError:
                         error = "pandas library not found. Please install pandas: pip install pandas"
                         return self.content, self.keyframes, error
@@ -195,7 +194,6 @@ class DocumentTool(EnvTool[Observation, ToolActionModel]):
                     
                     # data URI
                     self.content = f"data:{mime_type};base64,{audio_base64}"
-                    logger.info(f"Audio file encoded as base64: {document_path}")
                 except Exception as audio_error:
                     error = str(audio_error)
                     logger.error(f"Error processing audio file: {error}")
@@ -208,8 +206,7 @@ class DocumentTool(EnvTool[Observation, ToolActionModel]):
                         import numpy as np
                     except ImportError:
                         error = "Required libraries not found. Please install opencv-python: pip install opencv-python"
-                        logger.error(error)
-                        return None, error
+                        return None,None,error
                     
                     # create temp dir
                     temp_dir = tempfile.mkdtemp()

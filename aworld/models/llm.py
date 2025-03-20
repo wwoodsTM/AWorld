@@ -180,18 +180,12 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         else:
             base_url = kwargs.get("base_url")
 
-        return OpenAI(
-            timeout=1800,
-            max_retries=3,
+        return ChatOpenAI(
+            model=kwargs.get("model_name", "gpt-4o"),
+            temperature=kwargs.get("temperature", 0.0),
             base_url=base_url,
             api_key=api_key or secrets.openai_api_key,
         )
-        # return ChatOpenAI(
-        #     model=kwargs.get("model_name", "gpt-4o"),
-        #     temperature=kwargs.get("temperature", 0.0),
-        #     base_url=base_url,
-        #     api_key=api_key or secrets.openai_api_key,
-        # )
     elif provider == "deepseek":
         if not kwargs.get("base_url", ""):
             base_url = os.getenv("DEEPSEEK_ENDPOINT", "")
@@ -278,7 +272,6 @@ def get_llm_model(conf: AgentConfig, **kwargs):
 
 # Predefined model names for common providers
 model_names = {
-    "antgpt": ["gpt-4o"],
     "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229"],
     "openai": ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini"],
     "deepseek": ["deepseek-chat", "deepseek-reasoner"],

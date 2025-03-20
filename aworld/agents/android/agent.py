@@ -8,15 +8,15 @@ from typing import Dict, Any, Optional, List, Union
 
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 
-from aworld.agents.base import Agent, AgentFactory, BaseAgent
+from aworld.core.agents.agent import AgentFactory, BaseAgent, AgentResult
 
-from aworld.agents.common import AgentStepInfo, LlmResult
+from aworld.agents.browser.common import AgentStepInfo
 from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
-from aworld.core.action import AndroidAction
+from aworld.core.env.tool_action import AndroidAction
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
-from aworld.agents.common import (
+from aworld.agents.android.common import (
     AgentState,
     AgentSettings,
     AgentHistory,
@@ -92,25 +92,15 @@ class AndroidAgent(BaseAgent):
         super(AndroidAgent, self).__init__(conf, **kwargs)
         self._build_prompt()
         self.task = input
-        self.state = AgentState()
         self.available_actions_desc = self._build_action_prompt()
-        self.settings = AgentSettings(**conf.dict())
+        # Settings
+        self.settings = AgentSettings(**conf.model_dump())
         self.model_name = conf.llm_model_name
         self.llm = get_llm_model(conf)
         self.android_tool = android_tool
         self.observation = observation
         # State
         self.state = AgentState()
-        # Settings
-        # self.settings = AgentSettings(
-        #     max_failures=conf.get('max_failures'),
-        #     retry_delay=conf.get('retry_delay'),
-        #     save_history=conf.get('save_history'),
-        #     history_path=conf.get('history_path'),
-        #     max_actions_per_step=conf.get('max_actions_per_step'),
-        #     validate_output=conf.get('validate_output'),
-        #     message_context=conf.get('message_context')
-        # )
         # History
         self.history = AgentHistoryList(history=[])
 
@@ -251,7 +241,7 @@ class AndroidAgent(BaseAgent):
             logger.error(f"[agent] ❌ Action execution error: {str(e)}")
             raise
 
-    def _do_policy(self, input_messages: list[BaseMessage]) -> LlmResult:
+    def _do_policy(self, input_messages: list[BaseMessage]) -> AgentResult:
         response = self.llm.invoke(input_messages)  # 使用同步版本
         # 清理响应内容
         content = response.content
@@ -298,10 +288,10 @@ class AndroidAgent(BaseAgent):
             )
             result.append(action_model)
 
-        return LlmResult(current_state=brain_state, actions=result)
+        return AgentResult(current_state=brain_state, actions=result)
 
     def _make_history_item(self,
-                           model_output: LlmResult | None,
+                           model_output: AgentResult | None,
                            state: Observation,
                            metadata: Optional[PolicyMetadata] = None) -> None:
         if isinstance(state, dict):
