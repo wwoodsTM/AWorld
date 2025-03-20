@@ -28,6 +28,7 @@ class Tools(Enum):
     CODE_EXECUTE = "code_execute"
     FILE = "file"
     IMAGE_ANALYSIS = "image_analysis"
+    DOCUMENT_ANALYSIS = "document_analysis"
 
 
 class Agents(Enum):
@@ -39,6 +40,8 @@ class Agents(Enum):
     FILE = "file_agent"
     IMAGE_ANALYSIS = "image_analysis_agent"
     SHELL = "shell_agent"
+    DOCUMENT = "document_agent"
+    GYM = "gym_agent"
 
 
 class DomTree(BaseModel):
@@ -52,6 +55,7 @@ class Observation(BaseModel):
     content: Any = None
     action_result: List[ActionResult] = None
     info: Dict[str, Any] = None
+    key_frame: List[str] = []
 
 
 class ParamInfo(BaseModel):
@@ -61,18 +65,19 @@ class ParamInfo(BaseModel):
     desc: str = None
     default_value: Any = None
 
+
 class ToolActionInfo(BaseModel):
     name: str
     input_params: Dict[str, ParamInfo] = {}
     desc: str = None
 
 
-class ToolActionModel(BaseModel):
+class ActionModel(BaseModel):
+    """The unified model of BaseAgent response can be provided to the agent, or tool actions in environmental."""
     tool_name: str
+    # agent name
+    agent_name: str
+    # action_name is a tool action name by agent policy.
     action_name: str
     params: Dict[str, Any] = {}
-
-
-class Reward(BaseModel):
-    value: float
-    info: Dict[str, Any]
+    policy_info: Any = None

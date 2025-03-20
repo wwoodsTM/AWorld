@@ -1,15 +1,14 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from typing import Dict, Any, Tuple, SupportsFloat
+from typing import Dict, Any, Tuple, SupportsFloat, List, Union
 
-import gymnasium
-
-from gymnasium import spaces
+from pydantic import BaseModel
 
 from aworld.config.conf import ToolConfig
 from aworld.core.action import GymAction
-from aworld.virtual_environments.env_tool import EnvTool, ToolFactory
+from aworld.core.common import Tools, Observation, ActionModel
+from aworld.core.env_tool import EnvTool, ToolFactory
 
 
 class ActionType(object):
@@ -17,31 +16,40 @@ class ActionType(object):
     CONTINUOUS = 'continuous'
 
 
-@ToolFactory.register(name="openai_gym", desc="gym classic control game", supported_action=GymAction)
-class OpenAIGym(EnvTool):
-    def __init__(self, env_id: str, wrappers: list = [], **kwargs) -> None:
+@ToolFactory.register(name=Tools.GYM.value, desc="gym classic control game", supported_action=GymAction)
+class OpenAIGym(EnvTool[Observation, List[ActionModel]]):
+    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
         """Gym environment constructor.
 
         Args:
             env_id: gym environment full name
             wrappers: gym environment wrapper list
         """
-        self.env_id = env_id
-        self._render = kwargs.pop('render', False)
+        super(OpenAIGym, self).__init__(conf, **kwargs)
+        self.env_id = self.dict_conf.get("env_id")
+        self._render = kwargs.pop('render', True)
         if self._render and 'render_mode' not in kwargs:
             kwargs['render_mode'] = 'human'
-        self.env = self._gym_env_wrappers(env_id, wrappers, **kwargs)
+        self.env = self._gym_env_wrappers(self.env_id, self.dict_conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
         conf = ToolConfig()
         super(OpenAIGym, self).__init__(conf, **kwargs)
 
-    def step(self, action: Any, **kwargs) -> Tuple[Any, SupportsFloat, bool, bool, Dict[str, Any]]:
+    def name(self):
+        return Tools.GYM.value
+
+    def step(self, action: List[ActionModel], **kwargs) -> Tuple[Any, SupportsFloat, bool, bool, Dict[str, Any]]:
         if self._render:
             self.render()
+        action = action[0].params['result']
         action = OpenAIGym.transform_action(action=action)
         state, reward, terminal, truncate, info = self.env.step(action)
         info['env_id'] = self.env_id
-        return OpenAIGym.transform_state(state=state), reward, terminal, truncate, info
+        return (Observation(content=OpenAIGym.transform_state(state=state)),
+                reward,
+                terminal,
+                truncate,
+                info)
 
     def render(self):
         return self.env.render()
@@ -53,9 +61,11 @@ class OpenAIGym(EnvTool):
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[Any, Dict[str, Any]]:
         state = self.env.reset()
-        return OpenAIGym.transform_state(state), {"env_id": self.env_id}
+        return Observation(content=OpenAIGym.transform_state(state=state)), {"env_id": self.env_id}
 
     def _action_dim(self):
+        from gymnasium import spaces
+
         if isinstance(self.env.action_space, spaces.Discrete):
             self.action_type = ActionType.DISCRETE
             return self.env.action_space.n
@@ -72,6 +82,8 @@ class OpenAIGym(EnvTool):
             raise Exception('unsupported observation_space.shape: {}'.format(self.env.observation_space))
 
     def _gym_env_wrappers(self, env_id, wrappers: list = [], **kwargs):
+        import gymnasium
+
         env = gymnasium.make(env_id, **kwargs)
 
         if wrappers:

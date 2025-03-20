@@ -61,6 +61,10 @@ class SearchAction(ToolAction):
 
 class GymAction(ToolAction):
     PLAY = ToolActionInfo(name="play",
+                          input_params={"result": ParamInfo(name="result",
+                                                            type="object",
+                                                            required=True,
+                                                            desc="Agent decision result.")},
                           desc="step")
 
 
@@ -118,13 +122,13 @@ class BrowserAction(ToolAction):
                                input_params={"amount": ParamInfo(name="amount",
                                                                  type="int",
                                                                  required=True,
-                                                                 desc="pixel amount.")},
+                                                                 desc="Pixel amount.")},
                                desc="Scroll up the page by pixel amount - if no amount is specified, scroll up one page")
     CLICK_ELEMENT = ToolActionInfo(name="click_element",
                                    input_params={"index": ParamInfo(name="index",
                                                                     type="int",
                                                                     required=True,
-                                                                    desc="index of click element in page on browser.")},
+                                                                    desc="Index of click element in page on browser.")},
                                    desc="Click element")
     SAYING = ToolActionInfo(name="saying")
     NEW_TAB = ToolActionInfo(name="new_tab",
@@ -149,7 +153,7 @@ class BrowserAction(ToolAction):
                           input_params={"seconds": ParamInfo(name="seconds",
                                                              type="int",
                                                              required=True,
-                                                             desc="Open url in new tab on browser.")},
+                                                             desc="Wait some seconds.")},
                           desc="Open url in new tab")
     EXTRACT_CONTENT = ToolActionInfo(name="extract_content",
                                      input_params={"goal": ParamInfo(name="goal",
@@ -157,6 +161,12 @@ class BrowserAction(ToolAction):
                                                                      required=True,
                                                                      desc="The goal in page content.")},
                                      desc="Extract page content to retrieve specific information from the page, e.g. all company names, a specifc description, all information about, links with companies in structured format or simply links")
+    SEND_KEYS = ToolActionInfo(name="send_keys",
+                               input_params={"keys": ParamInfo(name="keys",
+                                                               type="str",
+                                                               required=True,
+                                                               desc="Strings of special keys.")},
+                               desc="Send strings of special keys like Escape,Backspace, Insert, PageDown, Delete, Enter, Shortcuts such as `Control+o`, `Control+Shift+T` are supported as well. This gets used in keyboard.press. ")
     DONE = ToolActionInfo(name="done",
                           desc="Complete task - with return text and if the task is finished (success=True) or not yet  completly finished (success=False), because last step is reached")
 
@@ -241,3 +251,14 @@ class ShellAction(ToolAction):
                                           required=True,
                                           desc="The input script to execute. Script should be complete and runnable, and need to explicitly use the print statement to get the output.")},
         desc="Execute the given script, need to explicitly use the print statement to get the output.")
+
+
+class DocumentExecuteAction(ToolAction):
+    """Definition of Document execute supported action."""
+    DOCUMENT_ANALYSIS = ToolActionInfo(
+        name="document_analysis",
+        input_params={"document_path": ParamInfo(name="document_path",
+                                                 type="str",
+                                                 required=True,
+                                                 desc="The path of the document to be processed, either a local path or a URL. It can process xlsx, docx, pdf, doc, xls and xml, etc.")},
+        desc="Extract the content of a given document (or url) and return the processed text. It can process xlsx, docx, pdf, doc, xls and xml, etc. It may filter out some information, resulting in inaccurate content.")

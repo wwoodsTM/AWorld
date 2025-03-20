@@ -1,21 +1,18 @@
 # coding: utf-8
 
-# Due to the implementation of the browser agent, structures mainly derive from browser_use,
-# everything else is only used for browser agent, except for LlmResult.
-
 import json
 import traceback
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Dict, List
+from typing import Any, Optional, Dict, List, Type
 
 from langchain_core.load import dumpd, load
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, SystemMessage, HumanMessage
 from openai import RateLimitError
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from aworld.core.common import ActionResult, ToolActionModel
+from aworld.core.common import ActionResult, ActionModel
 
 
 class MessageMetadata(BaseModel):
@@ -266,4 +263,4 @@ class AgentStepInfo:
 
 class LlmResult(BaseModel):
     current_state: Any
-    actions: List[ToolActionModel]
+    actions: List[ActionModel]

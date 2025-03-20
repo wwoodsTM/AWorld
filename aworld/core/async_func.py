@@ -5,12 +5,9 @@ import asyncio
 from functools import wraps
 from typing import Callable, Optional, Union, Any, Dict
 
-from aworld.core.task import Task
 
-
-class FunctionTask(Task):
+class Functionable:
     def __init__(self, function: Callable[..., Any], *args: Any, **kwargs: Dict[str, Any]) -> None:
-        super(FunctionTask, self).__init__(None, *args, **kwargs)
         self.function = function
         self.args = args
         self.kwargs = kwargs
@@ -27,7 +24,7 @@ class FunctionTask(Task):
             self.exception = e
         self.done = True
 
-    def run(self):
+    def call(self):
         self.__call__()
 
 
@@ -36,9 +33,9 @@ def async_decorator(*func, delay: Optional[Union[int, float]] = 0.5) -> Callable
         @wraps(function)
         async def inner_wrapper(*args: Any, **kwargs: Any) -> Any:
             sleep_time = 0 if delay is None else delay
-            task = FunctionTask(function, *args, **kwargs)
+            task = Functionable(function, *args, **kwargs)
             # TODO: Use thread pool to process task
-            task.start()
+            task.call()
             if task.error:
                 raise task.exception
             await asyncio.sleep(sleep_time)
@@ -57,8 +54,8 @@ def async_decorator(*func, delay: Optional[Union[int, float]] = 0.5) -> Callable
 def async_func(function: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(function)
     async def inner_wrapper(*args: Any, **kwargs: Any) -> Any:
-        task = FunctionTask(function, *args, **kwargs)
-        task.start()
+        task = Functionable(function, *args, **kwargs)
+        task.call()
         if task.error:
             raise task.exception
         return task.result

@@ -3,12 +3,12 @@
 
 from typing import List, Dict
 
-from anthropic import BaseModel
+from pydantic import BaseModel
 
 from aworld.core.action_factory import ActionFactory
 from aworld.core.common import ParamInfo
 from aworld.logs.util import logger
-from aworld.virtual_environments.env_tool import ToolFactory
+from aworld.core.env_tool import ToolFactory
 
 
 class ActionDescriptionProtocol(BaseModel):
@@ -93,6 +93,36 @@ def tool_desc():
 
 
 tool_desc_dict = tool_desc()
+
+
+def get_actions() -> List[str]:
+    res = []
+    for _, tool_info in tool_desc_dict.items():
+        actions = tool_info.get("actions")
+        if not actions:
+            continue
+
+        for action in actions:
+            res.append(action['name'])
+    return res
+
+
+def get_actions_by_tools(tool_names: Dict = None) -> List[str]:
+    if not tool_names:
+        return get_actions()
+
+    res = []
+    for tool_name, tool_info in tool_desc_dict.items():
+        if tool_name not in tool_names:
+            continue
+
+        actions = tool_info.get("actions")
+        if not actions:
+            continue
+
+        for action in actions:
+            res.append(action['name'])
+    return res
 
 
 def get_desc_by_tool(name: str):

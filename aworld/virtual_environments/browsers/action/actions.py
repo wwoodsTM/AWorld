@@ -1,21 +1,19 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import traceback
 
 import asyncio
 import time
 from typing import Tuple, Any
 
 from langchain_core.prompts import PromptTemplate
-from playwright.sync_api import Page, BrowserContext
-from playwright.async_api import Page as APage, BrowserContext as ABrowserContext
 
 from aworld.core.action import BrowserAction
 from aworld.core.action_factory import ActionFactory
-from aworld.core.common import ToolActionModel, ActionResult, Observation, Tools
+from aworld.core.common import ActionModel, ActionResult, Observation, Tools
 from aworld.core.dom import DOMElementNode
 from aworld.logs.util import logger
-from aworld.virtual_environments.browsers.action.utils import get_locate_element, click_element, \
-    async_click_element, async_get_locate_element
+from aworld.virtual_environments.browsers.action.utils import DomUtil
 from aworld.virtual_environments.action import ExecutableAction
 
 
@@ -41,7 +39,7 @@ def get_browser(**kwargs):
                         desc=BrowserAction.GO_TO_URL.value.desc,
                         tool_name=Tools.BROWSER.value)
 class GotoUrl(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.GO_TO_URL.value.name} action")
         page = get_page(**kwargs)
         if page is None:
@@ -56,9 +54,9 @@ class GotoUrl(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.GO_TO_URL.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.GO_TO_URL.name} page is none")
             return ActionResult(content="no page", keep=True), page
@@ -79,9 +77,9 @@ class GotoUrl(ExecutableAction):
                         desc=BrowserAction.INPUT_TEXT.value.desc,
                         tool_name=Tools.BROWSER.value)
 class InputText(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.INPUT_TEXT.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.INPUT_TEXT.name} page is none")
             return ActionResult(content="input text no page", keep=True), page
@@ -103,9 +101,9 @@ class InputText(ExecutableAction):
         logger.debug(f'Element xpath: {element_node.xpath}')
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.INPUT_TEXT.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.INPUT_TEXT.name} page is none")
             return ActionResult(content="input text no page", keep=True), page
@@ -127,13 +125,13 @@ class InputText(ExecutableAction):
         logger.debug(f'Element xpath: {element_node.xpath}')
         return ActionResult(content=msg, keep=True), page
 
-    def input_to_element(self, input: str, page: Page, element_node: DOMElementNode):
+    def input_to_element(self, input: str, page, element_node: DOMElementNode):
         try:
             # Highlight before typing
             # if element_node.highlight_index is not None:
             # 	await self._update_state(focus_element=element_node.highlight_index)
 
-            element_handle = get_locate_element(page, element_node)
+            element_handle = DomUtil.get_locate_element(page, element_node)
 
             if element_handle is None:
                 raise RuntimeError(f'Element: {repr(element_node)} not found')
@@ -159,9 +157,9 @@ class InputText(ExecutableAction):
             logger.warning(f'Failed to input text into element: {repr(element_node)}. Error: {str(e)}')
             raise RuntimeError(f'Failed to input text into index {element_node.highlight_index}')
 
-    async def async_input_to_element(self, input: str, page: APage, element_node: DOMElementNode):
+    async def async_input_to_element(self, input: str, page, element_node: DOMElementNode):
         try:
-            element_handle = await async_get_locate_element(page, element_node)
+            element_handle = await DomUtil.async_get_locate_element(page, element_node)
 
             if element_handle is None:
                 raise RuntimeError(f'Element: {repr(element_node)} not found')
@@ -191,9 +189,11 @@ class InputText(ExecutableAction):
                         desc=BrowserAction.CLICK_ELEMENT.value.desc,
                         tool_name=Tools.BROWSER.value)
 class ClickElement(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        from playwright.sync_api import Page, BrowserContext
+
         logger.info(f"exec {BrowserAction.CLICK_ELEMENT.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.CLICK_ELEMENT.name} page is none")
             return ActionResult(content="input text no page", keep=True), page
@@ -216,7 +216,7 @@ class ClickElement(ExecutableAction):
             msg = f'Clicked button with index {index}: {element_node.get_all_text_till_next_clickable_element(max_depth=2)}'
             logger.info(msg)
 
-            click_element(page, element_node, browser=browser)
+            DomUtil.click_element(page, element_node, browser=browser)
             logger.debug(f'Element xpath: {element_node.xpath}')
             if len(browser.pages) > pages:
                 new_tab_msg = 'Open the new tab'
@@ -230,14 +230,14 @@ class ClickElement(ExecutableAction):
             logger.warning(f'Element not clickable with index {index} - most likely the page changed')
             return ActionResult(error=str(e)), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.CLICK_ELEMENT.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warn(f"{BrowserAction.CLICK_ELEMENT.name} page is none")
             return ActionResult(content="input text no page", keep=True), page
 
-        browser: ABrowserContext = get_browser(**kwargs)
+        browser = get_browser(**kwargs)
         if browser is None:
             logger.warning(f"{BrowserAction.CLICK_ELEMENT.name} browser context is none")
             return ActionResult(content="none browser context", keep=True), page
@@ -252,7 +252,7 @@ class ClickElement(ExecutableAction):
         pages = len(browser.pages)
 
         try:
-            await async_click_element(page, element_node, browser=browser)
+            await DomUtil.async_click_element(page, element_node, browser=browser)
             msg = f'Clicked button with index {index}: {element_node.get_all_text_till_next_clickable_element(max_depth=2)}'
 
             logger.info(msg)
@@ -278,9 +278,9 @@ SEARCH_ENGINE = {"": "https://www.google.com/search?udm=14&q=",
                         desc=BrowserAction.SEARCH.value.desc,
                         tool_name=Tools.BROWSER.value)
 class Search(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SEARCH.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SEARCH.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -295,9 +295,9 @@ class Search(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SEARCH.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SEARCH.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -317,9 +317,9 @@ class Search(ExecutableAction):
                         desc=BrowserAction.SEARCH_GOOGLE.value.desc,
                         tool_name=Tools.BROWSER.value)
 class SearchGoogle(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SEARCH_GOOGLE.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SEARCH_GOOGLE.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -331,9 +331,9 @@ class SearchGoogle(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SEARCH_GOOGLE.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SEARCH_GOOGLE.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -350,9 +350,9 @@ class SearchGoogle(ExecutableAction):
                         desc=BrowserAction.GO_BACK.value.desc,
                         tool_name=Tools.BROWSER.value)
 class GoBack(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.GO_BACK.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.GO_BACK.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -362,9 +362,9 @@ class GoBack(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.GO_BACK.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.GO_BACK.name} page is none")
             return ActionResult(content="search no page", keep=True), page
@@ -379,11 +379,11 @@ class GoBack(ExecutableAction):
                         desc=BrowserAction.EXTRACT_CONTENT.value.desc,
                         tool_name=Tools.BROWSER.value)
 class ExtractContent(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         import markdownify
 
         logger.info(f"exec {BrowserAction.EXTRACT_CONTENT.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.EXTRACT_CONTENT.name} page is none")
             return ActionResult(content="extract content no page", keep=True), page
@@ -405,11 +405,11 @@ class ExtractContent(ExecutableAction):
             logger.info(msg)
             return ActionResult(content=msg), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         import markdownify
 
         logger.info(f"exec {BrowserAction.EXTRACT_CONTENT.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.EXTRACT_CONTENT.name} page is none")
             return ActionResult(content="extract content no page", keep=True), page
@@ -436,9 +436,9 @@ class ExtractContent(ExecutableAction):
                         desc=BrowserAction.SCROLL_DOWN.value.desc,
                         tool_name=Tools.BROWSER.value)
 class ScrollDown(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SCROLL_DOWN.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SCROLL_DOWN.name} page is none")
             return ActionResult(content="scroll no page", keep=True), page
@@ -454,9 +454,9 @@ class ScrollDown(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SCROLL_DOWN.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SCROLL_DOWN.name} page is none")
             return ActionResult(content="scroll no page", keep=True), page
@@ -477,9 +477,9 @@ class ScrollDown(ExecutableAction):
                         desc=BrowserAction.SCROLL_UP.value.desc,
                         tool_name=Tools.BROWSER.value)
 class ScrollUp(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SCROLL_UP.value.name} action")
-        page: Page = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SCROLL_UP.name} page is none")
             return ActionResult(content="scroll no page", keep=True), page
@@ -495,9 +495,9 @@ class ScrollUp(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SCROLL_UP.value.name} action")
-        page: APage = get_page(**kwargs)
+        page = get_page(**kwargs)
         if page is None:
             logger.warning(f"{BrowserAction.SCROLL_UP.name} page is none")
             return ActionResult(content="scroll no page", keep=True), page
@@ -518,14 +518,14 @@ class ScrollUp(ExecutableAction):
                         desc=BrowserAction.WAIT.value.desc,
                         tool_name=Tools.BROWSER.value)
 class Wait(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         seconds = action.params.get("seconds")
         msg = f'Waiting for {seconds} seconds'
         logger.info(msg)
         time.sleep(seconds)
         return ActionResult(content=msg, keep=True), kwargs.get('page')
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         seconds = action.params.get("seconds")
         msg = f'Waiting for {seconds} seconds'
         logger.info(msg)
@@ -537,9 +537,9 @@ class Wait(ExecutableAction):
                         desc=BrowserAction.SWITCH_TAB.value.desc,
                         tool_name=Tools.BROWSER.value)
 class SwitchTab(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SWITCH_TAB.value.name} action")
-        browser: BrowserContext = get_browser(**kwargs)
+        browser = get_browser(**kwargs)
         if browser is None:
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
@@ -557,9 +557,9 @@ class SwitchTab(ExecutableAction):
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.SWITCH_TAB.value.name} action")
-        browser: ABrowserContext = get_browser(**kwargs)
+        browser = get_browser(**kwargs)
         if browser is None:
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
@@ -578,14 +578,56 @@ class SwitchTab(ExecutableAction):
         return ActionResult(content=msg, keep=True), page
 
 
+@ActionFactory.register(name=BrowserAction.SEND_KEYS.value.name,
+                        desc=BrowserAction.SEND_KEYS.value.desc,
+                        tool_name=Tools.BROWSER.value)
+class SendKeys(ExecutableAction):
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.SEND_KEYS.value.name} action")
+        page = get_page(**kwargs)
+        if page is None:
+            logger.warning(f"{BrowserAction.SEND_KEYS.name} page is none")
+            return ActionResult(content="scroll no page", keep=True), page
+
+        keys = action.params.get("keys")
+        if not keys:
+            return ActionResult(success=False, content="no keys", keep=True), page
+
+        try:
+            page.keyboard.press(keys)
+        except Exception as e:
+            logger.warning(f"{keys} press fail. \n{traceback.format_exc()}")
+            raise e
+        return ActionResult(content=f"Sent keys: {keys}", keep=True), page
+
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.SEND_KEYS.value.name} action")
+        page = get_page(**kwargs)
+        if page is None:
+            logger.warning(f"{BrowserAction.SEND_KEYS.name} page is none")
+            return ActionResult(content="scroll no page", keep=True), page
+
+        keys = action.params.get("keys")
+        if not keys:
+            return ActionResult(success=False, content="no keys", keep=True), page
+
+        try:
+            await page.keyboard.press(keys)
+        except Exception as e:
+            logger.warning(f"{keys} press fail. \n{traceback.format_exc()}")
+            raise e
+
+        return ActionResult(content=f"Sent keys: {keys}", keep=True), page
+
+
 @ActionFactory.register(name=BrowserAction.DONE.value.name,
                         desc=BrowserAction.DONE.value.desc,
                         tool_name=Tools.BROWSER.value)
 class Done(ExecutableAction):
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.DONE.value.name} action")
         return ActionResult(is_done=True, success=True, content="done", keep=True), get_page(**kwargs)
 
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.DONE.value.name} action")
         return ActionResult(is_done=True, success=True, content="done", keep=True), get_page(**kwargs)

@@ -1,22 +1,20 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from typing import Tuple, List
-
-from playwright.sync_api import Page, BrowserContext
+from typing import Tuple, List, Any
 
 from aworld.core.action_factory import ActionFactory
-from aworld.core.common import ToolActionModel, ActionResult, Observation
+from aworld.core.common import ActionModel, ActionResult, Observation
 from aworld.logs.util import logger
-from aworld.virtual_environments.env_tool import EnvTool, ToolActionExecutor
+from aworld.core.env_tool import EnvTool, ToolActionExecutor
 
 
 class BrowserToolActionExecutor(ToolActionExecutor):
-    def __init__(self, env_tool: EnvTool[Observation, List[ToolActionModel]] = None):
+    def __init__(self, env_tool: EnvTool[Observation, List[ActionModel]] = None):
         super(BrowserToolActionExecutor, self).__init__(env_tool)
 
-    def execute_action(self, actions: List[ToolActionModel], **kwargs) -> Tuple[
-        List[ActionResult], Page]:
+    def execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
+        List[ActionResult], Any]:
         """Execute the specified browser action sequence by agent policy.
 
         Args:
@@ -32,8 +30,8 @@ class BrowserToolActionExecutor(ToolActionExecutor):
             action_results.append(action_result)
         return action_results, page
 
-    async def async_execute_action(self, actions: List[ToolActionModel], **kwargs) -> Tuple[
-        List[ActionResult], Page]:
+    async def async_execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
+        List[ActionResult], Any]:
         """Execute the specified browser action sequence by agent policy.
 
         Args:
@@ -49,7 +47,7 @@ class BrowserToolActionExecutor(ToolActionExecutor):
             action_results.append(action_result)
         return action_results, page
 
-    def _exec(self, action_model: ToolActionModel, **kwargs):
+    def _exec(self, action_model: ActionModel, **kwargs):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
             raise ValueError(f'Action {action_name} not found')
@@ -59,7 +57,7 @@ class BrowserToolActionExecutor(ToolActionExecutor):
         logger.info(f"{action_name} execute finished")
         return action_result, page
 
-    async def _async_exec(self, action_model: ToolActionModel, **kwargs):
+    async def _async_exec(self, action_model: ActionModel, **kwargs):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name

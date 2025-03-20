@@ -9,14 +9,11 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from playwright.sync_api import ViewportSize
-from playwright.sync_api import sync_playwright
-
 from aworld.core.action import BrowserAction
-from aworld.core.common import Observation, ToolActionModel, DomTree, ActionResult, Tools
+from aworld.core.common import Observation, ActionModel, DomTree, ActionResult, Tools
 from aworld.logs.util import logger
-from aworld.virtual_environments.env_tool import action_executor, ToolFactory
-from aworld.virtual_environments.env_tool import EnvTool
+from aworld.core.env_tool import action_executor, ToolFactory
+from aworld.core.env_tool import EnvTool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
 from aworld.virtual_environments.conf import BrowserToolConfig
 from aworld.virtual_environments.browsers.util.dom_build import build_dom_tree
@@ -27,7 +24,7 @@ ASCII = "".join(chr(x) for x in range(32, 128))
 
 
 @ToolFactory.register(name=Tools.BROWSER.value, desc="browser", supported_action=BrowserAction)
-class BrowserTool(EnvTool[Observation, List[ToolActionModel]]):
+class BrowserTool(EnvTool[Observation, List[ActionModel]]):
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
@@ -38,7 +35,12 @@ class BrowserTool(EnvTool[Observation, List[ToolActionModel]]):
         self.js_code = resources.read_text('aworld.virtual_environments.browsers.config', 'buildDomTree.js')
         self.cur_observation = None
 
+    def name(self):
+        return Tools.BROWSER.value
+
     def init(self) -> None:
+        from playwright.sync_api import sync_playwright
+
         self.context_manager = sync_playwright()
         self.playwright = self.context_manager.start()
 
@@ -102,6 +104,8 @@ class BrowserTool(EnvTool[Observation, List[ToolActionModel]]):
 
     def _create_browser_context(self):
         """Creates a new browser context with anti-detection measures and loads cookies if available."""
+        from playwright.sync_api import ViewportSize
+
         browser = self.browser
         if self.dict_conf.get("cdp_url") and len(browser.contexts) > 0:
             context = browser.contexts[0]
@@ -231,7 +235,7 @@ class BrowserTool(EnvTool[Observation, List[ToolActionModel]]):
         if self.initialized:
             self.context_manager.__exit__()
 
-    def step(self, action: List[ToolActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
+    def step(self, action: List[ActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
         if not self.initialized:
             raise RuntimeError("Call init first before calling step.")
 

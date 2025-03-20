@@ -9,16 +9,13 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from playwright.async_api import ViewportSize
-from playwright.async_api import async_playwright
-
 from aworld.core.action import BrowserAction
-from aworld.core.common import Observation, ToolActionModel, DomTree, ActionResult, Tools
+from aworld.core.common import Observation, ActionModel, DomTree, ActionResult, Tools
 from aworld.logs.util import logger
-from aworld.virtual_environments.env_tool import action_executor, ToolFactory, AsyncEnvTool
+from aworld.core.env_tool import action_executor, ToolFactory, AsyncEnvTool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
 from aworld.virtual_environments.conf import BrowserToolConfig
-from aworld.virtual_environments.browsers.util.dom_build import build_dom_tree, async_build_dom_tree
+from aworld.virtual_environments.browsers.util.dom_build import async_build_dom_tree
 
 URL_MAX_LENGTH = 4096
 UTF8 = "".join(chr(x) for x in range(0, 55290))
@@ -26,7 +23,7 @@ ASCII = "".join(chr(x) for x in range(32, 128))
 
 
 @ToolFactory.register(name=Tools.BROWSER.value, desc="browser", asyn=True, supported_action=BrowserAction)
-class BrowserTool(AsyncEnvTool[Observation, List[ToolActionModel]]):
+class BrowserTool(AsyncEnvTool[Observation, List[ActionModel]]):
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
@@ -41,6 +38,8 @@ class BrowserTool(AsyncEnvTool[Observation, List[ToolActionModel]]):
         return "async_" + Tools.BROWSER.value
 
     async def init(self) -> None:
+        from playwright.async_api import async_playwright
+
         self.context_manager = async_playwright()
         self.playwright = await self.context_manager.start()
 
@@ -104,6 +103,8 @@ class BrowserTool(AsyncEnvTool[Observation, List[ToolActionModel]]):
 
     async def _create_browser_context(self):
         """Creates a new browser context with anti-detection measures and loads cookies if available."""
+        from playwright.async_api import ViewportSize
+
         browser = self.browser
         if self.dict_conf.get("cdp_url") and len(browser.contexts) > 0:
             context = browser.contexts[0]
@@ -233,7 +234,7 @@ class BrowserTool(AsyncEnvTool[Observation, List[ToolActionModel]]):
         if self.initialized:
             await self.context_manager.__aexit__()
 
-    async def step(self, action: List[ToolActionModel], **kwargs) -> Tuple[
+    async def step(self, action: List[ActionModel], **kwargs) -> Tuple[
         Observation, float, bool, bool, Dict[str, Any]]:
         if not self.initialized:
             raise RuntimeError("Call init first before calling step.")

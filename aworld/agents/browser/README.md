@@ -1,9 +1,7 @@
 # Browser Agents
 
 Agents specialized in web browser automation.
-
-NOTE: Browser agent in our framework is based browser_use, we reused the protocol, 
-some implementations(message_manager.py, prompts.py, utils.py) are derived from browser_use.
+The implementation of browser agent version is now derived from browser use, which we have made a lot of modifications to integrate into our own framework
 
 ## Features
 - Web page navigation

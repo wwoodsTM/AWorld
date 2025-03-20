@@ -1,30 +1,28 @@
 # coding: utf-8
 
-# In our framework's browser agent, we use the prompt and message management of browser_use to demonstrate the scalability of our framework.
-
 import re
 import time
 import traceback
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 from langchain_core.messages import HumanMessage, BaseMessage
 from pydantic import ValidationError
 
-from aworld.agents.base import Agent, AgentFactory
+from aworld.agents.base import AgentFactory, BaseAgent
 from aworld.agents.browser.message_manager import MessageManager, MessageManagerSettings
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output
 from aworld.agents.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain, LlmResult
 from aworld.config.conf import AgentConfig
 from aworld.core.action import BrowserAction
-from aworld.core.common import Observation, ToolActionModel, Tools, ToolActionInfo, Agents
+from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
 
 
 @AgentFactory.register(name=Agents.BROWSER.value, desc="browser agent")
-class BrowserAgent(Agent):
-    def __init__(self, input: str, conf: AgentConfig, **kwargs):
+class BrowserAgent(BaseAgent):
+    def __init__(self, conf: AgentConfig, **kwargs):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self._build_prompt()
         self.state = AgentState()
@@ -36,7 +34,7 @@ class BrowserAgent(Agent):
 
         # Initialize message manager
         self._message_manager = MessageManager(
-            task=input,
+            task=kwargs.get("input", ""),
             system_message=SystemPrompt(
                 action_description=self.available_actions_desc,
                 max_actions_per_step=self.settings.get('max_actions_per_step'),
@@ -49,6 +47,9 @@ class BrowserAgent(Agent):
             ),
             state=self.state.message_manager_state,
         )
+
+    def name(self) -> str:
+        return Agents.BROWSER.value
 
     def _build_action_prompt(self) -> str:
         def _prompt(info: ToolActionInfo) -> str:
@@ -68,10 +69,9 @@ class BrowserAgent(Agent):
     def add_new_task(self, new_task: str) -> None:
         self._message_manager.add_new_task(new_task)
 
-    def policy_action(self,
-                      observation: Observation,
-                      info: Dict[str, Any] = None,
-                      **kwargs) -> List[ToolActionModel] | None:
+    def policy(self,
+               observation: Observation,
+               info: Dict[str, Any] = None, **kwargs) -> Union[List[ActionModel], None]:
         start_time = time.time()
         step_info = AgentStepInfo(number=self.state.n_steps, max_steps=self.conf.max_steps)
         self._message_manager.add_state_message(observation, self.state.last_result, step_info,
@@ -99,7 +99,7 @@ class BrowserAgent(Agent):
 
             if self.state.stopped or self.state.paused:
                 logger.info('Browser gent paused after getting state')
-                return [ToolActionModel(tool_name=Tools.BROWSER.value, action_name="stop")]
+                return [ActionModel(tool_name=Tools.BROWSER.value, action_name="stop")]
 
             tool_action = llm_result.actions
 
@@ -151,9 +151,9 @@ class BrowserAgent(Agent):
                     browser_action = BrowserAction.get_value_by_name(action_name)
                     if not browser_action:
                         logger.warning(f"Unsupported action: {action_name}")
-                    action_model = ToolActionModel(tool_name=Tools.BROWSER.value,
-                                                   action_name=action_name,
-                                                   params=action.get('params', {}))
+                    action_model = ActionModel(tool_name=Tools.BROWSER.value,
+                                               action_name=action_name,
+                                               params=action.get('params', {}))
                     result.append(action_model)
                 else:
                     for k, v in action.items():
@@ -161,7 +161,7 @@ class BrowserAgent(Agent):
                         if not browser_action:
                             logger.warning(f"Unsupported action: {k}")
 
-                        action_model = ToolActionModel(tool_name=Tools.BROWSER.value, action_name=k, params=v)
+                        action_model = ActionModel(tool_name=Tools.BROWSER.value, action_name=k, params=v)
                         result.append(action_model)
             return LlmResult(current_state=agent_brain, actions=result)
         except (ValueError, ValidationError) as e:

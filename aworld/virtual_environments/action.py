@@ -4,17 +4,17 @@
 import abc
 from typing import Tuple, Any
 
-from aworld.core.common import ToolActionModel, ActionResult
+from aworld.core.common import ActionModel, ActionResult
 
 
 class ExecutableAction(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         """"""
 
     @abc.abstractmethod
-    async def async_act(self, action: ToolActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         """"""
 
