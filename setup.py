@@ -99,7 +99,7 @@ class AWorldInstaller(install):
         install.run(self)
 
         # install optional requirements here since pip install doesn't ignore requirement error
-        reqs = self._requirements[self.BASE_OPT]
+        reqs = self._requirements.get(self.BASE_OPT, [])
         self._install_reqs(reqs, ignore_error=True)
 
     def _contains_module(self, module):
@@ -125,7 +125,7 @@ class AWorldInstaller(install):
                     logging.info("Installing optional package %s have succeeded." % req)
                 except:
                     logging.warning("Installing optional package %s is failed, Ignored." % req)  # ignore
-        else:
+        elif reqs:
             cmd = f"{sys.executable} -m pip install {info} {' '.join(reqs)}"
             call_process(cmd)
             logging.info("Packages %s have been installed." % str(reqs))
