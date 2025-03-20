@@ -26,7 +26,8 @@ class ToolDescriptionProtocol(BaseModel):
 def tool_desc():
     """Utility method of generate description of tools and their actions.
 
-    The standard protocol is as follows:
+    The standard protocol can be transformed based on the API of different llm.
+    Define as follows:
     ```
     {
         "tool_name": {
@@ -92,12 +93,12 @@ def tool_desc():
     return descs
 
 
-tool_desc_dict = tool_desc()
+tool_action_desc_dict = tool_desc()
 
 
 def get_actions() -> List[str]:
     res = []
-    for _, tool_info in tool_desc_dict.items():
+    for _, tool_info in tool_action_desc_dict.items():
         actions = tool_info.get("actions")
         if not actions:
             continue
@@ -112,7 +113,7 @@ def get_actions_by_tools(tool_names: Dict = None) -> List[str]:
         return get_actions()
 
     res = []
-    for tool_name, tool_info in tool_desc_dict.items():
+    for tool_name, tool_info in tool_action_desc_dict.items():
         if tool_name not in tool_names:
             continue
 
@@ -126,4 +127,8 @@ def get_actions_by_tools(tool_names: Dict = None) -> List[str]:
 
 
 def get_desc_by_tool(name: str):
-    return getattr(tool_desc_dict, name, None)
+    return getattr(tool_action_desc_dict, name, None)
+
+
+def is_tool_by_name(name: str) -> bool:
+    return name in ToolFactory

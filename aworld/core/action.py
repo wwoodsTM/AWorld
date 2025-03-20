@@ -41,7 +41,7 @@ class SearchAction(ToolAction):
                                                                desc="duckduckgo search query input.",
                                                                default_value="text"),
                                            "max_results": ParamInfo(name="max_results",
-                                                                    type="int",
+                                                                    type="str",
                                                                     required=False,
                                                                     desc="duckduckgo search query input.",
                                                                     default_value=5)},
@@ -52,7 +52,7 @@ class SearchAction(ToolAction):
                                                              required=True,
                                                              desc="google search query input."),
                                           "num_result_pages": ParamInfo(name="num_result_pages",
-                                                                        type="int",
+                                                                        type="str",
                                                                         required=False,
                                                                         desc="google search query input.",
                                                                         default_value=5)},
@@ -84,7 +84,7 @@ class BrowserAction(ToolAction):
                                                                 required=True,
                                                                 desc="input text in page on browser"),
                                               "index": ParamInfo(name="index",
-                                                                 type="int",
+                                                                 type="str",
                                                                  required=True,
                                                                  desc="index of click element in page on browser.")},
                                 desc="Input text into a input interactive element")
@@ -114,19 +114,19 @@ class BrowserAction(ToolAction):
                                 desc="Go forward")
     SCROLL_DOWN = ToolActionInfo(name="scroll_down",
                                  input_params={"amount": ParamInfo(name="amount",
-                                                                   type="int",
+                                                                   type="str",
                                                                    required=True,
                                                                    desc="pixel amount.")},
                                  desc="Scroll down the page by pixel amount - if no amount is specified, scroll down one page")
     SCROLL_UP = ToolActionInfo(name="scroll_up",
                                input_params={"amount": ParamInfo(name="amount",
-                                                                 type="int",
+                                                                 type="str",
                                                                  required=True,
                                                                  desc="Pixel amount.")},
                                desc="Scroll up the page by pixel amount - if no amount is specified, scroll up one page")
     CLICK_ELEMENT = ToolActionInfo(name="click_element",
                                    input_params={"index": ParamInfo(name="index",
-                                                                    type="int",
+                                                                    type="str",
                                                                     required=True,
                                                                     desc="Index of click element in page on browser.")},
                                    desc="Click element")
@@ -139,7 +139,7 @@ class BrowserAction(ToolAction):
                              desc="Open url in new tab")
     SWITCH_TAB = ToolActionInfo(name="switch_tab",
                                 input_params={"page_id": ParamInfo(name="page_id",
-                                                                   type="int",
+                                                                   type="str",
                                                                    required=True,
                                                                    desc="Switch tab by page id on browser.")},
                                 desc="Switch tab")
@@ -151,7 +151,7 @@ class BrowserAction(ToolAction):
                               desc="Open url in new tab")
     WAIT = ToolActionInfo(name="wait",
                           input_params={"seconds": ParamInfo(name="seconds",
-                                                             type="int",
+                                                             type="str",
                                                              required=True,
                                                              desc="Wait some seconds.")},
                           desc="Open url in new tab")
@@ -175,13 +175,13 @@ class AndroidAction(ToolAction):
     """Definition of android tool supported action."""
     TAP = ToolActionInfo(name="tap",
                          input_params={"tap_index": ParamInfo(name="tap_index",
-                                                              type="int",
+                                                              type="str",
                                                               required=True,
                                                               desc="Index of tap element.")},
                          desc="Tap element")
     SWIPE = ToolActionInfo(name="swipe",
                            input_params={"index": ParamInfo(name="index",
-                                                            type="int",
+                                                            type="str",
                                                             required=True,
                                                             desc="Index of swipe the screen."),
                                          "direction": ParamInfo(name="direction",
@@ -195,7 +195,7 @@ class AndroidAction(ToolAction):
                            desc="Swipe the screen")
     LONG_PRESS = ToolActionInfo(name="long_press",
                                 input_params={"long_press_index": ParamInfo(name="long_press_index",
-                                                                            type="int",
+                                                                            type="str",
                                                                             required=True,
                                                                             desc="Index of the element.")},
                                 desc="Long press the element")

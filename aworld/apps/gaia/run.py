@@ -35,4 +35,4 @@ if __name__ == '__main__':
 
     print(f"Task completed: {result['success']}")
     print(f"Time cost: {result['time_cost']}")
-    print(f"Task Answer: {result['task_0']['answer']}")
+    print(result)

@@ -18,35 +18,47 @@ class Agent(Generic[INPUT, OUTPUT]):
 
     def __init__(self, conf: AgentConfig, **kwargs):
         self.conf = conf
+        # An agent can delegate tasks to other agent
         self.handoffs = []
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], LlmResult]] = []
+        self._finished = False
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     @abc.abstractmethod
     def name(self) -> str:
-        """"""
+        """Agent name that must be implemented in subclasses"""
 
     @abc.abstractmethod
     def policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
-        """"""
+        """The strategy of an agent can be to decide which tools to use in the environment, or to delegate tasks to other agents.
+
+        Args:
+            observation: The state observed from tools in the environment.
+            info: Extended information is used to assist the agent to decide a policy.
+        """
 
     @abc.abstractmethod
     async def async_policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
-        """"""
+        """The strategy of an agent can be to decide which tools to use in the environment, or to delegate tasks to other agents.
+
+        Args:
+            observation: The state observed from tools in the environment.
+            info: Extended information is used to assist the agent to decide a policy.
+        """
 
     def reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
 
     @abc.abstractmethod
     async def async_reset(self):
-        """"""
+        """Clean agent instance state and reset."""
 
     @property
     def finished(self) -> bool:
         """Agent finished the thing, default is True."""
-        return False
+        return self._finished
 
 
 class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
@@ -55,12 +67,28 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
-        """"""
+        """The strategy of an agent can be to decide which tools to use in the environment, or to delegate tasks to other agents.
+
+        Args:
+            observation: The state observed from tools in the environment.
+            info: Extended information is used to assist the agent to decide a policy.
+
+        Returns:
+            ActionModel sequence from agent policy
+        """
 
     @abc.abstractmethod
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
-        """"""
+        """The strategy of an agent can be to decide which tools to use in the environment, or to delegate tasks to other agents.
+
+        Args:
+            observation: The state observed from tools in the environment.
+            info: Extended information is used to assist the agent to decide a policy.
+
+        Returns:
+            ActionModel sequence from agent policy
+        """
 
 
 class AgentManager(Factory):
@@ -68,6 +96,7 @@ class AgentManager(Factory):
         if name is None:
             return self
 
+        # Agent must have conf params
         if 'conf' not in kwargs:
             if not args:
                 raise ValueError("params `conf` must in args or kwargs!")

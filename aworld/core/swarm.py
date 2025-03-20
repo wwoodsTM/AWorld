@@ -9,12 +9,12 @@ from aworld.agents.base import Agent, BaseAgent
 from aworld.core.env_tool import ToolFactory
 from aworld.logs.util import logger, color_log
 from aworld.core.common import Observation, ActionModel
-from aworld.config.conf import ToolConfig, load_config, wipe_secret_info
+from aworld.config.conf import ToolConfig, load_config
 from aworld.virtual_environments.tools_desc import get_actions_by_tools
 
 
-class Swarm:
-    """Now it's an example implementation."""
+class Swarm(object):
+    """Implementation of interactive collaboration between multi-agent and interaction with env tools."""
 
     def __init__(self, *args, **kwargs):
         valid_agent_pair = []
@@ -45,20 +45,21 @@ class Swarm:
                 self.agents[pair[1].name()] = pair[1]
 
             pair[0].handoffs.append(pair[1].name())
+        self.finished = False
 
     def reset(self, tools):
         if not self.agents:
             logger.warning("No valid agent in swarm.")
             return
 
-        # can only use the special tools
+        # can only use the special tools in the swarm as a global
         self.tools_actions = get_actions_by_tools(tools)
         self.tools = tools
         self.cur_agent = self.entry_agent
         self.initialized = True
 
     def is_agent(self, policy: ActionModel):
-        return policy.tool_name is not None and policy.action_name is not None
+        return policy.tool_name is None and policy.action_name is None
 
     def process(self, observation, info) -> Dict[str, Any]:
         """Multi-agent general process workflow."""
@@ -90,7 +91,7 @@ class Swarm:
                     cur_agent: BaseAgent = self.agents.get(policy_for_agent.agent_name)
                     if not cur_agent:
                         raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
-                    if cur_agent.handoffs and policy_for_agent.agent_name not in cur_agent.handoffs:
+                    if self.cur_agent.handoffs and policy_for_agent.agent_name not in self.cur_agent.handoffs:
                         return {"msg": f"Can not handoffs {policy_for_agent.agent_name} agent "
                                        f"by {cur_agent.name()} agent.",
                                 "steps": step,
@@ -119,7 +120,7 @@ class Swarm:
                                 conf = ToolConfig()
                             tool = ToolFactory(act.tool_name, conf=conf)
                             logger.info(f"Dynamic load config from {act.tool_name}.yaml, "
-                                        f"conf is: {wipe_secret_info(conf, ['api_key'])}")
+                                        f"conf is: {conf}")
                             tool.reset()
                             tool_mapping[act.tool_name] = []
                             self.tools[act.tool_name] = tool
@@ -138,18 +139,22 @@ class Swarm:
                             msg = info.get("exception")
 
                         logger.info(f"step: {step} finished by tool action.")
-                        # Check if current agent done
-                        if self.cur_agent.finished:
-                            logger.info(f"{self.cur_agent.name()} agent finished.")
-                            terminated = True
-                            break
+                    # Check if current agent done
+                    if self.cur_agent.finished:
+                        logger.info(f"{self.cur_agent.name()} agent finished.")
+                        terminated = True
+                        break
 
-                if observation:
-                    policy = self.cur_agent.policy(observation, info)
                 step += 1
                 if terminated:
                     logger.info("swarm finished")
                     break
+
+                if observation:
+                    policy = self.cur_agent.policy(observation, info)
+
+            if self.entry_agent.finished:
+                self.finished = True
             return {"steps": step,
                     "msg": msg,
                     "success": True if not msg else False}
@@ -163,5 +168,5 @@ class Swarm:
             }
 
     @property
-    def finished(self) -> bool:
-        return False
+    def is_finished(self) -> bool:
+        return self.finished

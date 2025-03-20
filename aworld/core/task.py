@@ -126,13 +126,13 @@ class GeneralTask(Task):
                       info: Dict[str, Any]) -> Dict[str, Any]:
         start = time.time()
 
+        input = observation.content
         self.swarm.reset(self.tools)
         for agent in self.swarm.agents.values():
-            agent.reset(info)
+            agent.reset({"task": input})
 
         step = 0
         max_steps = self.conf.get("max_steps", 100)
-        terminated = False
         results = []
         try:
             while step < max_steps:
@@ -145,7 +145,6 @@ class GeneralTask(Task):
 
                 if self.swarm.finished:
                     logger.info("task done!")
-                    terminated = True
                     break
 
                 if not swarm_resp:
@@ -153,9 +152,6 @@ class GeneralTask(Task):
                     break
 
                 observation = Observation(content=swarm_resp)
-
-            if terminated:
-                logger.warning("")
 
             time_cost = time.time() - start
             if not results:
@@ -170,7 +166,7 @@ class GeneralTask(Task):
             return {"answer": answer,
                     "steps": step,
                     "success": True,
-                    "total_time": time_cost}
+                    "total_time": (time.time() - start)}
         except Exception as e:
             logger.error(f"Task execution failed with error: {str(e)}\n{traceback.format_exc()}")
             return {"msg": str(e),

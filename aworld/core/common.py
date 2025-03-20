@@ -42,6 +42,8 @@ class Agents(Enum):
     SHELL = "shell_agent"
     DOCUMENT = "document_agent"
     GYM = "gym_agent"
+    PLAN = "plan_agent"
+    EXECUTE = "execute_agent"
 
 
 class DomTree(BaseModel):
@@ -74,10 +76,10 @@ class ToolActionInfo(BaseModel):
 
 class ActionModel(BaseModel):
     """The unified model of BaseAgent response can be provided to the agent, or tool actions in environmental."""
-    tool_name: str
+    tool_name: str = None
     # agent name
-    agent_name: str
+    agent_name: str = None
     # action_name is a tool action name by agent policy.
-    action_name: str
+    action_name: str = None
     params: Dict[str, Any] = {}
     policy_info: Any = None
