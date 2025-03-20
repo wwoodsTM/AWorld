@@ -168,7 +168,7 @@ class AgentBrain(BaseModel):
 class AgentHistory(BaseModel):
     """History item for agent actions"""
     model_output: Optional[BaseModel] = None
-    result: List[ActionResult]
+    result: Optional[List[ActionResult]] = None
     metadata: Optional[PolicyMetadata] = None
     content: Optional[str] = None
     base64_img: Optional[str] = None

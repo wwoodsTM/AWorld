@@ -25,6 +25,8 @@ ASCII = "".join(chr(x) for x in range(32, 128))
 
 @ToolFactory.register(name=Tools.BROWSER.value, desc="browser", supported_action=BrowserAction)
 class BrowserTool(EnvTool[Observation, List[ActionModel]]):
+    END_ACTIONS = ["write_to_file"]
+
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
@@ -255,8 +257,8 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
 
         try:
             action_result, self.page = self.action_executor.execute_action(action,
-                                                                      observation=self.cur_observation,
-                                                                      **kwargs)
+                                                                           observation=self.cur_observation,
+                                                                           **kwargs)
             reward = 1
         except Exception as e:
             fail_error = str(e)
@@ -269,11 +271,19 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
                     self._finish = True
 
         info = {"exception": fail_error}
-        observation = self._get_observation()
-        observation.action_result = action_result
-        self.cur_observation = observation
-        return (observation,
-                reward,
-                terminated,
-                kwargs.get("truncated", False),
-                info)
+        if fail_error or any(act.action_name in self.END_ACTIONS for act in action if act):
+            # return empty observation
+            return (Observation(),
+                    reward,
+                    terminated,
+                    kwargs.get("truncated", False),
+                    info)
+        else:
+            observation = self._get_observation()
+            observation.action_result = action_result
+            self.cur_observation = observation
+            return (observation,
+                    reward,
+                    terminated,
+                    kwargs.get("truncated", False),
+                    info)

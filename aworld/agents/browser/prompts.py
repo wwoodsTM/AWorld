@@ -208,6 +208,6 @@ Your output format should be always a JSON object with the following fields:
 }
 
 Ignore the other AI messages output structures.
-
+don't forget the index param for input_text action.
 Keep your responses concise and focused on actionable insights."""
         )
