@@ -18,7 +18,7 @@ Through AWorld (short for Agent World), you can quickly build real-world scenari
 ## Installation
 With pip (Python>=3.11):
 ```bash
-pip install aworld
+python setup.py install
 ```
 
 ## Environment Configuration
@@ -38,9 +38,9 @@ MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
 ## Usage
 Easily configure and run a pre-defined agent through our web interface:
 ```bash
-aworld-web start
+python -m aworld start
 ```
-Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
+Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a [browser](./aworld/apps/browsers/run.py) and a phone, respectively.
 
 <p align="left">
   <video src="https://github.com/user-attachments/assets/01ea37e8-6544-4632-b2c3-29a7e356dba8" controls="controls" muted="muted" style="width: 45%;"></video>
@@ -50,7 +50,7 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
 Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
-from aworld.agents.gaia import PlanAgent, ExcuteAgent
+from aworld.agents.gaia.agent import PlanAgent, ExcuteAgent
 from aworld.core.client import Client
 from aworld.core.swarm import Swarm
 from aworld.core.task import GeneralTask
