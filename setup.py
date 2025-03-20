@@ -101,6 +101,9 @@ class AWorldInstaller(install):
         # 2. install this wheel into pip
         install.run(self)
 
+        reqs = self._requirements.get(self.BASE, [])
+        self._install_reqs(reqs, ignore_error=True)
+
         # install optional requirements here since pip install doesn't ignore requirement error
         reqs = self._requirements.get(self.BASE_OPT, [])
         self._install_reqs(reqs, ignore_error=True)

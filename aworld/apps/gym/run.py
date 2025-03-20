@@ -4,7 +4,7 @@ import asyncio
 
 import time
 
-from aworld import Client
+from aworld.core.client import Client
 from aworld.core.agent.base import BaseAgent
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
