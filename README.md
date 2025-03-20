@@ -46,6 +46,13 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
   <video src="https://github.com/user-attachments/assets/01ea37e8-6544-4632-b2c3-29a7e356dba8" controls="controls" muted="muted" style="width: 45%;"></video>
 </p>
 
+```plaintext
+# User Query
+step1: first go to https://www.dangdang.com/ and search for 'the little prince' and rank by sales from high to low, get the first 5 results and put the products info in memory.
+step 2: write each product's title, price, discount, and publisher information to a fully structured HTML document with write_to_file, ensuring that the data is presented in a table with visible grid lines.
+step3: open the html file in browser by go_to_url
+```
+
 ### or Creating Your Own Agents
 Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
