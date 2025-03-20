@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage, BaseMessage
 from pydantic import ValidationError
 
 from aworld.agents.base import AgentFactory, BaseAgent
-from aworld.agents.browser.message_manager import MessageManager, MessageManagerSettings
+from aworld.agents.browser.memory import MessageManager, MessageManagerSettings
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output
 from aworld.agents.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain, LlmResult
