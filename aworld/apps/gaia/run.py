@@ -5,12 +5,10 @@ import os
 from aworld import Client
 from aworld.agents.gaia.agent import PlanAgent, ExcuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.core.swarm import Swarm
 from aworld.core.task import GeneralTask
 from aworld.dataset.mock import mock_dataset
 
-os.environ['OPENAI_API_KEY'] = "adf"
 if __name__ == '__main__':
     # Initialize client
     client = Client()
@@ -34,12 +32,10 @@ if __name__ == '__main__':
     # Define a task
     task = GeneralTask(input=test_sample, swarm=swarm, conf=TaskConfig())
 
-    print(get_tool_desc())
-
     # Run task
-    # result = client.submit(task=[task])
+    result = client.submit(task=[task])
 
-    # print(f"Task completed: {result['success']}")
-    # print(f"Time cost: {result['time_cost']}")
-    # # print(f"Task Answer: {result['task_0']['answer']}")
-    # print(result)
+    print(f"Task completed: {result['success']}")
+    print(f"Time cost: {result['time_cost']}")
+    # print(f"Task Answer: {result['task_0']['answer']}")
+    print(result)
