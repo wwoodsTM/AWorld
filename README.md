@@ -38,7 +38,7 @@ MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
 ## Usage
 Easily configure and run a pre-defined agent through our web interface:
 ```bash
-python -m aworld start
+python -m aworld
 ```
 Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a [browser](./aworld/apps/browsers/run.py) and a phone, respectively.
 
