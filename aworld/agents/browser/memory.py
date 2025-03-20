@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from aworld.agents.browser.prompts import AgentMessagePrompt
 from aworld.agents.browser.common import AgentStepInfo, MessageManagerState, MessageMetadata
-from aworld.core.agents.agent import AgentResult
+from aworld.core.agent.base import AgentResult
 from aworld.core.common import Observation, ActionResult
 from aworld.logs.util import logger
 

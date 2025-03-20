@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, Union
 
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 
-from aworld.core.agents.agent import AgentFactory, BaseAgent, AgentResult
+from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 
 from aworld.agents.browser.common import AgentStepInfo
 from aworld.config.conf import AgentConfig

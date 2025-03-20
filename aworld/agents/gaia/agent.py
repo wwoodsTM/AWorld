@@ -6,7 +6,7 @@ import time
 import traceback
 from typing import Dict, Any, List
 
-from aworld.core.agents.agent import BaseAgent, AgentFactory
+from aworld.core.agent.base import BaseAgent, AgentFactory
 from aworld.models.utils import tool_desc_transform
 from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Agents

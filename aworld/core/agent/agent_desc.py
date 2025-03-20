@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from aworld.core.agents.agent import AgentFactory
+from aworld.core.agent.base import AgentFactory
 
 
 def agent_desc():

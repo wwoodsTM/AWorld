@@ -167,6 +167,30 @@ class BrowserAction(ToolAction):
                                                                required=True,
                                                                desc="Strings of special keys.")},
                                desc="Send strings of special keys like Escape,Backspace, Insert, PageDown, Delete, Enter, Shortcuts such as `Control+o`, `Control+Shift+T` are supported as well. This gets used in keyboard.press. ")
+    WRITE_TO_FILE = ToolActionInfo(name="write_to_file",
+                                   input_params={
+                                       "file_path": ParamInfo(
+                                           name="file_path",
+                                           type="str",
+                                           required=False,
+                                           default_value="tmp_result.md",
+                                           desc="Path to the file to write to"
+                                       ),
+                                       "content": ParamInfo(
+                                           name="content",
+                                           type="str",
+                                           required=True,
+                                           desc="Content to write to the file"
+                                       ),
+                                       "mode": ParamInfo(
+                                           name="mode",
+                                           type="str",
+                                           required=False,
+                                           default_value="a",
+                                           desc="File opening mode: 'w' for write (overwrite), 'a' for append (default)"
+                                       )
+                                   },
+                                   desc="Write content to a file")
     DONE = ToolActionInfo(name="done",
                           desc="Complete task - with return text and if the task is finished (success=True) or not yet  completly finished (success=False), because last step is reached")
 

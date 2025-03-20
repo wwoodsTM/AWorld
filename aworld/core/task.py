@@ -10,7 +10,7 @@ from typing import Union, Dict, Any, List
 
 from pydantic import BaseModel
 
-from aworld.core.agents.agent import BaseAgent
+from aworld.core.agent.base import BaseAgent
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.core.common import Observation
 from aworld.core.envs.env_tool import EnvTool, ToolFactory

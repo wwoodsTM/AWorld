@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, Union
 from langchain_core.messages import HumanMessage, BaseMessage
 from pydantic import ValidationError
 
-from aworld.core.agents.agent import AgentFactory, BaseAgent, AgentResult
+from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.memory import MessageManager, MessageManagerSettings
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output
