@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from aworld.core.agents.agent import BaseAgent
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.core.common import Observation
-from aworld.core.env.env_tool import EnvTool, ToolFactory
+from aworld.core.envs.env_tool import EnvTool, ToolFactory
 from aworld.core.swarm import Swarm
 from aworld.logs.util import logger, color_log
 

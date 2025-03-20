@@ -5,10 +5,10 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
-from aworld.core.env.action_factory import ActionFactory
+from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ParamInfo
 from aworld.logs.util import logger
-from aworld.core.env.env_tool import ToolFactory
+from aworld.core.envs.env_tool import ToolFactory
 
 
 class ActionDescriptionProtocol(BaseModel):

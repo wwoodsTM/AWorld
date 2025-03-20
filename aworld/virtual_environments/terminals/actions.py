@@ -3,8 +3,8 @@
 
 from typing import Tuple, Any
 
-from aworld.core.env.tool_action import ShellAction
-from aworld.core.env.action_factory import ActionFactory
+from aworld.core.envs.tool_action import ShellAction
+from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Tools, ActionModel, ActionResult
 from aworld.virtual_environments.action import ExecutableAction
 

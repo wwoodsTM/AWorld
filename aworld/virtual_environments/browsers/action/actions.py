@@ -8,8 +8,8 @@ from typing import Tuple, Any
 
 from langchain_core.prompts import PromptTemplate
 
-from aworld.core.env.tool_action import BrowserAction
-from aworld.core.env.action_factory import ActionFactory
+from aworld.core.envs.tool_action import BrowserAction
+from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult, Observation, Tools
 from aworld.virtual_environments.browsers.util.dom import DOMElementNode
 from aworld.logs.util import logger

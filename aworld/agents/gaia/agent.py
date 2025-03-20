@@ -12,7 +12,7 @@ from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Agents
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
-from aworld.core.env.tools_desc import tool_action_desc_dict
+from aworld.core.envs.tools_desc import tool_action_desc_dict
 
 init_prompt = f"""
 Now please give me instructions to solve over overall task step by step. If the task requires some specific knowledge, please instruct me to use tools to complete the task.

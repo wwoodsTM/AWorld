@@ -10,7 +10,7 @@ from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.core.env.env_tool import AsyncEnvTool
+from aworld.core.envs.env_tool import AsyncEnvTool
 from aworld.core.task import GeneralTask
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym

@@ -3,8 +3,8 @@
 
 import json
 
-from aworld.core.env.tool_action import AndroidAction
-from aworld.core.env.action_factory import ActionFactory
+from aworld.core.envs.tool_action import AndroidAction
+from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult, Tools
 from aworld.virtual_environments.android.action.adb_controller import ADBController
 from aworld.virtual_environments.android.config.android_action_space import AndroidActionParamEnum

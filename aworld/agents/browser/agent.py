@@ -14,7 +14,7 @@ from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
-from aworld.core.env.tool_action import BrowserAction
+from aworld.core.envs.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model

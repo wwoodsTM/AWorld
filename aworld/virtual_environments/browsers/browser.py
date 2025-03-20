@@ -9,11 +9,11 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from aworld.core.env.tool_action import BrowserAction
+from aworld.core.envs.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, ActionResult, Tools
 from aworld.logs.util import logger
-from aworld.core.env.env_tool import action_executor, ToolFactory
-from aworld.core.env.env_tool import EnvTool
+from aworld.core.envs.env_tool import action_executor, ToolFactory
+from aworld.core.envs.env_tool import EnvTool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
 from aworld.virtual_environments.browsers.util.dom import DomTree
 from aworld.virtual_environments.conf import BrowserToolConfig
