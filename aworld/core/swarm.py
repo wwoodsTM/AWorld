@@ -5,7 +5,6 @@ import time
 import traceback
 from typing import Dict, Any, List
 
-from aworld.apps.gaia import response
 from aworld.core.agent.base import Agent, BaseAgent
 from aworld.core.envs.env_tool import ToolFactory
 from aworld.logs.util import logger, color_log
