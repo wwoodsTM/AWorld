@@ -9,6 +9,7 @@ from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import GymAction
 from aworld.core.common import Tools, ActionModel, Observation
 from aworld.core.envs.env_tool import AsyncEnvTool, ToolFactory
+from aworld.utils import import_package
 
 
 class ActionType(object):
@@ -33,6 +34,7 @@ class OpenAIGym(AsyncEnvTool):
         self.env = self._gym_env_wrappers(self.env_id, self.dict_conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
         conf = ToolConfig()
+        import_package('gymnasium')
         super(OpenAIGym, self).__init__(conf, **kwargs)
 
     def name(self):

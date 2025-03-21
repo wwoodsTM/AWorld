@@ -4,6 +4,7 @@
 import abc
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
+from aworld.models.llm import get_llm_model
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig
@@ -19,6 +20,13 @@ class Agent(Generic[INPUT, OUTPUT]):
 
     def __init__(self, conf: AgentConfig, **kwargs):
         self.conf = conf
+        if conf:
+            self.dict_conf = conf.model_dump()
+        else:
+            self.dict_conf = dict()
+        self.task = None
+        self.model_name = conf.llm_model_name
+        self.llm = get_llm_model(conf)
         # An agent can delegate tasks to other agent
         self.handoffs = []
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
@@ -51,6 +59,7 @@ class Agent(Generic[INPUT, OUTPUT]):
 
     def reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
+        self.task = options.get("task")
 
     @abc.abstractmethod
     async def async_reset(self):

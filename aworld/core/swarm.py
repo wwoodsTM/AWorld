@@ -5,6 +5,7 @@ import time
 import traceback
 from typing import Dict, Any, List
 
+from aworld.apps.gaia import response
 from aworld.core.agent.base import Agent, BaseAgent
 from aworld.core.envs.env_tool import ToolFactory
 from aworld.logs.util import logger, color_log
@@ -14,7 +15,7 @@ from aworld.core.envs.tool_desc import get_actions_by_tools
 
 
 class Swarm(object):
-    """Implementation of interactive collaboration between multi-agent and interaction with env tools."""
+    """Simple implementation of interactive collaboration between multi-agent and interaction with env tools."""
 
     def __init__(self, *args, **kwargs):
         valid_agent_pair = []
@@ -62,14 +63,21 @@ class Swarm(object):
         return policy.tool_name is None and policy.action_name is None
 
     def process(self, observation, info) -> Dict[str, Any]:
-        """Multi-agent general process workflow."""
+        """Multi-agent general process workflow.
+
+        NOTE: Use the agent‘s finished state to control the loop, so the agent must carefully set finished state.
+        Args:
+            observation: Observation based on env
+            info: Extend info by env
+        """
         if not self.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
 
         start = time.time()
         step = 0
         max_steps = self.conf.get("max_steps", 100)
-
+        # use entry agent every time
+        self.cur_agent = self.entry_agent
         policy: List[ActionModel] = self.cur_agent.policy(observation, info)
         if not policy:
             logger.warning(f"current agent {self.cur_agent.name()} no policy to use.")
@@ -82,6 +90,8 @@ class Swarm(object):
             self.tools = {}
 
         msg = None
+        response = None
+        return_entry = False
         try:
             while step < max_steps:
                 terminated = False
@@ -91,11 +101,23 @@ class Swarm(object):
                     cur_agent: BaseAgent = self.agents.get(policy_for_agent.agent_name)
                     if not cur_agent:
                         raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
+                    if cur_agent.name() == self.entry_agent.name():
+                        # Current agent is entrance agent, means need to exit to the outer loop
+                        logger.warning("Exit to the outer loop")
+                        return_entry = True
+                        break
+
                     if self.cur_agent.handoffs and policy_for_agent.agent_name not in self.cur_agent.handoffs:
+                        # Unable to hand off, exit to the outer loop
                         return {"msg": f"Can not handoffs {policy_for_agent.agent_name} agent "
                                        f"by {cur_agent.name()} agent.",
+                                "response": policy[0].policy_info if policy else "",
                                 "steps": step,
                                 "success": False}
+                    # Check if current agent done
+                    if cur_agent.finished:
+                        cur_agent._finished = False
+                        logger.info(f"{cur_agent.name()} agent be be handed off, so finished state reset to False.")
 
                     observation = Observation(content=policy_for_agent.policy_info)
                     agent_policy = cur_agent.policy(observation, info=info)
@@ -119,7 +141,7 @@ class Swarm(object):
                             if not conf:
                                 conf = ToolConfig()
                             tool = ToolFactory(act.tool_name, conf=conf)
-                            logger.info(f"Dynamic load config from {act.tool_name}.yaml, "
+                            logger.debug(f"Dynamic load config from {act.tool_name}.yaml, "
                                         f"conf is: {conf}")
                             tool.reset()
                             tool_mapping[act.tool_name] = []
@@ -139,12 +161,6 @@ class Swarm(object):
                             msg = info.get("exception")
 
                         logger.info(f"step: {step} finished by tool action.")
-                    # Check if current agent done
-                    if self.cur_agent.finished:
-                        logger.info(f"{self.cur_agent.name()} agent finished.")
-                        terminated = True
-                        break
-
                 step += 1
                 if terminated:
                     logger.info("swarm finished")
@@ -153,15 +169,26 @@ class Swarm(object):
                 if observation:
                     policy = self.cur_agent.policy(observation, info)
 
-            if self.entry_agent.finished:
+            if policy:
+                response = policy[0].policy_info
+
+            # All agents have completed their tasks
+            if all(agent.finished for _, agent in self.agents.items()):
+                logger.info("entry agent finished, swarm process finished.")
                 self.finished = True
+
+            if return_entry:
+                # Return to the entrance, reset current agent finished state
+                self.cur_agent._finished = False
             return {"steps": step,
+                    "response": response,
                     "msg": msg,
                     "success": True if not msg else False}
         except Exception as e:
             logger.error(f"Task execution failed with error: {str(e)}\n{traceback.format_exc()}")
             return {
                 "msg": str(e),
+                "response": "",
                 "traceback": traceback.format_exc(),
                 "steps": step,
                 "success": False

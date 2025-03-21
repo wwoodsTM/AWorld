@@ -15,6 +15,7 @@ from aworld.virtual_environments.browsers.util.dom import DOMElementNode
 from aworld.logs.util import logger
 from aworld.virtual_environments.browsers.action.utils import DomUtil
 from aworld.virtual_environments.action import ExecutableAction
+from aworld.utils import import_packages
 
 
 def get_page(**kwargs):
@@ -189,6 +190,9 @@ class InputText(ExecutableAction):
                         desc=BrowserAction.CLICK_ELEMENT.value.desc,
                         tool_name=Tools.BROWSER.value)
 class ClickElement(ExecutableAction):
+    def __init__(self):
+        import_packages(['playwright', 'markdownify'])
+
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         from playwright.sync_api import Page, BrowserContext
 

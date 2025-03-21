@@ -23,6 +23,7 @@ class Tools(Enum):
     GYM = "openai_gym"
     SEARCH_API = "search_api"
     SHELL = "shell"
+    PYTHON_EXECUTE = "python_execute"
     CODE_EXECUTE = "code_execute"
     FILE = "file"
     IMAGE_ANALYSIS = "image_analysis"

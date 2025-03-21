@@ -18,6 +18,7 @@ from aworld.virtual_environments.browsers.action.executor import BrowserToolActi
 from aworld.virtual_environments.browsers.util.dom import DomTree
 from aworld.virtual_environments.conf import BrowserToolConfig
 from aworld.virtual_environments.browsers.util.dom_build import build_dom_tree
+from aworld.utils import import_package
 
 URL_MAX_LENGTH = 4096
 UTF8 = "".join(chr(x) for x in range(0, 55290))
@@ -35,6 +36,7 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
         self.sleep_after_init = self.dict_conf.get("sleep_after_init", False)
         self.js_code = resources.read_text('aworld.virtual_environments.browsers.config', 'buildDomTree.js')
         self.cur_observation = None
+        import_package("playwright")
 
     def name(self):
         return Tools.BROWSER.value

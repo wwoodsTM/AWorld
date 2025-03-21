@@ -143,6 +143,7 @@ class GeneralTask(Task):
                 swarm_resp = result_dict.get("response")
                 logger.info(f"Step: {step} response:\n {result_dict}")
 
+                step += 1
                 if self.swarm.finished:
                     logger.info("task done!")
                     break
@@ -179,6 +180,7 @@ class GeneralTask(Task):
                       observation: Observation,
                       info: Dict[str, Any]) -> Dict[str, Any]:
         agent = self.agent
+        agent.reset({"task": input})
         step = 0
         max_steps = self.conf.get("max_steps", 100)
         excep = None

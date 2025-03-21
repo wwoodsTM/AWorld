@@ -7,9 +7,12 @@ from typing import Optional
 
 from aworld.virtual_environments.browsers.util.dom import DOMElementNode
 from aworld.logs.util import logger
+from aworld.utils import import_package
 
 
 class DomUtil:
+    def __init__(self):
+        import_package("playwright")
 
     @staticmethod
     async def async_click_element(page, element_node: DOMElementNode, **kwargs) -> Optional[str]:

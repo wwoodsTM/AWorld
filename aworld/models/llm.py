@@ -10,7 +10,6 @@ from langchain_core.language_models.base import (
 from langchain_core.messages import (
     AIMessage,
     SystemMessage,
-    BaseMessage, ChatMessage,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain_mistralai import ChatMistralAI
@@ -25,6 +24,7 @@ from typing import (
 
 from aworld.config.conf import AgentConfig
 from aworld.env_secrets import secrets
+from aworld.logs.util import logger
 
 
 class DeepSeekR1ChatOpenAI(ChatOpenAI):
@@ -146,6 +146,10 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         kwargs["api_key"] = api_key
         kwargs['base_url'] = conf.llm_base_url
 
+    if provider == 'openai':
+        logger.info("Need to provide the type of openai package.")
+        kwargs[''] = conf.llm_provider
+
     if provider == "anthropic":
         if not kwargs.get("base_url", ""):
             base_url = "https://api.anthropic.com"
@@ -175,6 +179,18 @@ def get_llm_model(conf: AgentConfig, **kwargs):
             api_key=api_key or secrets.mistral_api_key,
         )
     elif provider == "openai":
+        if not kwargs.get("base_url", ""):
+            base_url = os.getenv("OPENAI_ENDPOINT")
+        else:
+            base_url = kwargs.get("base_url")
+
+        return OpenAI(
+            timeout=kwargs.get("timeout", 180),
+            max_retries=kwargs.get("max_retries", 3),
+            base_url=base_url,
+            api_key=api_key,
+        )
+    elif provider == "chatopenai":
         if not kwargs.get("base_url", ""):
             base_url = os.getenv("OPENAI_ENDPOINT")
         else:

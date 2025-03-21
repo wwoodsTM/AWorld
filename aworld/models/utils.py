@@ -6,14 +6,14 @@ from aworld.logs.util import logger
 
 
 def agent_desc_transform(agent_dict: Dict[str, Any],
-                         tools: Dict[str, Any] = None,
-                         provider: str = None) -> List[Dict[str, Any]]:
+                         tools: List[str] = None,
+                         provider: str = 'openai') -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of agent description."""
     agent_as_tools = []
-    if provider == 'openai':
+    if provider and 'openai' in provider:
         for agent_name, agent_info in agent_dict.items():
             if tools and agent_name not in tools:
-                logger.info(f"{agent_name} can not supported, you can set `tools` params to support it.")
+                logger.info(f"{agent_name} can not supported in {tools}, you can set `tools` params to support it.")
                 continue
 
             for action in agent_info["abilities"]:
@@ -46,14 +46,14 @@ def agent_desc_transform(agent_dict: Dict[str, Any],
 
 
 def tool_desc_transform(tool_dict: Dict[str, Any],
-                        tools: Dict[str, Any] = None,
-                        provider: str = None) -> List[Dict[str, Any]]:
+                        tools: List[str] = None,
+                        provider: str = 'openai') -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of tool description."""
     openai_tools = []
-    if provider == 'openai':
+    if provider and 'openai' in provider:
         for tool_name, tool_info in tool_dict.items():
             if tools and tool_name not in tools:
-                logger.info(f"{tool_name} can not supported, you can set `tools` params to support it.")
+                logger.info(f"{tool_name} can not supported in {tools}, you can set `tools` params to support it.")
                 continue
 
             for action in tool_info["actions"]:

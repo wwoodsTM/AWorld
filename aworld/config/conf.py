@@ -132,3 +132,5 @@ class ToolConfig(BaseModel):
     config_data: dict | None = None
     max_retry: int | None = None
     ext: dict | None = None
+    working_dir: str = ""
+    env: dict = {}

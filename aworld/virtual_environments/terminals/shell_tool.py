@@ -7,6 +7,7 @@ import signal
 import sys
 from typing import Any, Dict, Tuple, List
 
+from aworld.logs.util import logger
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import ShellAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
@@ -88,9 +89,9 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
                         else:
                             process.terminate()
                     except Exception as e:
-                        logger.error(f"An error occurred while terminating the process. e: {str(e)}")
+                        logger.warning(f"An error occurred while terminating the process. e: {str(e)}")
         except Exception as e:
-            logger.error(f"Error while exiting Shell Executor. e: {str(e)}")
+            logger.warning(f"Error while exiting Shell Executor. e: {str(e)}")
         finally:
             # Clear process list
             self.processes = []
@@ -118,7 +119,7 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
         })
         try:
             if not actions:
-                return (self.cur_observation, reward,
+                return (observation, reward,
                         kwargs.get("terminated",
                                    False), kwargs.get("truncated", False), {
                             "exception": "actions is empty"
@@ -128,12 +129,13 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
                 if not cmd_string:
                     continue
                 _, output, error = self.execute(cmd_string)
+                observation.content = output
                 observation.action_result.append(
                     ActionResult(is_done=True,
                                  success=False if error else True,
                                  content=output,
                                  error=error,
-                                 include_in_memory=False))
+                                 keep=False))
             reward = 1
         except Exception as e:
             fail_error = str(e)
@@ -222,49 +224,5 @@ class ShellTool(EnvTool[Observation, List[ActionModel]]):
             self.processes.append(process_)
             return process_
         except Exception as e:
-            logger.error(f"An error occurred while executing the script asynchronously. e: {str(e)}")
+            logger.warning(f"An error occurred while executing the script asynchronously. e: {str(e)}")
             return None
-
-
-if __name__ == "__main__":
-    shell = ShellTool()
-
-    # Execute script and capture output
-    result = shell.execute("whoami")
-    if result['success']:
-        logger.info("stdout:", result['stdout'])
-    else:
-        logger.warning("stderr:", result['stderr'])
-
-    # Execute script with environment variables
-    custom_env = os.environ.copy()
-    custom_env['CUSTOM_VAR'] = 'custom_value'
-    shell_with_env = ShellTool(env=custom_env)
-    result = shell_with_env.execute("echo $CUSTOM_VAR")
-    logger.info("stdout:", result['stdout'])
-
-    # Asynchronously executing long-running scripts
-    process = shell.execute_async("sleep 5 && echo 'Async command completed'")
-
-    # Execute script in specific directory
-    temp_dir = "/tmp"
-    shell_with_dir = ShellTool(working_dir=temp_dir)
-    result = shell_with_dir.execute("pwd")
-    logger.info(f"Results of executing pwd in {temp_dir}::", result['stdout'])
-
-    # Execute multiple scripts
-    scripts = [
-        "ls -la",
-        "whoami",
-        "date"
-    ]
-
-    for cmd in scripts:
-        result = shell.execute(cmd)
-        logger.info(f"\nexecute '{cmd}':")
-        logger.info(result['stdout'])
-
-    # Exit Executor
-    shell.close()
-    shell_with_env.close()
-    shell_with_dir.close()

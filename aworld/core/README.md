@@ -3,12 +3,12 @@
 Core functionality and system components.
 
 ## Components
-- `device_manager/`: Virtual device lifecycle management
-- `event_system/`: Event handling and communication
-- `orchestrator/`: Task orchestration and scheduling
+- `agent/`: Virtual device lifecycle management
+- `envs/`: The environment and its tools, as well as the related actions of the tools. It is a three-level and one to many structure.
 
 ## Responsibilities
 - System coordination
 - Resource management
 - Event handling
 - Task scheduling 
+- Task orchestration and scheduling

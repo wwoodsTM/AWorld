@@ -1,4 +1,5 @@
 # coding: utf-8
+# Copyright (c) 2025 inclusionAI.
 
 import re
 import time
@@ -28,13 +29,13 @@ class BrowserAgent(BaseAgent):
         self.state = AgentState()
         self.available_actions_desc = self._build_action_prompt()
         self.settings = conf.model_dump()
-        self.model_name = conf.llm_model_name
-        # self.llm = get_llm_model(conf.llm_provider, model_name=self.model_name)
+        if conf.llm_provider == 'openai':
+            conf.llm_provider = 'chatopenai'
         self.llm = get_llm_model(conf)
 
         # Initialize message manager
         self._message_manager = MessageManager(
-            task=kwargs.get("input", ""),
+            task=self.task,
             system_message=SystemPrompt(
                 action_description=self.available_actions_desc,
                 max_actions_per_step=self.settings.get('max_actions_per_step'),

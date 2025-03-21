@@ -284,5 +284,16 @@ class DocumentExecuteAction(ToolAction):
         input_params={"document_path": ParamInfo(name="document_path",
                                                  type="str",
                                                  required=True,
-                                                 desc="The path of the document to be processed, either a local path or a URL. It can process xlsx, docx, pdf, doc, xls and xml, etc.")},
-        desc="Extract the content of a given document (or url) and return the processed text. It can process xlsx, docx, pdf, doc, xls and xml, etc. It may filter out some information, resulting in inaccurate content.")
+                                                 desc="The path of the document to be processed, either a local path or a URL. It can process image, video, audio, ppt, docx, pdf, doc, xls, xlsx and xml, etc.")},
+        desc="Extract the content of a given document (or url) and return the processed text. It can process image, video, audio, ppt, docx, pdf, doc, xls, xlsx and xml, etc. It may filter out some information, resulting in inaccurate content.")
+
+
+class PythonToolAction(ToolAction):
+    """Definition of python code execute supported action."""
+    EXECUTE = ToolActionInfo(
+        name="execute",
+        input_params={"code": ParamInfo(name="code",
+                                        type="str",
+                                        required=True,
+                                        desc="The input python code to execute. Python codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")},
+        desc="Execute the given python codes. Codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")

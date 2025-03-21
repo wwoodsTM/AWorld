@@ -36,10 +36,12 @@ def get_actions_by_tools(tool_names: Dict = None) -> List[str]:
             res.append(action['name'])
     return res
 
+
 def get_tool_desc():
     return tool_action_desc_dict
 
-def get_desc_by_tool(name: str):
+
+def get_tool_desc_by_name(name: str):
     return getattr(tool_action_desc_dict, name, None)
 
 
