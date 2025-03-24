@@ -57,7 +57,7 @@ step3: open the html file in browser by go_to_url
 Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
-from aworld.agents.gaia.agent import PlanAgent, ExcuteAgent
+from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.core.client import Client
 from aworld.core.swarm import Swarm
 from aworld.core.task import GeneralTask
@@ -76,7 +76,7 @@ agent_config = AgentConfig(
     llm_model_name="gpt-4o",
 )
 agent1 = PlanAgent(conf=agent_config)
-agent2 = ExcuteAgent(conf=agent_config)
+agent2 = ExecuteAgent(conf=agent_config)
 
 # Create swarm for multi-agents
 # define (head_node, tail_node) edge in the topology graph

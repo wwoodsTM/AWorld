@@ -18,6 +18,8 @@ tool = YourTool()
 # If params `tools` value is None, means all available tools can be used by default
 task = GeneralTask(agent=agent, tools=[tool])
 
-# use client
-res = client.submit(task, parallel=False)
+# use client to execute the task
+res = client.submit(task)
 ```
+
+How to write agent, can reference [README.md](../agents/README.md)

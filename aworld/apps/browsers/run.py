@@ -26,7 +26,9 @@ if __name__ == '__main__':
     }
 
     client.submit(
-        GeneralTask(input="go to google.com and type 'AntGroup' click search and click the first search result",
+        GeneralTask(input="""step1: first go to https://www.dangdang.com/ and search for 'the little prince' and rank by sales from high to low, get the first 5 results and put the products info in memory.
+step 2: write each product's title, price, discount, and publisher information to a fully structured HTML document with write_to_file, ensuring that the data is presented in a table with visible grid lines.
+step3: open the html file in browser by go_to_url""",
                     agent=BrowserAgent(conf=agent_config),
                     tools=[BrowserTool(conf=browser_tool_config)],
                     task_config=task_config))

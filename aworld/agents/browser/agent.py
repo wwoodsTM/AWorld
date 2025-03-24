@@ -29,9 +29,8 @@ class BrowserAgent(BaseAgent):
         self.state = AgentState()
         self.available_actions_desc = self._build_action_prompt()
         self.settings = conf.model_dump()
-        if conf.llm_provider == 'openai':
-            conf.llm_provider = 'chatopenai'
-        self.llm = get_llm_model(conf)
+        if self.conf.llm_provider == 'openai':
+            self.conf.llm_provider = 'chatopenai'
 
         # Initialize message manager
         self._message_manager = MessageManager(

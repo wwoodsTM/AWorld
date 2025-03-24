@@ -11,7 +11,6 @@ from aworld.models.utils import tool_desc_transform
 from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Agents
 from aworld.logs.util import logger
-from aworld.models.llm import get_llm_model
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.agents.gaia.prompts import *
 from aworld.agents.gaia.utils import extract_pattern
@@ -116,8 +115,6 @@ class ExecuteAgent(BaseAgent):
 class PlanAgent(BaseAgent):
     def __init__(self, conf: AgentConfig, **kwargs):
         super(PlanAgent, self).__init__(conf, **kwargs)
-        self.model_name = conf.llm_model_name
-        self.llm = get_llm_model(conf)
 
     def name(self) -> str:
         return Agents.PLAN.value

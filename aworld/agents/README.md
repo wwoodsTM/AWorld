@@ -1,3 +1,107 @@
 # AI Agents
 
 Intelligent agents that control devices or tools in env using AI models or policy.
+
+Most of the time, we directly use existing tools to build different types of agents that use LLM.
+Therefore, we provide a simple example for writing an agent:
+```python
+import copy
+import json
+from typing import Dict, Any, List, Union
+
+from aworld.config.conf import AgentConfig
+from aworld.core.agent.base import AgentFactory, BaseAgent
+from aworld.core.common import Observation, ActionModel, Tools
+from aworld.core.envs.tool_desc import get_tool_desc_by_name
+
+from aworld.models.utils import tool_desc_transform
+
+
+sys_prompt = "You are a helpful agent."
+prompt = """
+your prompt description
+
+Here are the task: {task}
+
+"""
+# Detailed steps for building an agent:
+# 1. Register your agent to agent factory, and inherit `BaseAgent`
+# 2. Build tools with the description of their actions in __init__, such as variable `self.tool_desc` represents.
+# 3. Implement the `name` method as a name identifier for the agent
+# 4. Build roles messages for LLM input, variable `messages` represents in policy method.
+# 5. Call LLM to obtain its response, such as self.llm.chat.completions.create, or self.llm.invoke(langchain).
+# 6. Distinguish whether to use function/tool calls or not.
+# 7. You can use memory to improve performance during multiple rounds of interaction.
+    
+# Step1
+@AgentFactory.register(name="your_agent_name", desc="agent description")
+class YourAgent(BaseAgent):
+    
+    def __init__(self, conf: AgentConfig, **kwargs):
+        super(YourAgent, self).__init__(conf, **kwargs)
+        # Step2
+        self.tool_desc = tool_desc_transform({Tools.SEARCH_API.value: get_tool_desc_by_name(Tools.SEARCH_API.value)})
+
+    # Step3
+    def name(self) -> str:
+        return "your_agent_name"
+
+    def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        
+        # Step4
+        # messages = [ChatMessage(role='system', content=sys_prompt),
+        #             ChatMessage(role='user', content=prompt.format(task=observation.content))]
+        # or
+        messages = [{'role': 'system', 'content': sys_prompt},
+                    {'role': 'user', 'content': prompt.format(task=observation.content)}]
+        
+        # Step7.1 (use memory)
+        histories = self._history_messages()
+        if histories:
+            histories.insert(0, messages[0])
+            histories.append(messages[1])
+            messages = histories
+        
+        # Step5
+        llm_result = self.llm.chat.completions.create(
+            messages=messages,
+            model=self.model_name,
+            **{'temperature': 0, 'tools': self.tool_desc},
+        )
+        content = llm_result.choices[0].message.content
+        tool_calls = llm_result.choices[0].message.tool_calls
+        
+        # Step7.2 (use memory)
+        self.trajectory.append((copy.deepcopy(observation), info, llm_result))
+        
+        # Step6
+        if tool_calls:
+            return  self._result(tool_calls)
+        else:
+            # use variable `content` to do something if there is no need to call the tools
+            pass
+        
+    def _result(self, tool_calls):
+        results = []
+        for tool_call in tool_calls:
+            tool_action_name: str = tool_call.function.name
+            if not tool_action_name:
+                continue
+            tool_name = tool_action_name.split("__")[0]
+            action_name = tool_action_name.split("__")[1]
+            params = json.loads(tool_call.function.arguments)
+            results.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
+        return results
+
+    def _history_messages(self):
+        history = []
+        for traj in self.trajectory:
+            history.append(traj[0].content)
+            if traj[-1].choices[0].message.tool_calls is not None:
+                history.append(
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].choices[0].message.tool_calls})
+            else:
+                history.append({'role': 'assistant', 'content': traj[-1].choices[0].message.content})
+        return history
+```

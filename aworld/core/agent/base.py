@@ -25,8 +25,6 @@ class Agent(Generic[INPUT, OUTPUT]):
         else:
             self.dict_conf = dict()
         self.task = None
-        self.model_name = conf.llm_model_name
-        self.llm = get_llm_model(conf)
         # An agent can delegate tasks to other agent
         self.handoffs = []
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
@@ -72,7 +70,19 @@ class Agent(Generic[INPUT, OUTPUT]):
 
 
 class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
-    """"""
+    """Basic agent for unified protocol within the framework."""
+
+    def __init__(self, conf: AgentConfig, **kwargs):
+        super(BaseAgent, self).__init__(conf, **kwargs)
+        self.model_name = conf.llm_model_name
+        self._llm = None
+
+    @property
+    def llm(self):
+        # lazy
+        if self._llm is None:
+            self._llm = get_llm_model(self.conf)
+        return self._llm
 
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[

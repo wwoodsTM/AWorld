@@ -34,7 +34,7 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
         self._finish = False
         self.record_trace = self.dict_conf.get("record_trace", False)
         self.sleep_after_init = self.dict_conf.get("sleep_after_init", False)
-        self.js_code = resources.read_text('aworld.virtual_environments.browsers.config', 'buildDomTree.js')
+        self.js_code = resources.read_text('aworld.virtual_environments.browsers.script', 'buildDomTree.js')
         self.cur_observation = None
         import_package("playwright")
 
@@ -143,7 +143,7 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
                 logger.info(f'Cookies load from {cookie_file} finished')
 
         if self.dict_conf.get('private'):
-            js = resources.read_text("aworld.virtual_environments.browsers.config", "stealth.min.js")
+            js = resources.read_text("aworld.virtual_environments.browsers.script", "stealth.min.js")
             context.add_init_script(js)
 
         return context
@@ -272,11 +272,32 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
                     self._finish = True
 
         info = {"exception": fail_error}
-        observation = self._get_observation()
-        observation.action_result = action_result
-        self.cur_observation = observation
-        return (observation,
-                reward,
-                terminated,
-                kwargs.get("truncated", False),
-                info)
+
+        contains_write_to_file = any(act.action_name == BrowserAction.WRITE_TO_FILE.value.name for act in action if act)
+        if contains_write_to_file:
+            msg = ""
+            for action_result_elem in action_result:
+                msg = action_result_elem.content
+            # write_to_file observation
+            return (Observation(content=msg, action_result=action_result, info=info),
+                    reward,
+                    terminated,
+                    kwargs.get("truncated", False),
+                    info)
+        elif fail_error:
+            # failed error observation
+            return (Observation(),
+                    reward,
+                    terminated,
+                    kwargs.get("truncated", False),
+                    info)
+        else:
+            # normal observation
+            observation = self._get_observation()
+            observation.action_result = action_result
+            self.cur_observation = observation
+            return (observation,
+                    reward,
+                    terminated,
+                    kwargs.get("truncated", False),
+                    info)

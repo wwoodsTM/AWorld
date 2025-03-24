@@ -15,7 +15,6 @@ from aworld.config.conf import AgentConfig
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
 from aworld.core.envs.tool_action import AndroidAction
 from aworld.logs.util import logger
-from aworld.models.llm import get_llm_model
 from aworld.agents.android.common import (
     AgentState,
     AgentSettings,
@@ -88,17 +87,14 @@ SYSTEM_PROMPT = """
 
 @AgentFactory.register(name=Agents.ANDROID.value, desc="browser agent")
 class AndroidAgent(BaseAgent):
-    def __init__(self, input: str, conf: AgentConfig, android_tool, observation, **kwargs):
+    def __init__(self, conf: AgentConfig, **kwargs):
         super(AndroidAgent, self).__init__(conf, **kwargs)
+        if self.conf.llm_provider == 'openai':
+            self.conf.llm_provider = 'chatopenai'
         self._build_prompt()
-        self.task = input
         self.available_actions_desc = self._build_action_prompt()
         # Settings
         self.settings = AgentSettings(**conf.model_dump())
-        self.model_name = conf.llm_model_name
-        self.llm = get_llm_model(conf)
-        self.android_tool = android_tool
-        self.observation = observation
         # State
         self.state = AgentState()
         # History
@@ -145,7 +141,7 @@ class AndroidAgent(BaseAgent):
 
         try:
 
-            xml_content, base64_img = self.observation["dom_tree"], self.observation["image"]
+            xml_content, base64_img = observation["dom_tree"], observation["image"]
 
             if xml_content is None:
                 logger.error("[agent] ⚠ Failed to get UI state, stopping task")
