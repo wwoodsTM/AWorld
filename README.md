@@ -80,6 +80,7 @@ agent2 = ExecuteAgent(conf=agent_config)
 
 # Create swarm for multi-agents
 # define (head_node, tail_node) edge in the topology graph
+# NOTE: the correct order is necessary
 swarm = Swarm((agent1, agent2))
 
 # Define a task
@@ -113,16 +114,18 @@ AWorld uses a client-server architecture with three main components:
    - Encapsulates system prompts, tools, and models with the capability to hand off execution to other agents
    - Agent fields and properties:
 
-   | Field            | Type      | Description                                                     |
-   |------------------|-----------|-----------------------------------------------------------------|
-   | `name`           | string    | Unique identifier for the agent                                 |
-   | `model_name`     | string    | LLM model name of the agent                                     |
-   | `llm`            | object    | LLM model instance used by the agent (e.g., "gpt-4", "claude-3") |
-   | `conf`           | BaseModel | Config of inherit pydantic BaseModel                            |
-   | `dict_conf`      | dict      | Config of dict structure for no error get key              |
-   | `memory`         | object    | Storage for maintaining context across interactions             |
-   | `handoffs`       | list      | An agent can delegate tasks to other agent                      |
-   | `finished`       | bool      | Has the agent completed the task                                |
+   | Field        | Type      | Description                                                                       |
+   |--------------|-----------|-----------------------------------------------------------------------------------|
+3. | `id`         | string    | Unique identifier for the agent                                                   |
+   | `name`       | string    | Name of the agent                                                                 |
+   | `model_name` | string    | LLM model name of the agent                                                       |
+   | `_llm`       | object    | LLM model instance based model_name used by the agent (e.g., "gpt-4", "claude-3") |
+   | `conf`       | BaseModel | Config of inherit pydantic BaseModel                                              |
+   | `dict_conf`  | dict      | Config of dict structure for no error get key                                     |
+   | `memory`     | object    | Storage for maintaining context across interactions                               |
+3. | `tool_names` | list      | An agent can use the tool name list                                               |
+   | `handoffs`   | list      | An agent can delegate tasks to other agent                                        |
+   | `finished`   | bool      | Has the agent completed the task                                                  |
 
 3. **Environment/World Model**: Various tools and models in the environment
    - Computer interfaces (browser, shell, functions)

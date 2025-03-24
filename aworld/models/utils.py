@@ -6,14 +6,14 @@ from aworld.logs.util import logger
 
 
 def agent_desc_transform(agent_dict: Dict[str, Any],
-                         tools: List[str] = None,
+                         agents: List[str] = None,
                          provider: str = 'openai') -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of agent description."""
     agent_as_tools = []
     if provider and 'openai' in provider:
         for agent_name, agent_info in agent_dict.items():
-            if tools and agent_name not in tools:
-                logger.info(f"{agent_name} can not supported in {tools}, you can set `tools` params to support it.")
+            if agents and agent_name not in agents:
+                logger.info(f"{agent_name} can not supported in {agents}, you can set `tools` params to support it.")
                 continue
 
             for action in agent_info["abilities"]:

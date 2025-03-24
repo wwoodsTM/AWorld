@@ -2,6 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
+import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
 from aworld.models.llm import get_llm_model
@@ -19,14 +20,18 @@ class Agent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, conf: AgentConfig, **kwargs):
+        # Unique flag based agent name
+        self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.conf = conf
         if conf:
             self.dict_conf = conf.model_dump()
         else:
             self.dict_conf = dict()
         self.task = None
+        # An agent can use the tool list
+        self.tool_names: List[str] = kwargs.get("tool_names")
         # An agent can delegate tasks to other agent
-        self.handoffs = []
+        self.handoffs: List[str] = kwargs.get("agent_names", [])
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
         self._finished = False
 
