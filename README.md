@@ -36,11 +36,8 @@ MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
 ```
 
 ## Usage
-Easily configure and run a pre-defined agent through our web interface:
-```bash
-python -m aworld
-```
-Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
+### Running Pre-defined Agents ([demo code]())
+Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
 
 <p align="left">
   <a href="https://www.youtube.com/watch?v=R7keOLrRDoM" target="_blank">
@@ -54,7 +51,7 @@ Next, input a user query for a quick test. Below are two demos showcasing how a 
 </p>
 
 ### or Creating Your Own Agents ([Quick Start Tutorial](./aworld/agents/README.md))
-Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
+Here is a multi-agent example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
