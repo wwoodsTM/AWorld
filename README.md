@@ -40,20 +40,20 @@ Easily configure and run a pre-defined agent through our web interface:
 ```bash
 python -m aworld
 ```
-Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a [browser](./aworld/apps/browsers/run.py) and a phone, respectively.
+Next, input a user query for a quick test. Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
 
 <p align="left">
-  <video src="https://github.com/user-attachments/assets/01ea37e8-6544-4632-b2c3-29a7e356dba8" controls="controls" muted="muted" style="width: 45%;"></video>
+  <a href="https://www.youtube.com/watch?v=R7keOLrRDoM" target="_blank">
+    <img src="https://img.youtube.com/vi/R7keOLrRDoM/0.jpg" alt="AWorld Demo" width="45%">
+  </a>
+</p>
+<p align="left">
+  <a href="https://www.youtube.com/watch?v=TYh3iqDeIoQ" target="_blank">
+    <img src="https://img.youtube.com/vi/TYh3iqDeIoQ/0.jpg" alt="AWorld Demo" width="45%">
+  </a>
 </p>
 
-```plaintext
-# User Query
-step1: first go to https://www.dangdang.com/ and search for 'the little prince' and rank by sales from high to low, get the first 5 results and put the products info in memory.
-step2: write each product's title, price, discount, and publisher information to a fully structured HTML document with write_to_file, ensuring that the data is presented in a table with visible grid lines.
-step3: open the html file in browser by go_to_url
-```
-
-### or Creating Your Own Agents
+### or Creating Your Own Agents ([Quick Start Tutorial](./aworld/agents/README.md))
 Here is an example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
 
 ```python
@@ -114,22 +114,22 @@ AWorld uses a client-server architecture with three main components:
    - Encapsulates system prompts, tools, and models with the capability to hand off execution to other agents
    - Agent fields and properties:
 
-   | Field        | Type      | Description                                                                       |
-   |--------------|-----------|-----------------------------------------------------------------------------------|
-3. | `id`         | string    | Unique identifier for the agent                                                   |
-   | `name`       | string    | Name of the agent                                                                 |
-   | `model_name` | string    | LLM model name of the agent                                                       |
-   | `_llm`       | object    | LLM model instance based model_name used by the agent (e.g., "gpt-4", "claude-3") |
-   | `conf`       | BaseModel | Config of inherit pydantic BaseModel                                              |
-   | `dict_conf`  | dict      | Config of dict structure for no error get key                                     |
-   | `memory`     | object    | Storage for maintaining context across interactions                               |
-3. | `tool_names` | list      | An agent can use the tool name list                                               |
-   | `handoffs`   | list      | An agent can delegate tasks to other agent                                        |
-   | `finished`   | bool      | Has the agent completed the task                                                  |
+    | Field        | Type      | Description                                                           |
+    |--------------|-----------|-----------------------------------------------------------------------|
+    | `id`         | string    | Unique identifier for the agent                                       |
+    | `name`       | string    | Name of the agent                                                     |
+    | `model_name` | string    | LLM model name of the agent                                           |
+    | `_llm`       | object    | LLM model instance based on model_name (e.g., "gpt-4", "claude-3")    |
+    | `conf`       | BaseModel | Configuration inheriting from pydantic BaseModel                      |
+    | `dict_conf`  | dict      | Dictionary-structured configuration for safe key access               |
+    | `memory`     | object    | Storage for maintaining context across interactions                   |
+    | `tool_names` | list      | List of tools the agent can use                                       |
+    | `handoffs`   | list      | List of other agents this agent can delegate tasks to                 |
+    | `finished`   | bool      | Flag indicating whether the agent has completed its task              |
 
 3. **Environment/World Model**: Various tools and models in the environment
-   - Computer interfaces (browser, shell, functions)
-   - World Model (see our [paper]())
+   - Computer interfaces (browser, shell, functions, etc.)
+   - World Model
 
    | Tools | Description |
    |-------|-------------|
@@ -186,7 +186,7 @@ Continuous improvement through a collaborative competition cycle:
 
 - 🧠 **Benchmarks and Samples**:
   - [ ] Support standardized benchmarks by default, e.g., GAIA, WebArena
-  - [ ] Support customized benchmarks by inheriting [Task]()
+  - [ ] Support customized benchmarks
   - [ ] Support generating training samples
 
 ## Contributing
