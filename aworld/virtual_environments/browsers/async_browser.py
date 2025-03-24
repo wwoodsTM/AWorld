@@ -293,7 +293,7 @@ class BrowserTool(AsyncEnvTool[Observation, List[ActionModel]]):
                     info)
         else:
             # normal observation
-            observation = self._get_observation()
+            observation = await self._get_observation()
             observation.action_result = action_result
             self.cur_observation = observation
             return (observation,

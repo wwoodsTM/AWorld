@@ -48,7 +48,7 @@ class SearchWiki(ExecutableAction):
             logger.error(f"An exception occurred during the search: {e}")
             raise e
         logger.debug(f"wiki result: {result}")
-        return ActionResult(content=result, keep=True), None
+        return ActionResult(content=result, keep=True, is_done=True), None
 
 
 @ActionFactory.register(name=SearchAction.DUCK_GO.value.name,
@@ -146,7 +146,7 @@ class Duckduckgo(ExecutableAction):
                 }
                 responses.append(response)
         logger.debug(f"Search results: {responses}")
-        return ActionResult(content=json.dumps(responses), keep=True), None
+        return ActionResult(content=json.dumps(responses), keep=True, is_done=True), None
 
 
 @ActionFactory.register(name=SearchAction.GOOGLE.value.name,
@@ -233,4 +233,4 @@ class SearchGoogle(ExecutableAction):
         logger.debug(f"search result: {responses}")
         responses.append(
             "If the search result does not contain the information you want, please make reflection on your query: what went well, what didn't, then refine your search plan.")
-        return ActionResult(content=json.dumps(responses), keep=True), None
+        return ActionResult(content=json.dumps(responses), keep=True, is_done=True), None

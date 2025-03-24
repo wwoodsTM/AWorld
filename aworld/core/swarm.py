@@ -19,8 +19,12 @@ class Swarm(object):
     def __init__(self, *args, **kwargs):
         valid_agent_pair = []
         for pair in args:
-            if len(pair) != 2:
+            if isinstance(pair, (list, tuple)) and len(pair) != 2:
                 logger.warning(f"{pair} is not a pair value, ignore it.")
+                continue
+            elif len(args) == 1:
+                # only one agent, build itself pair
+                valid_agent_pair.append((pair, pair))
                 continue
             if not isinstance(pair[0], BaseAgent) or not isinstance(pair[1], BaseAgent):
                 logger.warning(f"agent in {pair} is not a agent instance, ignore it.")
@@ -141,7 +145,7 @@ class Swarm(object):
                                 conf = ToolConfig()
                             tool = ToolFactory(act.tool_name, conf=conf)
                             logger.debug(f"Dynamic load config from {act.tool_name}.yaml, "
-                                        f"conf is: {conf}")
+                                         f"conf is: {conf}")
                             tool.reset()
                             tool_mapping[act.tool_name] = []
                             self.tools[act.tool_name] = tool
@@ -158,8 +162,12 @@ class Swarm(object):
                         if info.get("exception"):
                             color_log(f"Step {step} failed with exception: {info['exception']}")
                             msg = info.get("exception")
-
                         logger.info(f"step: {step} finished by tool action.")
+
+                    if self.cur_agent.name() == self.entry_agent.name():
+                        return_entry = True
+                        break
+
                 step += 1
                 if terminated:
                     logger.info("swarm finished")
@@ -169,10 +177,11 @@ class Swarm(object):
                     policy = self.cur_agent.policy(observation, info)
 
             if policy:
-                response = policy[0].policy_info
+                response = policy[0].policy_info if policy[0].policy_info else policy[0].action_name
 
-            # All agents have completed their tasks
-            if all(agent.finished for _, agent in self.agents.items()):
+            # All agents or tools have completed their tasks
+            if all(agent.finished for _, agent in self.agents.items()) or all(
+                    tool.finished for _, tool in self.tools.items()):
                 logger.info("entry agent finished, swarm process finished.")
                 self.finished = True
 

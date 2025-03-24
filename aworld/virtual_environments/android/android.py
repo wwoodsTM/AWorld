@@ -52,12 +52,19 @@ class AndroidTool(EnvTool[Observation, List[ActionModel]]):
             traceback.print_exc()
             fail_error = str(e)
 
+        terminated = kwargs.get("terminated", False)
+        if action_result_list:
+            for action_result in action_result_list:
+                if action_result.is_done:
+                    terminated = action_result.is_done
+                    self._finish = True
+
         info = {"exception": fail_error}
         xml, pic_base64 = self.get_observation()
 
         return (Observation(dom_tree=xml, image=pic_base64, action_result=action_result_list),
                 exec_state,
-                kwargs.get("terminated", False),
+                terminated,
                 kwargs.get("truncated", False),
                 info)
 

@@ -47,6 +47,7 @@ class OpenAIGym(EnvTool[Observation, List[ActionModel]]):
         action = OpenAIGym.transform_action(action=action)
         state, reward, terminal, truncate, info = self.env.step(action)
         info['env_id'] = self.env_id
+        self._finished = terminal
         return (Observation(content=OpenAIGym.transform_state(state=state)),
                 reward,
                 terminal,
