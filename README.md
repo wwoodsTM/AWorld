@@ -39,16 +39,20 @@ MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
 ### Running Pre-defined Agents ([demo code]())
 Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
 
-<p align="left">
-  <a href="https://www.youtube.com/watch?v=R7keOLrRDoM" target="_blank">
-    <img src="https://img.youtube.com/vi/R7keOLrRDoM/0.jpg" alt="AWorld Demo" width="45%">
-  </a>
-</p>
-<p align="left">
-  <a href="https://www.youtube.com/watch?v=TYh3iqDeIoQ" target="_blank">
-    <img src="https://img.youtube.com/vi/TYh3iqDeIoQ/0.jpg" alt="AWorld Demo" width="45%">
-  </a>
-</p>
+<table>
+  <tr>
+    <td width="50%">
+      <a href="https://www.youtube.com/watch?v=R7keOLrRDoM" target="_blank">
+        <img src="https://img.youtube.com/vi/R7keOLrRDoM/0.jpg" alt="AWorld Browser Demo" width="95%">
+      </a>
+    </td>
+    <td width="50%">
+      <a href="https://www.youtube.com/watch?v=TYh3iqDeIoQ" target="_blank">
+        <img src="https://img.youtube.com/vi/TYh3iqDeIoQ/0.jpg" alt="AWorld Mobile Demo" width="95%">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ### or Creating Your Own Agents ([Quick Start Tutorial](./aworld/agents/README.md))
 Here is a multi-agent example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
