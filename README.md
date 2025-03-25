@@ -10,8 +10,7 @@
 
 Through AWorld (short for Agent World), you can quickly build real-world scenarios or task automation into agentic prototypes, then extend them into a generic agent or a team of agents to assist your real needs, like Manus.
 
-*Hope AWorld would guide you into the AGI World. GLHF!*
-
+Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!*
 
 ![AWorld Framework](readme_assets/framework_arch.png)
 
