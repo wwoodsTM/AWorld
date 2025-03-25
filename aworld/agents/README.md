@@ -1,8 +1,8 @@
-from aworld.core.task import GeneralTaskfrom aworld.core.common import Observationfrom aworld.config.conf import AgentConfig
-
 # AI Agents
 
 Intelligent agents that control devices or tools in env using AI models or policy.
+
+![Agent Architecture](../../readme_assets/framework_agent.png)
 
 Most of the time, we directly use existing tools to build different types of agents that use LLM, 
 using frameworks makes it easy to write various agents.
@@ -38,17 +38,17 @@ Here are the task: {task}
 # 7. You can use memory to improve performance during multiple rounds of interaction.
     
 # Step1
-@AgentFactory.register(name="your_agent_name", desc="agent description")
-class YourAgent(BaseAgent):
+@AgentFactory.register(name="search_agent", desc="agent description")
+class SearchAgent(BaseAgent):
     
     def __init__(self, conf: AgentConfig, **kwargs):
-        super(YourAgent, self).__init__(conf, **kwargs)
+        super(SearchAgent, self).__init__(conf, **kwargs)
         # Step2
         self.tool_desc = tool_desc_transform({Tools.SEARCH_API.value: get_tool_desc_by_name(Tools.SEARCH_API.value)})
 
     # Step3
     def name(self) -> str:
-        return "your_agent_name"
+        return "search_agent"
 
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
@@ -128,7 +128,10 @@ from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.models.utils import agent_desc_transform, tool_desc_transform
 
-sys_prompt = "You are a helpful agent, you must start to instruct me to solve the task step-by-step.."
+sys_prompt = """For the given task, you must start to plan to solve the task step-by-step.
+This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. 
+The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.
+"""
 prompt = """
 Now, here is the overall task: <task>{task}</task>. Never forget the task!
 """
