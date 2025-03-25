@@ -169,10 +169,9 @@ class Swarm(object):
                         logger.info(f"step: {step} finished by tool action.")
 
                     # The tool results give itself, exit; give to other agents, continue
-                    if self.cur_agent.name() == self.entry_agent.name() and (len(self.agents) == 1 or
-                                                                             policy[
-                                                                                 0].agent_name is None or self.cur_agent.name() ==
-                                                                             policy[0].agent_name):
+                    tmp_name = policy[0].agent_name
+                    if self.cur_agent.name() == self.entry_agent.name() and (
+                            len(self.agents) == 1 or tmp_name is None or self.cur_agent.name() == tmp_name):
                         return_entry = True
                         break
                     elif policy[0].agent_name:
