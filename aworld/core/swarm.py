@@ -168,17 +168,39 @@ class Swarm(object):
                             msg = info.get("exception")
                         logger.info(f"step: {step} finished by tool action.")
 
-                    if self.cur_agent.name() == self.entry_agent.name():
+                    # The tool results give itself, exit; give to other agents, continue
+                    if self.cur_agent.name() == self.entry_agent.name() and (len(self.agents) == 1 or
+                                                                             policy[
+                                                                                 0].agent_name is None or self.cur_agent.name() ==
+                                                                             policy[0].agent_name):
                         return_entry = True
                         break
+                    elif policy[0].agent_name:
+                        policy_for_agent = policy[0]
+                        cur_agent: BaseAgent = self.agents.get(policy_for_agent.agent_name)
+                        if not cur_agent:
+                            raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
+                        if self.cur_agent.handoffs and policy_for_agent.agent_name not in self.cur_agent.handoffs:
+                            # Unable to hand off, exit to the outer loop
+                            return {"msg": f"Can not handoffs {policy_for_agent.agent_name} agent "
+                                           f"by {cur_agent.name()} agent.",
+                                    "response": policy[0].policy_info if policy else "",
+                                    "steps": step,
+                                    "success": False}
+                        # Check if current agent done
+                        if cur_agent.finished:
+                            cur_agent._finished = False
+                            logger.info(f"{cur_agent.name()} agent be be handed off, so finished state reset to False.")
 
                 step += 1
-                if terminated:
+                if terminated and self.cur_agent.finished:
                     logger.info("swarm finished")
                     break
 
                 if observation:
-                    policy = self.cur_agent.policy(observation, info)
+                    if cur_agent is None:
+                        cur_agent = self.cur_agent
+                    policy = cur_agent.policy(observation, info)
 
             if policy:
                 response = policy[0].policy_info if policy[0].policy_info else policy[0].action_name
@@ -194,6 +216,7 @@ class Swarm(object):
                 self.cur_agent._finished = False
             return {"steps": step,
                     "response": response,
+                    "action_result": observation.action_result if observation else None,
                     "msg": msg,
                     "success": True if not msg else False}
         except Exception as e:

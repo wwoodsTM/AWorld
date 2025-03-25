@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import json
+import os
 
 import requests
 
@@ -157,9 +158,9 @@ class SearchGoogle(ExecutableAction):
         query = action.params.get("query")
         num_result_pages = action.params.get("num_result_pages", 6)
         # https://developers.google.com/custom-search/v1/overview
-        api_key = action.params.get("api_key")
+        api_key = action.params.get("api_key", os.environ.get("GOOGLE_API_KEY"))
         # https://cse.google.com/cse/all
-        engine_id = action.params.get("engine_id")
+        engine_id = action.params.get("engine_id", os.environ.get("GOOGLE_ENGINE_ID"))
         logger.debug(f"Calling search_google function with query: {query}")
 
         # Using the first page

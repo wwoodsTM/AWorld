@@ -152,7 +152,7 @@ class GeneralTask(Task):
                     logger.warning(f"Step: {step} swarm no valid response")
                     break
 
-                observation = Observation(content=swarm_resp)
+                observation = Observation(content=swarm_resp, action_result=result_dict.get("action_result"))
 
             time_cost = time.time() - start
             if not results:
