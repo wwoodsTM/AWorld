@@ -34,7 +34,7 @@ class Agents(Enum):
     """Tool list supported in the framework."""
     BROWSER = "browser_agent"
     ANDROID = "android_agent"
-    SEARCH_API = "search_api_agent"
+    SEARCH = "search_agent"
     CODE_EXECUTE = "code_execute_agent"
     FILE = "file_agent"
     IMAGE_ANALYSIS = "image_analysis_agent"
@@ -43,7 +43,7 @@ class Agents(Enum):
     GYM = "gym_agent"
     PLAN = "plan_agent"
     EXECUTE = "execute_agent"
-
+    SUMMARY = "summary_agent"
 
 
 class Observation(BaseModel):

@@ -64,9 +64,9 @@ class Agent(Generic[INPUT, OUTPUT]):
         """Clean agent instance state and reset."""
         self.task = options.get("task")
 
-    @abc.abstractmethod
-    async def async_reset(self):
+    async def async_reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
+        self.task = options.get("task")
 
     @property
     def finished(self) -> bool:
