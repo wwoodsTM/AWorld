@@ -19,17 +19,21 @@ class Swarm(object):
     def __init__(self, *args, **kwargs):
         valid_agent_pair = []
         for pair in args:
-            if isinstance(pair, (list, tuple)) and len(pair) != 2:
-                logger.warning(f"{pair} is not a pair value, ignore it.")
-                continue
-            elif len(args) == 1:
+            if isinstance(pair, (list, tuple)):
+                if len(pair) != 2:
+                    logger.warning(f"{pair} is not a pair value, ignore it.")
+                    continue
+                else:
+                    if not isinstance(pair[0], BaseAgent) or not isinstance(pair[1], BaseAgent):
+                        logger.warning(f"agent in {pair} is not a base agent instance, ignore it.")
+                        continue
+                    valid_agent_pair.append(pair)
+            else:
+                if not isinstance(pair, BaseAgent):
+                    logger.warning(f"agent {pair} is not a base agent instance, ignore it.")
+                    continue
                 # only one agent, build itself pair
                 valid_agent_pair.append((pair, pair))
-                continue
-            if not isinstance(pair[0], BaseAgent) or not isinstance(pair[1], BaseAgent):
-                logger.warning(f"agent in {pair} is not a agent instance, ignore it.")
-                continue
-            valid_agent_pair.append(pair)
 
         self.initialized = False
         if not valid_agent_pair:
@@ -180,8 +184,8 @@ class Swarm(object):
                 response = policy[0].policy_info if policy[0].policy_info else policy[0].action_name
 
             # All agents or tools have completed their tasks
-            if all(agent.finished for _, agent in self.agents.items()) or all(
-                    tool.finished for _, tool in self.tools.items()):
+            if all(agent.finished for _, agent in self.agents.items()) or (all(
+                    tool.finished for _, tool in self.tools.items()) and len(self.agents) == 1):
                 logger.info("entry agent finished, swarm process finished.")
                 self.finished = True
 

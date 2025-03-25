@@ -42,7 +42,7 @@ def get_tool_desc():
 
 
 def get_tool_desc_by_name(name: str):
-    return getattr(tool_action_desc_dict, name, None)
+    return tool_action_desc_dict.get(name, None)
 
 
 def is_tool_by_name(name: str) -> bool:

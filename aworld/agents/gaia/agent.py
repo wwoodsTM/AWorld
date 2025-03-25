@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from aworld.core.agent.base import BaseAgent, AgentFactory
 from aworld.models.utils import tool_desc_transform
 from aworld.config.conf import AgentConfig
-from aworld.core.common import Observation, ActionModel, Agents
+from aworld.core.common import Observation, ActionModel, Agents, Tools
 from aworld.logs.util import logger
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.agents.gaia.prompts import *
@@ -20,7 +20,9 @@ from aworld.agents.gaia.utils import extract_pattern
 class ExecuteAgent(BaseAgent):
     def __init__(self, conf: AgentConfig, **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
-        self.tools = tool_desc_transform(get_tool_desc())
+        self.has_summary = False
+        self.tools = tool_desc_transform(get_tool_desc(),
+                                         tools=self.tool_names if self.tool_names else [])
 
     def name(self) -> str:
         return Agents.EXECUTE.value
@@ -51,6 +53,8 @@ class ExecuteAgent(BaseAgent):
             else:
                 input_content.append({'role': 'assistant', 'content': traj[-1].choices[0].message.content})
 
+        if content is None:
+            content = observation.action_result[0].error
         if not self.trajectory:
             message = {'role': 'user', 'content': content}
         else:
@@ -96,17 +100,23 @@ class ExecuteAgent(BaseAgent):
                 action_name = tool_action_name.split("__")[1]
                 params = json.loads(tool_call.function.arguments)
                 res.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
-        
+
         if res:
             res[0].policy_info = content
+            self._finished = False
+            self.has_summary = False
         elif content:
-            if self._finished:
-                res.append(ActionModel(agent_name=self.name(), policy_info=extract_pattern(content, "final_answer")))
+            if self.has_summary:
+                policy_info = extract_pattern(content, "final_answer")
+                if policy_info:
+                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
+                    self._finished = True
+                else:
+                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
             else:
                 res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
+                self.has_summary = True
 
-        if not tool_calls:
-            self._finished = True
         logger.info(f">>> execute result: {res}")
         return res
 
@@ -150,7 +160,7 @@ class PlanAgent(BaseAgent):
         if self.first_prompt:
             message = self.first_prompt
             self.first_prompt = None
-        
+
         input_content.append({'role': 'user', 'content': message})
         try:
             llm_result = self.llm.chat.completions.create(

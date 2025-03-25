@@ -9,7 +9,7 @@ def get_agent_desc():
 
 
 def get_agent_desc_by_name(name: str):
-    return getattr(agent_desc, name, None)
+    return agent_desc.get(name, None)
 
 
 def is_agent_by_name(name: str) -> bool:

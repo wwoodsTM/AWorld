@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import os
 import traceback
 
 import asyncio
@@ -448,7 +449,7 @@ class ScrollDown(ExecutableAction):
             return ActionResult(content="scroll no page", keep=True), page
 
         amount = action.params.get("amount")
-        if amount:
+        if not amount:
             page.evaluate('window.scrollBy(0, window.innerHeight);')
         else:
             page.evaluate(f'window.scrollBy(0, {amount});')
@@ -466,7 +467,7 @@ class ScrollDown(ExecutableAction):
             return ActionResult(content="scroll no page", keep=True), page
 
         amount = action.params.get("amount")
-        if amount:
+        if not amount:
             await page.evaluate('window.scrollBy(0, window.innerHeight);')
         else:
             await page.evaluate(f'window.scrollBy(0, {amount});')
@@ -489,7 +490,7 @@ class ScrollUp(ExecutableAction):
             return ActionResult(content="scroll no page", keep=True), page
 
         amount = action.params.get("amount")
-        if amount:
+        if not amount:
             page.evaluate('window.scrollBy(0, -window.innerHeight);')
         else:
             page.evaluate(f'window.scrollBy(0, -{amount});')
@@ -507,7 +508,7 @@ class ScrollUp(ExecutableAction):
             return ActionResult(content="scroll no page", keep=True), page
 
         amount = action.params.get("amount")
-        if amount:
+        if not amount:
             await page.evaluate('window.scrollBy(0, -window.innerHeight);')
         else:
             await page.evaluate(f'window.scrollBy(0, -{amount});')
@@ -629,19 +630,28 @@ class SendKeys(ExecutableAction):
                         tool_name=Tools.BROWSER.value)
 class WriteToFile(ExecutableAction):
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
-        file_path = action.params.get("file_path", "tmp_result.md")
+        # 设置默认文件路径
+        file_path = "tmp_result.md"
+        # 检查参数中是否有file_path
+        if "file_path" in action.params:
+            file_path = action.params.get("file_path", "tmp_result.md")
+        # 检查参数中是否有file_name
+        elif "file_name" in action.params:
+            file_path = action.params.get("file_name", "tmp_result.md")
+        elif "filename" in action.params:
+            file_path = action.params.get("filename", "tmp_result.md")
         content = action.params.get("content", "")
         mode = action.params.get("mode", "a")  # Default to append mode
-
+        # 获取文件的绝对路径
+        abs_file_path = os.path.abspath(file_path)
         try:
             with open(file_path, mode, encoding='utf-8') as f:
                 f.write(content + '\n')
-
-            msg = f'Successfully wrote content to {file_path}'
+            msg = f'Successfully wrote content to {abs_file_path}'
             logger.info(msg)
-            return ActionResult(content=msg, keep=True), kwargs.get('page')
+            return ActionResult(content=msg, keep=True), get_page(**kwargs)
         except Exception as e:
-            error_msg = f'Failed to write to file {file_path}: {str(e)}'
+            error_msg = f'Failed to write to file {abs_file_path}: {str(e)}'
             logger.error(error_msg)
             return ActionResult(content=error_msg, keep=True, error=error_msg), get_page(**kwargs)
 

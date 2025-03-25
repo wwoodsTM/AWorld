@@ -7,7 +7,16 @@ Intelligent agents that control devices or tools in env using AI models or polic
 Most of the time, we directly use existing tools to build different types of agents that use LLM, 
 using frameworks makes it easy to write various agents.
 
-we provide a simple example for writing an agent:
+Detailed steps for building an agent:
+1. Register your agent to agent factory, and inherit `BaseAgent`
+2. Build tools with the description of their actions in __init__, such as variable `self.tool_desc` represents.
+3. Implement the `name` method as a name identifier for the agent
+4. Build roles messages for LLM input, variable `messages` represents in policy method.
+5. Call LLM to obtain its response, such as self.llm.chat.completions.create, or self.llm.invoke(langchain).
+6. Distinguish whether to use function/tool calls or not.
+7. You can use memory to improve performance during multiple rounds of interaction.
+    
+We provide a simple example for writing an agent:
 ```python
 import copy
 import json
@@ -28,17 +37,8 @@ your prompt description
 Here are the task: {task}
 
 """
-# Detailed steps for building an agent:
-# 1. Register your agent to agent factory, and inherit `BaseAgent`
-# 2. Build tools with the description of their actions in __init__, such as variable `self.tool_desc` represents.
-# 3. Implement the `name` method as a name identifier for the agent
-# 4. Build roles messages for LLM input, variable `messages` represents in policy method.
-# 5. Call LLM to obtain its response, such as self.llm.chat.completions.create, or self.llm.invoke(langchain).
-# 6. Distinguish whether to use function/tool calls or not.
-# 7. You can use memory to improve performance during multiple rounds of interaction.
-    
 # Step1
-@AgentFactory.register(name="search_agent", desc="agent description")
+@AgentFactory.register(name="search_agent", desc="search agent")
 class SearchAgent(BaseAgent):
     
     def __init__(self, conf: AgentConfig, **kwargs):
@@ -162,15 +162,12 @@ class OtherAgent(BaseAgent):
         # messages = [ChatMessage(role='system', content=sys_prompt),
         #             ChatMessage(role='user', content=prompt.format(task=observation.content))]
         # or
-        messages = [{'role': 'system', 'content': sys_prompt},
-                    {'role': 'user', 'content': prompt.format(task=observation.content)}]
+        messages = [{'role': 'system', 'content': sys_prompt}]
 
         # Step 7.1 (use memory)
-        histories = self._history_messages()
-        if histories:
-            histories.insert(0, messages[0])
-            histories.append(messages[1])
-            messages = histories
+        messages.extend(self.memory.get())
+        
+        messages.append({'role': 'user', 'content': prompt.format(task=observation.content)})
 
         # Step 5
         llm_result = self.llm.chat.completions.create(
@@ -206,16 +203,6 @@ class OtherAgent(BaseAgent):
             results.append(ActionModel(agent_name=tool_name, action_name=action_name, params=params))
         return results
 
-    def _history_messages(self):
-        history = []
-        for traj in self.trajectory:
-            history.append(traj[0].content)
-            if traj[-1].choices[0].message.tool_calls is not None:
-                history.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].choices[0].message.tool_calls})
-            else:
-                history.append({'role': 'assistant', 'content': traj[-1].choices[0].message.content})
-        return history
 ```
 
 

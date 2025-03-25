@@ -10,5 +10,5 @@ from aworld.virtual_environments.action import ExecutableAction
 @ActionFactory.register(name=GymAction.PLAY.value.name,
                         desc=GymAction.PLAY.value.desc,
                         tool_name=Tools.GYM.value)
-class GotoUrl(ExecutableAction):
+class Play(ExecutableAction):
     """"""
