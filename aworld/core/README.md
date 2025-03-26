@@ -1,14 +1,13 @@
-# Core System
+# Core Components
 
-Core functionality and system components.
+Common functionality and system components.
 
-## Components
-- `agent/`: Virtual device lifecycle management
-- `envs/`: The environment and its tools, as well as the related actions of the tools. It is a three-level and one to many structure.
+- `agent/`: Base agent for sub agents and description of already registered agents.
+- `envs/`: The environment and its tools, as well as the related actions of the tools. It is a three-level and one to
+  many structure.
+- `swarm`: Interactive collaboration between multiple agents that interact with the environment tools. It can be
+  considered as a multi-agent workflow.
+- `task`: Complete runnable specific work that includes data, agents, and environment.
+- `client`: Submit various tasks to execute and obtain results.
 
-## Responsibilities
-- System coordination
-- Resource management
-- Event handling
-- Task scheduling 
-- Task orchestration and scheduling
+![Architecture](../../readme_assets/framework_arch.png)

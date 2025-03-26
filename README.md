@@ -12,7 +12,7 @@ Through AWorld (short for Agent World), you can quickly build real-world scenari
 
 Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
-![AWorld Framework](readme_assets/framework_arch.png)
+![AWorld Framework](readme_assets/framework.png)
 
 ## Installation
 With Python>=3.11:

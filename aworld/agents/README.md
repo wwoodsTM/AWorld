@@ -63,7 +63,6 @@ class SearchAgent(BaseAgent):
         # Also can add other agent as tools (optional, it can be ignored if the interacting agent is deterministic.),
         # we only use search api tool for example.
         self.tool_desc = tool_desc_transform({Tools.SEARCH_API.value: get_tool_desc_by_name(Tools.SEARCH_API.value)})
-        self.first = True
 
     # Step3
     def name(self) -> str:
@@ -76,9 +75,6 @@ class SearchAgent(BaseAgent):
             # Step 8
             self._finished = True
             return [ActionModel(agent_name=Agents.SEARCH.value, policy_info=observation.content)]
-
-        if self.first:
-            return [ActionModel(agent_name="summary_agent", action_name="google", tool_name="search_api", params={})]
 
         # Step 7.1 (use memory, optional)
         # ignore

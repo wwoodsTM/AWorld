@@ -22,7 +22,7 @@ class SearchTool(EnvTool[Observation, List[ActionModel]]):
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, dict[str, Any]]:
         # from options obtain user query
-        return Observation(content=options.get("query", None)), {}
+        return Observation(content=options.get("query", None) if options else None), {}
 
     def step(self, action: List[ActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
         reward = 0

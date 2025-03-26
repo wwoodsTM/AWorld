@@ -44,4 +44,4 @@ class OpenAIGym(EnvTool[Observation, List[ActionModel]]):
 class Play(ExecutableAction):
     """There is only one Action, it can be implemented in the tool, registration is required here."""
 ```
-You can view the [code](gym/openai_gym.py) to learn more.
+You can view the example [code](gym/openai_gym.py) to learn more.
