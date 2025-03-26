@@ -159,6 +159,7 @@ Continuous improvement through a collaborative competition cycle:
   - [x] Shell, code (Python), and apis (e.g., google_search)
   - [x] File system (writing, managing on going)
   - [ ] Cloud sandbox for quick and stable deployment
+  - [ ] Env as reward model
 
 - 🤖 **AI-Powered Agents**:
   - [x] Agent initialization
