@@ -222,13 +222,13 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
         self.cur_observation = observation
         return observation, {}
 
-    def save_trace(self, trace_path: str | Path) -> None:
-        if self.record_trace:
-            self.context.tracing.stop(path=trace_path)
-
     @property
     def finished(self) -> bool:
         return self._finish
+
+    def save_trace(self, trace_path: str | Path) -> None:
+        if self.record_trace:
+            self.context.tracing.stop(path=trace_path)
 
     def close(self) -> None:
         if hasattr(self, 'context') and self.context:
@@ -258,8 +258,8 @@ class BrowserTool(EnvTool[Observation, List[ActionModel]]):
 
         try:
             action_result, self.page = self.action_executor.execute_action(action,
-                                                                      observation=self.cur_observation,
-                                                                      **kwargs)
+                                                                           observation=self.cur_observation,
+                                                                           **kwargs)
             reward = 1
         except Exception as e:
             fail_error = str(e)

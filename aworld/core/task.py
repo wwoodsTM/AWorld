@@ -152,7 +152,11 @@ class GeneralTask(Task):
                     logger.warning(f"Step: {step} swarm no valid response")
                     break
 
-                observation = Observation(content=swarm_resp, action_result=result_dict.get("action_result"))
+                observation = result_dict.get("observation")
+                if not observation:
+                    observation = Observation(content=swarm_resp)
+                else:
+                    observation.content = swarm_resp
 
             time_cost = time.time() - start
             if not results:
@@ -180,7 +184,7 @@ class GeneralTask(Task):
                       observation: Observation,
                       info: Dict[str, Any]) -> Dict[str, Any]:
         agent = self.agent
-        agent.reset({"task": input})
+        agent.reset({"task": observation.content})
         step = 0
         max_steps = self.conf.get("max_steps", 100)
         excep = None

@@ -215,7 +215,7 @@ class Swarm(object):
                 self.cur_agent._finished = False
             return {"steps": step,
                     "response": response,
-                    "action_result": observation.action_result if observation else None,
+                    "observation": observation,
                     "msg": msg,
                     "success": True if not msg else False}
         except Exception as e:

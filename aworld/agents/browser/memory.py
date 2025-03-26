@@ -126,20 +126,48 @@ class MessageManager:
                     result = None  # if result in history, we dont want to add it again
 
         # otherwise add state message and result to next message (which will not stay in memory)
-        state_message = AgentMessagePrompt(
-            state,
-            result,
-            include_attributes=self.settings.include_attributes,
-            step_info=step_info,
-        ).get_user_message(use_vision)
+        if state.dom_tree:  # browser tool's returned observation
+            state_message = AgentMessagePrompt(
+                state,
+                result,
+                include_attributes=self.settings.include_attributes,
+                step_info=step_info,
+            ).get_user_message(use_vision)
+        else:
+            # file tool or other non-browser tool returned observation
+            state_message = FileToolMessagePrompt(
+                state,
+                result,
+                step_info=step_info,
+            ).get_user_message()
         self._add_message_with_tokens(state_message)
 
     def add_model_output(self, model_output: AgentResult) -> None:
-        """Add model output as AI message"""
+        """Add model output as AI message.
+
+        This function converts the original actions (List[ActionModel])
+        into the desired format (list[ActionModel]), where each action is represented
+        as a dict with the action name as key and its parameters as value.
+        For example, an action like:
+            {"tool_name": "browser", "action_name": "send_keys", "params": {"keys": "Meta+a"}}
+        becomes:
+            {"send_keys": {"keys": "Meta+a"}}
+        The final output is sent as a tool call with name 'AgentOutput'.
+        """
+        transformed_actions = [
+            {action.action_name: action.params} for action in model_output.actions
+        ]
+
+        # Dump model_output to a dict and replace the 'actions' field with 'action'
+        output_data = model_output.model_dump(mode='json', exclude_unset=True)
+        output_data["action"] = transformed_actions
+        if "actions" in output_data:
+            del output_data["actions"]
+
         tool_calls = [
             {
-                'name': 'AgentResult',
-                'args': model_output.model_dump(mode='json', exclude_unset=True),
+                'name': 'AgentOutput',
+                'args': output_data,
                 'id': str(self.state.tool_id),
                 'type': 'tool_call',
             }
@@ -151,7 +179,7 @@ class MessageManager:
         )
 
         self._add_message_with_tokens(msg)
-        # empty tool response
+        # Send an empty tool response
         self.add_tool_message(content='')
 
     def add_plan(self, plan: Optional[str], position: int | None = None) -> None:
@@ -278,3 +306,60 @@ class MessageManager:
         msg = ToolMessage(content=content, tool_call_id=str(self.state.tool_id))
         self.state.tool_id += 1
         self._add_message_with_tokens(msg)
+
+
+class FileToolMessagePrompt:
+    """Class to generate prompts for file tools and other non-browser tools"""
+
+    def __init__(self, state: Observation, result: List[ActionResult], step_info: str = None):
+        """
+        Initialize the FileToolMessagePrompt
+
+        Args:
+            state: The observation state
+            result: List of action results
+            step_info: Additional step information
+        """
+        self.state = state
+        self.result = result
+        self.step_info = step_info
+
+    def get_user_message(self) -> HumanMessage:
+        """
+        Generate a user message based on the tool's observation and results
+
+        Returns:
+            HumanMessage: The formatted message for the agent
+        """
+        # Build content based on action results
+        content_parts = []
+
+        # Add standard prompt headers
+        content_parts.append("[Task history memory ends]")
+        content_parts.append("[Current state starts here]")
+        content_parts.append("The following is one-time information - if you need to remember it write it to memory:")
+
+        # Add step info if available
+        if self.step_info:
+            content_parts.append(f"Step: {self.step_info}")
+
+        # Add action results from the state's action_result field
+        if self.state.action_result:
+            result_texts = []
+            for res in self.state.action_result:
+                if res.content:
+                    result_texts.append(f"Result: {res.content}")
+                if res.error:
+                    result_texts.append(f"Error: {res.error}")
+
+            if result_texts:
+                content_parts.append("Action Results:\n" + "\n".join(result_texts))
+
+        # Add any additional content from the observation
+        if self.state.content:
+            content_parts.append(f"Content: {self.state.content}")
+
+        # Join all parts with newlines
+        message_content = "\n\n".join(content_parts)
+
+        return HumanMessage(content=message_content)
