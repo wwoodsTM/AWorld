@@ -2,9 +2,11 @@
 # Copyright (c) 2025 inclusionAI.
 
 import logging
+
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logger = logging.getLogger("common")
+
 
 class Color:
     black = '\033[30m'

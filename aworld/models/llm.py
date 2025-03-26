@@ -146,10 +146,6 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         kwargs["api_key"] = api_key
         kwargs['base_url'] = conf.llm_base_url
 
-    if provider == 'openai':
-        logger.info("Need to provide the type of openai package.")
-        kwargs[''] = conf.llm_provider
-
     if provider == "anthropic":
         if not kwargs.get("base_url", ""):
             base_url = "https://api.anthropic.com"

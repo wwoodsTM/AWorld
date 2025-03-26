@@ -8,7 +8,7 @@ import re
 import subprocess
 
 import aworld
-from aworld.utils.import_packege import import_package
+from aworld.utils.import_package import import_package
 # if no setuptools, install first
 import_package("setuptools")
 

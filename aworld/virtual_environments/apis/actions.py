@@ -96,7 +96,6 @@ class Duckduckgo(ExecutableAction):
                 responses.append({"error": f"duckduckgo search failed.{e}"})
                 return ActionResult(content="duckduckgo search failed", keep=True), responses
 
-            # Iterate over results found
             for i, result in enumerate(results, start=1):
                 # Creating a response object with a similar structure
                 response = {
@@ -171,15 +170,9 @@ class SearchGoogle(ExecutableAction):
         num_result_pages = num_result_pages
         # Constructing the URL
         # Doc: https://developers.google.com/custom-search/v1/using_rest
-        url = (
-            f"https://www.googleapis.com/customsearch/v1?"
-            f"key={api_key}&cx={engine_id}&q={query}&start="
-            f"{start_page_idx}&lr={search_language}&num={num_result_pages}"
-        )
+        url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={engine_id}&q={query}&start={start_page_idx}&lr={search_language}&num={num_result_pages}"
         responses = []
-        # Fetch the results given the URL
         try:
-            # Make the get
             result = requests.get(url)
             result.raise_for_status()
             data = result.json()
@@ -188,20 +181,14 @@ class SearchGoogle(ExecutableAction):
             if "items" in data:
                 search_items = data.get("items")
 
-                # Iterate over 10 results found
                 for i, search_item in enumerate(search_items, start=1):
                     # Check metatags are present
                     if "pagemap" not in search_item:
                         continue
                     if "metatags" not in search_item["pagemap"]:
                         continue
-                    if (
-                            "og:description"
-                            in search_item["pagemap"]["metatags"][0]
-                    ):
-                        long_description = search_item["pagemap"]["metatags"][
-                            0
-                        ]["og:description"]
+                    if "og:description" in search_item["pagemap"]["metatags"][0]:
+                        long_description = search_item["pagemap"]["metatags"][0]["og:description"]
                     else:
                         long_description = "N/A"
                     # Get the page title

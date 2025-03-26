@@ -9,7 +9,7 @@ from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import PythonToolAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
 from aworld.core.envs.env_tool import EnvTool, AgentInput, ToolFactory
-
+from aworld.utils import import_package
 
 @ToolFactory.register(name=Tools.PYTHON_EXECUTE.value, desc="python interpreter tool",
                       supported_action=PythonToolAction)
@@ -34,6 +34,9 @@ class PythonTool(EnvTool[Observation, List[ActionModel]]):
         self.output_buffer = StringIO()
         self.step_finished = True
         self.installed_packages = set()
+        import_package('langchain_experimental')
+        from langchain_experimental.utilities.python import PythonREPL
+        self.python_repl = PythonREPL()
 
     def name(self):
         """
@@ -220,45 +223,27 @@ class PythonTool(EnvTool[Observation, List[ActionModel]]):
                     "exception": fail_error
                 })
 
-    def execute(self, code):
+    def execute(self, code, timeout=300):
         """
         Execute the code
         Args:
             code: python code
+            timeout: timeout seconds
         Returns:
             result, output, error
         """
         required_packages = self.extract_imports(code)
         self.install_dependencies(required_packages)
-        sys.stdout = self.output_buffer
-        result = None
-        error = ''
-        output = None
+        self.python_repl.globals = self.global_namespace
+        self.python_repl.locals = self.local_namespace
+        error = None
         try:
-            # First execute the entire code block
-            compiled_code = compile(code, '<string>', 'exec')
-            exec(compiled_code, self.global_namespace, self.local_namespace)
-
-            # Get the value of the last line expression
-            last_line = code.strip().split('\n')[-1].strip()
-            if last_line and not last_line.startswith(
-                    ('def ', 'class ', 'if ', 'for ', 'while ')):
-                try:
-                    # Use eval to get the value of the expression
-                    result = eval(last_line, self.global_namespace,
-                                  self.local_namespace)
-                except Exception as e:
-                    error += f'{repr(e)}'
-                    logger.warning(f"Error while executing code: {error}")
+            output = self.python_repl.run(code, timeout)
         except Exception as e:
-            error += f'{repr(e)}'
-            logger.warning(f"Error while executing code: {error}")
+            error = f'{repr(e)}'
         finally:
-            output, error_ = self.get_execute_result()
-            error += error_
             self.uninstall_dependencies()
-
-        return result, output, error
+        return '', output, error
 
     def get_execute_result(self):
         """
