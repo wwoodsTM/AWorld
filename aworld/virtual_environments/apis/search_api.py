@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict, Any
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.env_tool import EnvTool, ToolFactory
 from aworld.core.envs.tool_action import SearchAction
-from aworld.core.common import Observation, ActionModel, Tools
+from aworld.core.common import Observation, ActionModel, Tools, ActionResult
 from aworld.logs.util import logger
 
 
@@ -56,6 +56,10 @@ class SearchTool(EnvTool[Observation, List[ActionModel]]):
         info = {"exception": fail_error}
         if resp:
             resp = json.dumps(resp)
+        else:
+            resp = action_result[0].content
+
+        action_result = [ActionResult(content=resp, keep=True, is_done=True)]
         observation = Observation(content=resp)
         observation.action_result = action_result
         return (observation,
