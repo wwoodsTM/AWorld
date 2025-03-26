@@ -127,3 +127,73 @@ def _write_response_to_file(f: Any, response: Any) -> None:
     """Write model response to conversation file"""
     f.write(' RESPONSE\n')
     f.write(json.dumps(json.loads(response.model_dump_json(exclude_unset=True)), indent=2))
+
+
+# Add token counting related functions
+# Note: These functions have been moved from memory.py and agent.py to utils.py, removing the dependency on MessageManager class
+
+def estimate_text_tokens(text: str, estimated_characters_per_token: int = 3) -> int:
+    """Roughly estimate token count in text
+    
+    Args:
+        text: The text to estimate tokens for
+        estimated_characters_per_token: Estimated characters per token, default is 3
+        
+    Returns:
+        Estimated token count
+    """
+    if not text:
+        return 0
+    # Use character count divided by average characters per token to estimate tokens
+    return len(text) // estimated_characters_per_token
+
+
+def estimate_message_tokens(message: BaseMessage, image_tokens: int = 800, 
+                       estimated_characters_per_token: int = 3) -> int:
+    """Roughly estimate token count for a single message
+    
+    Args:
+        message: The message to estimate tokens for
+        image_tokens: Estimated tokens per image, default is 800
+        estimated_characters_per_token: Estimated characters per token, default is 3
+        
+    Returns:
+        Estimated token count
+    """
+    tokens = 0
+    # Handle tuple case
+    if isinstance(message, tuple):
+        # Convert to string and estimate tokens
+        message_str = str(message)
+        return estimate_text_tokens(message_str, estimated_characters_per_token)
+        
+    if isinstance(message.content, list):
+        for item in message.content:
+            if 'image_url' in item:
+                tokens += image_tokens
+            elif isinstance(item, dict) and 'text' in item:
+                tokens += estimate_text_tokens(item['text'], estimated_characters_per_token)
+    else:
+        msg = message.content
+        if hasattr(message, 'tool_calls'):
+            msg += str(message.tool_calls)  # type: ignore
+        tokens += estimate_text_tokens(msg, estimated_characters_per_token)
+    return tokens
+
+
+def estimate_messages_tokens(messages: list[BaseMessage], image_tokens: int = 800,
+                        estimated_characters_per_token: int = 3) -> int:
+    """Roughly estimate total token count for a list of messages
+    
+    Args:
+        messages: The list of messages to estimate tokens for
+        image_tokens: Estimated tokens per image, default is 800
+        estimated_characters_per_token: Estimated characters per token, default is 3
+        
+    Returns:
+        Estimated total token count
+    """
+    total_tokens = 0
+    for msg in messages:
+        total_tokens += estimate_message_tokens(msg, image_tokens, estimated_characters_per_token)
+    return total_tokens

@@ -224,7 +224,7 @@ class AndroidAction(ToolAction):
                                                                             desc="Index of the element.")},
                                 desc="Long press the element")
     INPUT_TEXT = ToolActionInfo(name="input_text",
-                                input_params={"input_text": ParamInfo(name="input_text",
+                                input_params={"text": ParamInfo(name="text",
                                                                       type="str",
                                                                       required=True,
                                                                       desc="Input text into a input interactive element.")},

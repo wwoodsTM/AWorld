@@ -20,6 +20,8 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
         llm_num_ctx=32000,
         llm_temperature=1,
+        llm_api_key="sk-zk2b4cdd7c0aa1b96a139bdd41a7397d69767e2704d7f1a5",
+        llm_base_url="https://api.zhizengzeng.com/v1"
     )
 
     task_config = {
@@ -34,4 +36,6 @@ step3: open the html file in browser by go_to_url""",
                     swarm=Swarm(BrowserAgent(conf=agent_config)),
                     tools=[BrowserTool(conf=browser_tool_config)],
                     task_config=task_config))
+    import time
+    time.sleep(1000)
 

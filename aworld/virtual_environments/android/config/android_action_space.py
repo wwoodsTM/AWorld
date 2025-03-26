@@ -7,7 +7,7 @@ from enum import Enum
 class AndroidActionParamEnum(Enum):
     TAP_INDEX = "index"
     LONG_PRESS_INDEX = "index"
-    INPUT_TEXT = "input_text"
+    INPUT_TEXT = "text"
     SWIPE_START_INDEX = "index"
     DIRECTION = "direction"
     DIST = "dist"

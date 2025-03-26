@@ -3,16 +3,17 @@
 import json
 import traceback
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Dict, List, Type
+from typing import Any, Optional, Dict, List
 
 from langchain_core.load import dumpd, load
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, SystemMessage, HumanMessage
 from openai import RateLimitError
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from aworld.core.common import ActionResult, ActionModel
+from aworld.core.agent.base import AgentResult
+from aworld.core.common import ActionResult, Observation
 
 
 class MessageMetadata(BaseModel):
@@ -260,3 +261,16 @@ class AgentStepInfo:
     def is_last_step(self) -> bool:
         """Check if this is the last step"""
         return self.number >= self.max_steps - 1
+
+@dataclass
+class Trajectory:
+    """Stores the agent's history, including all observations, info, and AgentResults."""
+    history: List[tuple[Observation, Dict[str, Any], AgentResult]] = field(default_factory=list)
+
+    def add_step(self, observation: Observation, info: Dict[str, Any], agent_result: AgentResult):
+        """Add a step to the history"""
+        self.history.append((observation, info, agent_result))
+
+    def get_history(self) -> List[tuple[Observation, Dict[str, Any], AgentResult]]:
+        """Retrieve the complete history"""
+        return self.history

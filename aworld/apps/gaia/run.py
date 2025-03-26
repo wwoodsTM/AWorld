@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+from aworld.core.common import Tools
 
 from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
@@ -16,13 +17,24 @@ if __name__ == '__main__':
     test_sample = mock_dataset("gaia")
     print('task_prompt', test_sample)
 
+    import os
+
+    GOOGLE_API_KEY = "AIzaSyBL_GpPPfIK7oZ1BWkrO3tJc_-JYcpRtSI"
+    GOOGLE_ENGINE_ID = "95088ebcb2da54da8"
+    os.environ['GOOGLE_API_KEY'] = GOOGLE_API_KEY
+    os.environ['GOOGLE_ENGINE_ID'] = GOOGLE_ENGINE_ID
+    test_sample = "What is the surname of the equine veterinarian mentioned in 1.E Exercises from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023?"
+
     # Create agents
     agent_config = AgentConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
+        llm_api_key="sk-zk2b4cdd7c0aa1b96a139bdd41a7397d69767e2704d7f1a5",
+        llm_base_url="https://api.zhizengzeng.com/v1"
     )
     agent1 = PlanAgent(conf=agent_config)
-    agent2 = ExecuteAgent(conf=agent_config)
+    agent2 = ExecuteAgent(conf=agent_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value, Tools.BROWSER.value,
+                                                         Tools.PYTHON_EXECUTE.value, Tools.SEARCH_API.value])
 
     # Create swarm for multi-agents
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
