@@ -10,32 +10,27 @@
 
 Through AWorld (short for Agent World), you can quickly build real-world scenarios or task automation into agentic prototypes, then extend them into a generic agent or a team of agents to assist your real needs, like Manus.
 
-Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!*
+Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
 ![AWorld Framework](readme_assets/framework_arch.png)
 
 ## Installation
-With pip (Python>=3.11):
+With Python>=3.11:
 ```bash
 python setup.py install
 ```
 
 ## Environment Configuration
-Configure the following environment variables according to your selected AI models:
-```plaintext
-# AI Model API Keys
-CLAUDE_API_KEY=sk-xxxx        # Anthropic Claude
-DEEP_SEEK_API_KEY=sk-xxxx     # DeepSeek AI
-MISTRAL_API_KEY=sk-xxxx       # Mistral AI
-OPENAI_API_KEY=sk-xxxx        # OpenAI
-GOOGLE_API_KEY=sk-xxxx        # Google AI
-AZURE_OPENAI_API_KEY=sk-xxxx  # Azure OpenAI
-QWEN_API_KEY=sk-xxxx          # Alibaba Qwen
-MOONSHOT_API_KEY=sk-xxxx      # Moonshot AI
+```bash
+# Choose your preferred AI model(s) and set the corresponding API key(s)
+# OpenAI (Required for GPT-3.5, GPT-4)
+export OPENAI_API_KEY=sk-abcd1234wxyz5678...
+# Anthropic Claude (Required for Claude 2, Claude 3)
+export CLAUDE_API_KEY=sk-ant-api03xyz...
 ```
 
 ## Usage
-### Running Pre-defined Agents ([demo code]())
+### Running Pre-defined Agents ([demo code](./aworld/apps/browsers/run.py))
 Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
 
 <table>
@@ -122,7 +117,7 @@ AWorld uses a client-server architecture with three main components:
     | `_llm`       | object    | LLM model instance based on model_name (e.g., "gpt-4", "claude-3")    |
     | `conf`       | BaseModel | Configuration inheriting from pydantic BaseModel                      |
     | `dict_conf`  | dict      | Dictionary-structured configuration for safe key access               |
-    | `memory`     | object    | Storage for maintaining context across interactions                   |
+    | `trajectory`     | object    | Memory for maintaining context across interactions                   |
     | `tool_names` | list      | List of tools the agent can use                                       |
     | `handoffs`   | list      | List of other agents this agent can delegate tasks to                 |
     | `finished`   | bool      | Flag indicating whether the agent has completed its task              |
@@ -179,8 +174,8 @@ Continuous improvement through a collaborative competition cycle:
   - [x] Custom agent-environment protocol
 
 - 🎛️ **Web Interface**:
-  - [x] Chat interface for diverse user queries
-  - [x] Server configuration dashboard
+  - [ ] UI for execution visualization
+  - [ ] Server configuration dashboard
   - [ ] Real-time monitoring tools
   - [ ] Performance reporting
 
@@ -190,8 +185,9 @@ Continuous improvement through a collaborative competition cycle:
   - [ ] Support generating training samples
 
 ## Contributing
+We warmly welcome developers to join us in building and improving AWorld! Whether you're interested in enhancing the framework, fixing bugs, or adding new features, your contributions are valuable to us.
 
-If you use AWorld in your research or wish to contact us, please use the following BibTeX entry:
+For academic citations or wish to contact us, please use the following BibTeX entry:
 
 ```bibtex
 @software{aworld2025,
