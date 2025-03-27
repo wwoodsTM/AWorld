@@ -10,13 +10,13 @@ from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.core.envs.env_tool import AsyncEnvTool
+from aworld.core.envs.tool import AsyncTool
 from aworld.core.task import Task
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym
 
 
-async def async_run_gym_game(agent: BaseAgent, tool: AsyncEnvTool):
+async def async_run_gym_game(agent: BaseAgent, tool: AsyncTool):
     gym_tool = tool
     logger.info('observation space: {}'.format(gym_tool.env.observation_space))
     logger.info('action space: {}'.format(gym_tool.env.action_space))

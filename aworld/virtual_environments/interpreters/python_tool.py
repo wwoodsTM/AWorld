@@ -8,12 +8,12 @@ from aworld.logs.util import logger
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import PythonToolAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
-from aworld.core.envs.env_tool import EnvTool, AgentInput, ToolFactory
+from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.utils import import_package
 
 @ToolFactory.register(name=Tools.PYTHON_EXECUTE.value, desc="python interpreter tool",
                       supported_action=PythonToolAction)
-class PythonTool(EnvTool[Observation, List[ActionModel]]):
+class PythonTool(Tool[Observation, List[ActionModel]]):
 
     def __init__(self,
                  conf: ToolConfig,

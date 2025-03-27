@@ -20,7 +20,7 @@ from aworld.virtual_environments.terminals.actions import *
 
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.logs.util import logger
-from aworld.core.envs.env_tool import ToolFactory
+from aworld.core.envs.tool import ToolFactory
 
 
 def tool_desc():

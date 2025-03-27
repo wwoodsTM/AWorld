@@ -11,12 +11,12 @@ from aworld.logs.util import logger
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import ShellAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
-from aworld.core.envs.env_tool import EnvTool, AgentInput, ToolFactory
+from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.logs.util import logger
 
 
 @ToolFactory.register(name=Tools.SHELL.value, desc="shell execute tool", supported_action=ShellAction)
-class ShellTool(EnvTool[Observation, List[ActionModel]]):
+class ShellTool(Tool[Observation, List[ActionModel]]):
     """
     used to execute shell commands, providing initialization, execution, and exit functions.
     """

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from aworld.core.agent.base import BaseAgent
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.core.common import Observation
-from aworld.core.envs.env_tool import EnvTool, ToolFactory
+from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.swarm import Swarm
 from aworld.logs.util import logger, color_log
 
@@ -22,7 +22,7 @@ class TaskModel:
     name: str | None = uuid.uuid1().hex
     input: Any | None = None
     conf: Union[Dict[str, Any], BaseModel] | None = None
-    tools: List[EnvTool] | None = None
+    tools: List[Tool] | None = None
     swarm: Swarm | None = None
     agent: BaseAgent | None = None
 
@@ -35,7 +35,7 @@ class Task(object):
                  name: str = uuid.uuid1().hex,
                  input: Any = None,
                  conf: Union[Dict[str, Any], BaseModel] = {},
-                 tools: List[EnvTool] = None,
+                 tools: List[Tool] = None,
                  *args,
                  **kwargs):
         """Task instance init.

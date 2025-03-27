@@ -6,7 +6,7 @@ import traceback
 from typing import Dict, Any, List
 
 from aworld.core.agent.base import Agent, BaseAgent
-from aworld.core.envs.env_tool import ToolFactory
+from aworld.core.envs.tool import ToolFactory
 from aworld.logs.util import logger, color_log
 from aworld.core.common import Observation, ActionModel
 from aworld.config.conf import ToolConfig, load_config

@@ -12,8 +12,8 @@ from typing import Any, Dict, Tuple, List
 from aworld.core.envs.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, ActionResult, Tools
 from aworld.logs.util import logger
-from aworld.core.envs.env_tool import action_executor, ToolFactory
-from aworld.core.envs.env_tool import EnvTool
+from aworld.core.envs.tool import action_executor, ToolFactory
+from aworld.core.envs.tool import Tool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
 from aworld.virtual_environments.browsers.util.dom import DomTree
 from aworld.virtual_environments.conf import BrowserToolConfig
@@ -26,7 +26,7 @@ ASCII = "".join(chr(x) for x in range(32, 128))
 
 
 @ToolFactory.register(name=Tools.BROWSER.value, desc="browser", supported_action=BrowserAction)
-class BrowserTool(EnvTool[Observation, List[ActionModel]]):
+class BrowserTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 

@@ -18,7 +18,7 @@ AgentInput = TypeVar("AgentInput")
 ToolInput = TypeVar("ToolInput")
 
 
-class EnvTool(Generic[AgentInput, ToolInput]):
+class Tool(Generic[AgentInput, ToolInput]):
     """The basic generic classes of tools in the environment, with two parameterized types: AgentInput and ToolInput.
 
     We follow the gym/gymnasium protocol to be compatible with gym games, can also build special env tool in the framework.
@@ -68,7 +68,7 @@ class EnvTool(Generic[AgentInput, ToolInput]):
         pass
 
 
-class AsyncEnvTool(Generic[AgentInput, ToolInput]):
+class AsyncTool(Generic[AgentInput, ToolInput]):
     """The basic generic classes of tools in the environment, with two parameterized types: AgentInput and ToolInput.
 
     We follow the gym/gymnasium protocol to be compatible with gym games, can also build special env tool in the framework.
@@ -172,14 +172,14 @@ ToolFactory = ToolsManager("env_tool_type")
 class ToolActionExecutor(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, env_tool: EnvTool[Observation, List[ActionModel]] = None):
-        self.tool = env_tool
-        self.tools: Dict[str, EnvTool[Observation, List[ActionModel]]] = {}
+    def __init__(self, tool: Tool[Observation, List[ActionModel]] = None):
+        self.tool = tool
+        self.tools: Dict[str, Tool[Observation, List[ActionModel]]] = {}
 
     def register(
             self,
             name: str,
-            tool: Union[EnvTool[Observation, List[ActionModel]], AsyncEnvTool[Observation, List[ActionModel]]]):
+            tool: Union[Tool[Observation, List[ActionModel]], AsyncTool[Observation, List[ActionModel]]]):
         self.tools[name] = tool
 
     @abc.abstractmethod
@@ -195,7 +195,7 @@ class ToolActionExecutor(object):
     @abc.abstractmethod
     def execute_env_action(self,
                            actions: List[ActionModel],
-                           tool: EnvTool[Observation, List[ActionModel]],
+                           tool: Tool[Observation, List[ActionModel]],
                            **kwargs) -> Tuple[List[ActionResult], Any]:
         """"""
         action_results = []
@@ -221,7 +221,7 @@ class ToolActionExecutor(object):
 
     async def async_execute_env_action(self,
                                        actions: List[ActionModel],
-                                       tool: EnvTool[Observation, List[ActionModel]],
+                                       tool: Tool[Observation, List[ActionModel]],
                                        **kwargs) -> Tuple[List[ActionResult], Any]:
         """"""
         action_results = []
@@ -244,7 +244,7 @@ class ToolActionExecutor(object):
                 logger.warning(traceback.format_exc())
         return action_results, ctx
 
-    def do_act(self, action_model: ActionModel, tool: EnvTool[Observation, List[ActionModel]], **kwargs):
+    def do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]], **kwargs):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name
@@ -256,7 +256,7 @@ class ToolActionExecutor(object):
         logger.info(f"{tool.name()}-{action_name} execute finished")
         return action_result, page
 
-    async def async_do_act(self, action_model: ActionModel, tool: EnvTool[Observation, List[ActionModel]],
+    async def async_do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]],
                            **kwargs):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
