@@ -5,14 +5,14 @@ import json
 from typing import List, Tuple, Dict, Any
 
 from aworld.config.conf import ToolConfig
-from aworld.core.envs.env_tool import EnvTool, ToolFactory
+from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.envs.tool_action import SearchAction
 from aworld.core.common import Observation, ActionModel, Tools, ActionResult
 from aworld.logs.util import logger
 
 
 @ToolFactory.register(name=Tools.SEARCH_API.value, desc="search tool", supported_action=SearchAction)
-class SearchTool(EnvTool[Observation, List[ActionModel]]):
+class SearchTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         super(SearchTool, self).__init__(conf, **kwargs)
 

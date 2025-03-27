@@ -3,7 +3,7 @@
 
 from typing import List, Dict
 
-from aworld.core.envs.env_tool import ToolFactory
+from aworld.core.envs.tool import ToolFactory
 from aworld.virtual_environments import tool_action_desc_dict
 
 

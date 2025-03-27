@@ -6,7 +6,7 @@ from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.android.action.adb_controller import ADBController
-from aworld.core.envs.env_tool import ToolActionExecutor
+from aworld.core.envs.tool import ToolActionExecutor
 
 
 class AndroidToolActionExecutor(ToolActionExecutor):

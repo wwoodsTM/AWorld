@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import GymAction
 from aworld.core.common import Tools, Observation, ActionModel
-from aworld.core.envs.env_tool import EnvTool, ToolFactory
+from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.utils import import_package
 
 
@@ -18,7 +18,7 @@ class ActionType(object):
 
 
 @ToolFactory.register(name=Tools.GYM.value, desc="gym classic control game", supported_action=GymAction)
-class OpenAIGym(EnvTool[Observation, List[ActionModel]]):
+class OpenAIGym(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
         """Gym environment constructor.
 

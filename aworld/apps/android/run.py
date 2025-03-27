@@ -5,7 +5,7 @@ from aworld.agents import AndroidAgent
 from aworld.config import AgentConfig
 from aworld.core.client import Client
 from aworld.core.common import Agents
-from aworld.core.task import GeneralTask
+from aworld.core.task import Task
 from aworld.virtual_environments.android.android import AndroidTool
 from aworld.virtual_environments.conf import AndroidToolConfig
 
@@ -31,11 +31,10 @@ def main():
         'max_actions_per_step': 100
     }
 
-    client.submit(
-        GeneralTask(input="""open rednote""",
-                    agent=AndroidAgent(conf=agent_config),
-                    tools=[AndroidTool(conf=android_tool_config)],
-                    task_config=task_config))
+    client.submit(Task(input="""open rednote""",
+                       agent=AndroidAgent(conf=agent_config),
+                       tools=[AndroidTool(conf=android_tool_config)],
+                       task_config=task_config))
 
 
 if __name__ == '__main__':

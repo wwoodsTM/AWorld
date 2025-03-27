@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from aworld.config import ToolConfig
 from aworld.core.envs.tool_action import DocumentExecuteAction
 from aworld.core.common import Tools, Observation, ActionModel, ActionResult
-from aworld.core.envs.env_tool import ToolFactory, EnvTool
+from aworld.core.envs.tool import ToolFactory, Tool
 from aworld.logs.util import logger
 from aworld.virtual_environments.document.utils import encode_image_from_file, encode_image_from_url
 from aworld.utils import import_package, import_packages
@@ -25,7 +25,7 @@ class InputDocument(BaseModel):
 
 @ToolFactory.register(name=Tools.DOCUMENT_ANALYSIS.value, desc="document analysis",
                       supported_action=DocumentExecuteAction)
-class DocumentTool(EnvTool[Observation, ActionModel]):
+class DocumentTool(Tool[Observation, ActionModel]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         """Init document tool."""
         import_package('cv2', install_name='opencv-python')

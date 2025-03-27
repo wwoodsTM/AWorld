@@ -6,12 +6,12 @@ from typing import Tuple, List, Any
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult, Observation
 from aworld.logs.util import logger
-from aworld.core.envs.env_tool import EnvTool, ToolActionExecutor
+from aworld.core.envs.tool import Tool, ToolActionExecutor
 
 
 class BrowserToolActionExecutor(ToolActionExecutor):
-    def __init__(self, env_tool: EnvTool[Observation, List[ActionModel]] = None):
-        super(BrowserToolActionExecutor, self).__init__(env_tool)
+    def __init__(self, tool: Tool[Observation, List[ActionModel]] = None):
+        super(BrowserToolActionExecutor, self).__init__(tool)
 
     def execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
         List[ActionResult], Any]:
