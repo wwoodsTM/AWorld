@@ -195,7 +195,7 @@ class ClickElement(ExecutableAction):
         import_packages(['playwright', 'markdownify'])
 
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
-        from playwright.sync_api import Page, BrowserContext
+        from playwright.sync_api import BrowserContext
 
         logger.info(f"exec {BrowserAction.CLICK_ELEMENT.value.name} action")
         page = get_page(**kwargs)

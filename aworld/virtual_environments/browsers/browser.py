@@ -25,21 +25,28 @@ UTF8 = "".join(chr(x) for x in range(0, 55290))
 ASCII = "".join(chr(x) for x in range(32, 128))
 
 
-@ToolFactory.register(name=Tools.BROWSER.value, desc="browser", supported_action=BrowserAction)
+@ToolFactory.register(name=Tools.BROWSER.value,
+                      desc="browser",
+                      supported_action=BrowserAction,
+                      conf_file_name=f'{Tools.BROWSER.value}_tool.yaml')
 class BrowserTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
         self.initialized = False
         self._finish = False
-        self.record_trace = self.dict_conf.get("record_trace", False)
+        self.record_trace = self.dict_conf.get("enable_recording", False)
         self.sleep_after_init = self.dict_conf.get("sleep_after_init", False)
-        self.js_code = resources.read_text('aworld.virtual_environments.browsers.script', 'buildDomTree.js')
+
+        dom_js_path = self.dict_conf.get('dom_js_path')
+        if dom_js_path and os.path.exists(dom_js_path):
+            with open(dom_js_path, 'r') as read:
+                self.js_code = read.read()
+        else:
+            self.js_code = resources.read_text('aworld.virtual_environments.browsers.script',
+                                               'buildDomTree.js')
         self.cur_observation = None
         import_package("playwright")
-
-    def name(self):
-        return Tools.BROWSER.value
 
     def init(self) -> None:
         from playwright.sync_api import sync_playwright
@@ -54,7 +61,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             self.context.tracing.start(screenshots=True, snapshots=True)
 
         self.page = self.context.new_page()
-        if self.dict_conf.get("use_browser_executor"):
+        if self.dict_conf.get("custom_executor"):
             self.action_executor = BrowserToolActionExecutor(self)
         else:
             self.action_executor = action_executor
@@ -123,7 +130,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
                                           java_script_enabled=True,
                                           bypass_csp=disable_security,
                                           ignore_https_errors=disable_security,
-                                          record_video_dir=self.dict_conf.get('record_video_dir'),
+                                          record_video_dir=self.dict_conf.get('working_dir'),
                                           record_video_size=viewport_size,
                                           locale=self.dict_conf.get('locale'),
                                           storage_state=self.dict_conf.get("storage_state", None),
@@ -132,7 +139,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             if "chromium" == self.dict_conf.get("browse_name", "chromium"):
                 context.grant_permissions(['camera', 'microphone'])
 
-        if self.dict_conf.get('trace_path'):
+        if self.dict_conf.get('working_dir'):
             context.tracing.start(screenshots=True, snapshots=True, sources=True)
 
         cookie_file = self.dict_conf.get('cookies_file')
@@ -210,9 +217,8 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         Observation, Dict[str, Any]]:
         super().reset(seed=seed, options=options)
 
-        if not self.initialized:
-            self.close()
-            self.init()
+        self.close()
+        self.init()
 
         if self.sleep_after_init > 0:
             time.sleep(self.sleep_after_init)

@@ -24,21 +24,22 @@ UTF8 = "".join(chr(x) for x in range(0, 55290))
 ASCII = "".join(chr(x) for x in range(32, 128))
 
 
-@ToolFactory.register(name=Tools.BROWSER.value, desc="browser", asyn=True, supported_action=BrowserAction)
+@ToolFactory.register(name=Tools.BROWSER.value,
+                      desc="browser",
+                      asyn=True,
+                      supported_action=BrowserAction,
+                      conf_file_name=f'{Tools.BROWSER.value}_tool.yaml')
 class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
     def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
         self.initialized = False
         self._finish = False
-        self.record_trace = self.dict_conf.get("record_trace", False)
+        self.record_trace = self.dict_conf.get("working_dir", False)
         self.sleep_after_init = self.dict_conf.get("sleep_after_init", False)
         self.js_code = resources.read_text('virtual_environments.browsers.script', 'buildDomTree.js')
         self.cur_observation = None
         import_package("playwright")
-
-    def name(self):
-        return "async_" + Tools.BROWSER.value
 
     async def init(self) -> None:
         from playwright.async_api import async_playwright
@@ -53,7 +54,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
             await self.context.tracing.start(screenshots=True, snapshots=True)
 
         self.page = await self.context.new_page()
-        if self.dict_conf.get("use_browser_executor"):
+        if self.dict_conf.get("custom_executor"):
             self.action_executor = BrowserToolActionExecutor(self)
         else:
             self.action_executor = action_executor
@@ -122,7 +123,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
                                                 java_script_enabled=True,
                                                 bypass_csp=disable_security,
                                                 ignore_https_errors=disable_security,
-                                                record_video_dir=self.dict_conf.get('record_video_dir'),
+                                                record_video_dir=self.dict_conf.get('working_dir'),
                                                 record_video_size=viewport_size,
                                                 locale=self.dict_conf.get('locale'),
                                                 storage_state=self.dict_conf.get("storage_state", None),
@@ -209,9 +210,8 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         Observation, Dict[str, Any]]:
         await super().reset(seed=seed, options=options)
 
-        if not self.initialized:
-            await self.close()
-            await self.init()
+        await self.close()
+        await self.init()
 
         if self.sleep_after_init > 0:
             await asyncio.sleep(self.sleep_after_init)

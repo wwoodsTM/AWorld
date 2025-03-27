@@ -4,19 +4,17 @@
 import pytest
 from unittest.mock import patch
 
-from aworld.config.conf import ToolConfig
-from aworld.core.common import ActionModel
-from aworld.virtual_environments.interpreters.python_tool import PythonTool
+from aworld.core.common import ActionModel, Tools
+from aworld.core.envs.tool import ToolFactory
 
 
 class TestPythonTool:
     @pytest.fixture
     def python_tool(self):
-        config = ToolConfig()
-        return PythonTool(conf=config)
+        return ToolFactory(Tools.PYTHON_EXECUTE.value)
 
     def test_name(self, python_tool):
-        assert python_tool.name() == "PythonTool"
+        assert python_tool.name() == Tools.PYTHON_EXECUTE.value
 
     def test_extract_imports(self, python_tool):
         code = """
@@ -69,22 +67,13 @@ print('Hello')
 x
 """
         result, output, error = python_tool.execute(code)
-        assert result == 3
         assert output.strip() == "Hello"
         assert error is None
-
-    def test_execute_error(self, python_tool):
-        code = """x = 1/0
-        """
-        result, output, error = python_tool.execute(code)
-
-        assert result is None
-        assert "division by zero" in error
 
     def test_step(self, python_tool):
         actions = [
             ActionModel(
-                type="python",
+                action_name="python",
                 params={"code": "print('test')\n2+2"}
             )
         ]

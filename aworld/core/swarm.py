@@ -143,13 +143,8 @@ class Swarm(object):
                     # Directly use or use tools after creation.
                     for act in policy:
                         if not self.tools or (self.tools and act.tool_name not in self.tools):
-                            # only use default config in module or XXConfig.
-                            conf = load_config(f"{act.tool_name}.yaml")
-                            if not conf:
-                                conf = ToolConfig()
-                            tool = ToolFactory(act.tool_name, conf=conf)
-                            logger.debug(f"Dynamic load config from {act.tool_name}.yaml, "
-                                         f"conf is: {conf}")
+                            # dynamic only use default config in module.
+                            tool = ToolFactory(act.tool_name)
                             tool.reset()
                             tool_mapping[act.tool_name] = []
                             self.tools[act.tool_name] = tool

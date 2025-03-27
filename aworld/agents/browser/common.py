@@ -5,14 +5,12 @@ import traceback
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Dict, List, Type
+from typing import Any, Optional, Dict, List
 
-from langchain_core.load import dumpd, load
-from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, SystemMessage, HumanMessage
 from openai import RateLimitError
-from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from aworld.core.common import ActionResult, ActionModel
+from aworld.core.common import ActionResult
 
 
 class PolicyMetadata(BaseModel):

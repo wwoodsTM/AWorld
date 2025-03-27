@@ -7,7 +7,6 @@ import signal
 import sys
 from typing import Any, Dict, Tuple, List
 
-from aworld.logs.util import logger
 from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import ShellAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
@@ -15,7 +14,10 @@ from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.logs.util import logger
 
 
-@ToolFactory.register(name=Tools.SHELL.value, desc="shell execute tool", supported_action=ShellAction)
+@ToolFactory.register(name=Tools.SHELL.value,
+                      desc="shell execute tool",
+                      supported_action=ShellAction,
+                      conf_file_name=f'{Tools.SHELL.value}_tool.yaml')
 class ShellTool(Tool[Observation, List[ActionModel]]):
     """
     used to execute shell commands, providing initialization, execution, and exit functions.
@@ -34,16 +36,6 @@ class ShellTool(Tool[Observation, List[ActionModel]]):
         self.env = self.dict_conf.get('env') if self.dict_conf.get('env') else os.environ.copy()
         self.processes = []
         self.step_finished = True
-
-    def name(self):
-        """
-        Get the name of the tool
-        Args:
-            -
-        Returns:
-            str: tool name
-        """
-        return Tools.SHELL.value
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         AgentInput, dict[str, Any]]:

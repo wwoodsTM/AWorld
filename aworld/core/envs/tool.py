@@ -7,7 +7,7 @@ from typing import Dict, Tuple, Any, TypeVar, Generic, List, Union
 
 from pydantic import BaseModel
 
-from aworld.config.conf import ToolConfig
+from aworld.config.conf import ToolConfig, load_config
 from aworld.core.envs.tool_action import ToolAction
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult, Tools
@@ -33,12 +33,13 @@ class Tool(Generic[AgentInput, ToolInput]):
             self.dict_conf = conf
         for k, v in kwargs.items():
             setattr(self, k, v)
+        self._name = self.dict_conf.get("name", self.__class__.__name__)
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
 
-    @abc.abstractmethod
     def name(self):
         """Tool unique name."""
+        return self._name
 
     @abc.abstractmethod
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
@@ -122,23 +123,27 @@ class ToolsManager(Factory):
     def __init__(self, type_name: str = None):
         super(ToolsManager, self).__init__(type_name)
         self._tool_with_action = {}
+        self._tool_conf = {}
 
     def __call__(self, name: str = None, *args, **kwargs):
         if name is None:
             return self
 
-        if 'conf' not in kwargs:
-            if not args:
-                raise ValueError("params `conf` must in args or kwargs!")
-            else:
-                conf = args[0]
-        else:
-            conf = kwargs.pop('conf')
-            if conf is None:
-                raise ValueError("params `conf` must in args or kwargs!")
-
         asyn = kwargs.pop("asyn", False)
         name = "async_" + name if asyn else name
+
+        conf = self._tool_conf.get(name)
+        user_conf = kwargs.pop('conf', None)
+        if user_conf:
+            if isinstance(user_conf, BaseModel):
+                conf.update(user_conf.model_dump())
+            elif isinstance(user_conf, dict):
+                conf.update(user_conf)
+            else:
+                logger.warning(f"Unknown conf type: {type(user_conf)}, ignored!")
+
+        # must is a dict
+        conf['name'] = name
         if name in self._cls:
             tool = self._cls[name](conf=conf, **kwargs)
         else:
@@ -158,11 +163,27 @@ class ToolsManager(Factory):
             tool = "async_" + tool
         return self._tool_with_action.get(tool)
 
-    def register(self, name: str, desc: str, supported_action: ToolAction, **kwargs):
+    def register(self, name: str, desc: str, supported_action: ToolAction, conf_file_name: str = None, **kwargs):
+        """Register a tool to tool factory.
+
+        Args:
+            name: Tool name
+            desc: Tool description
+            supported_action: Tool abilities
+            conf_file_name: Default tool config
+        """
         res = super(ToolsManager, self).register(name, desc, **kwargs)
         asyn = kwargs.pop("asyn", False)
         prefix = "async_" if asyn else ""
-        self._tool_with_action[prefix + name] = supported_action
+        conf_file_name = conf_file_name if conf_file_name else f"{name}_tool.yaml"
+        conf = load_config(conf_file_name, kwargs.get("dir"))
+        if not conf:
+            logger.warning(f"can not load conf from {conf_file_name}")
+            # use general tool config
+            conf = ToolConfig()
+        name = prefix + name
+        self._tool_with_action[name] = supported_action
+        self._tool_conf[name] = conf
         return res
 
 

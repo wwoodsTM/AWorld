@@ -14,9 +14,7 @@ def main():
     client = Client()
     android_tool_config = AndroidToolConfig(avd_name='8ABX0PHWU',
                                             headless=False,
-                                            max_retry=2,
-                                            max_episode_steps=None
-                                            )
+                                            max_retry=2)
 
     agent_config: AgentConfig = AgentConfig(
         agent_name=Agents.ANDROID.value,

@@ -11,8 +11,10 @@ from aworld.core.common import ActionModel, Observation, ActionResult, Tools
 from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.utils import import_package
 
-@ToolFactory.register(name=Tools.PYTHON_EXECUTE.value, desc="python interpreter tool",
-                      supported_action=PythonToolAction)
+@ToolFactory.register(name=Tools.PYTHON_EXECUTE.value,
+                      desc="python interpreter tool",
+                      supported_action=PythonToolAction,
+                      conf_file_name=f'{Tools.PYTHON_EXECUTE.value}_tool.yaml')
 class PythonTool(Tool[Observation, List[ActionModel]]):
 
     def __init__(self,
@@ -37,16 +39,6 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         import_package('langchain_experimental')
         from langchain_experimental.utilities.python import PythonREPL
         self.python_repl = PythonREPL()
-
-    def name(self):
-        """
-        Get the name of the tool
-        Args:
-            -
-        Returns:
-            str: tool name
-        """
-        return self.__class__.__name__
 
     def extract_imports(self, code: str) -> set:
         """

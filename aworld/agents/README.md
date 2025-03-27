@@ -134,7 +134,6 @@ from aworld.config.conf import AgentConfig
 from aworld.core.agent.base import AgentFactory, BaseAgent
 from aworld.core.common import Agents, Observation, ActionModel
 
-
 summary_sys_prompt = "You are a helpful general summary agent."
 
 summary_prompt = """

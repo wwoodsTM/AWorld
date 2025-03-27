@@ -262,6 +262,7 @@ class AgentStepInfo:
         """Check if this is the last step"""
         return self.number >= self.max_steps - 1
 
+
 @dataclass
 class Trajectory:
     """Stores the agent's history, including all observations, info, and AgentResults."""

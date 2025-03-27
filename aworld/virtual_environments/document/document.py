@@ -23,27 +23,21 @@ class InputDocument(BaseModel):
     document_path: str | None = None
 
 
-@ToolFactory.register(name=Tools.DOCUMENT_ANALYSIS.value, desc="document analysis",
-                      supported_action=DocumentExecuteAction)
+@ToolFactory.register(name=Tools.DOCUMENT_ANALYSIS.value,
+                      desc="document analysis",
+                      supported_action=DocumentExecuteAction,
+                      conf_file_name=f'{Tools.DOCUMENT_ANALYSIS.value}_tool.yaml')
 class DocumentTool(Tool[Observation, ActionModel]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         """Init document tool."""
         import_package('cv2', install_name='opencv-python')
         import_packages(['xmltodict', 'pandas', 'docx2markdown', 'PyPDF2', 'numpy'])
         super(DocumentTool, self).__init__(conf, **kwargs)
-        self._observation_space = self.observation_space()
-        self._action_space = self.action_space()
         self.cur_observation = None
         self.content = None
         self.keyframes = []
         self.init()
         self.step_finished = True
-
-    def observation_space(self):
-        pass
-
-    def action_space(self):
-        pass
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, dict[str, Any]]:
