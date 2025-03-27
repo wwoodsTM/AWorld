@@ -17,7 +17,7 @@ from aworld.core.common import Tools, Observation, ActionModel, ActionResult
 from aworld.core.envs.env_tool import ToolFactory, EnvTool
 from aworld.logs.util import logger
 from aworld.virtual_environments.document.utils import encode_image_from_file, encode_image_from_url
-from aworld.utils import import_packages
+from aworld.utils import import_package, import_packages
 
 class InputDocument(BaseModel):
     document_path: str | None = None
@@ -28,7 +28,8 @@ class InputDocument(BaseModel):
 class DocumentTool(EnvTool[Observation, ActionModel]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         """Init document tool."""
-        import_packages(['xmltodict', 'pandas', 'docx2markdown', 'PyPDF2', 'cv2', 'numpy'])
+        import_package('cv2', install_name='opencv-python')
+        import_packages(['xmltodict', 'pandas', 'docx2markdown', 'PyPDF2', 'numpy'])
         super(DocumentTool, self).__init__(conf, **kwargs)
         self._observation_space = self.observation_space()
         self._action_space = self.action_space()

@@ -14,6 +14,14 @@ Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) ca
 
 ![AWorld Framework](readme_assets/framework.png)
 
+## [Core](aworld/core/README.md) concepts:
+- `agent`: Agents that expect users to build, such as BrowserAgent, AndroidAgent, SearchAgent, etc.
+- `swarm`: Interactive collaboration in the topology structure of multiple agents that interact with the environment tools. It can be
+  considered as a multi-agent workflow.
+- `environment`: The runtime of the tool supporting communication between agents and tools.
+- `task`: Complete runnable specific work that includes datasets, agents, environment, metrics, etc.
+- `client`: Submit various tasks for execution and obtain results.
+
 ## Installation
 With Python>=3.11:
 ```bash

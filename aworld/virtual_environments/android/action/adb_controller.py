@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import os
 
 from aworld.logs.util import logger, color_log, Color
-from aworld.utils import import_packages
+from aworld.utils import import_package
 
 configs = {"MIN_DIST": 30}
 
@@ -23,7 +23,8 @@ class AndroidElement:
         self.uid = uid
         self.bbox = bbox
         self.attrib = attrib
-        import_packages(['cv2', 'pyshine'])
+        import_package('cv2', install_name='opencv-python')
+        import_package('pyshine')
 
 def get_id_from_element(elem):
     bounds = elem.attrib["bounds"][1:-1].split("][")
