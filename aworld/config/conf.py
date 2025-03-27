@@ -105,22 +105,21 @@ class AgentConfig(BaseModel):
     ]
     message_context: Optional[str] = None
     available_file_paths: Optional[List[str]] = None
-    ext: dict | None = None
+    ext: dict = {}
 
 
 class TaskConfig(BaseModel):
-    task_id: str | None = str(uuid.uuid4())
+    task_id: str = str(uuid.uuid4())
     task_name: str | None = None
-    task: str | None = None
     max_steps: int = 100
     max_actions_per_step: int = 10
     ext: dict = {}
 
 
 class ToolConfig(BaseModel):
-    name: str | None = None
+    name: str = None
     custom_executor: bool = False
-    enable_recording: bool | None = None
+    enable_recording: bool = False
     working_dir: str = ""
     max_retry: int = 3
     ext: dict = {}
