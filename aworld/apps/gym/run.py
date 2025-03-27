@@ -11,7 +11,7 @@ from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
 from aworld.core.envs.env_tool import AsyncEnvTool
-from aworld.core.task import GeneralTask
+from aworld.core.task import Task
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym
 
@@ -49,7 +49,7 @@ def main():
 
     # can run tasks like this:
     client = Client()
-    task = GeneralTask(agent=agent, tools=[gym_tool])
+    task = Task(agent=agent, tools=[gym_tool])
     res = client.submit([task], parallel=False)
     return res
 

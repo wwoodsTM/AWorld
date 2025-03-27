@@ -4,10 +4,9 @@ import time
 
 import traceback
 
-import abc
 import uuid
 from typing import Union, Dict, Any, List
-
+from dataclasses import dataclass
 from pydantic import BaseModel
 
 from aworld.core.agent.base import BaseAgent
@@ -18,10 +17,19 @@ from aworld.core.swarm import Swarm
 from aworld.logs.util import logger, color_log
 
 
-class Task(object):
-    __metaclass__ = abc.ABCMeta
+@dataclass
+class TaskModel:
+    name: str | None = uuid.uuid1().hex
+    input: Any | None = None
+    conf: Union[Dict[str, Any], BaseModel] | None = None
+    tools: List[EnvTool] | None = None
+    swarm: Swarm | None = None
+    agent: BaseAgent | None = None
 
+
+class Task(object):
     def __init__(self,
+                 task: TaskModel = None,
                  agent: BaseAgent = None,
                  swarm: Swarm = None,
                  name: str = uuid.uuid1().hex,
@@ -33,11 +41,25 @@ class Task(object):
         """Task instance init.
 
         Args:
-            agent(required): Agent instance which want to run.
-            input: A query string or dataset.
+            task: Task model
+            agent: Agent instance which want to run.
+            swarm: Swarm
+            name: Task unique name
+            input: A string query or dataset.
             conf: Task config in process.
             tools: Special tools in task run.
         """
+        # Prioritize using the task model.
+        if task:
+            agent = task.agent
+            swarm = task.swarm
+            name = task.name
+            input = task.input
+            conf = task.conf
+            tools = task.tools
+
+        if conf is None:
+            conf = dict()
         if isinstance(conf, BaseModel):
             conf = conf.model_dump()
         if not agent and not swarm:
@@ -64,10 +86,6 @@ class Task(object):
     def after_run(self):
         pass
 
-    @abc.abstractmethod
-    def run(self):
-        """Raise exception if not success."""
-
     def start(self) -> Any:
         try:
             self.before_run()
@@ -88,19 +106,6 @@ class Task(object):
             t.setDaemon(True)
             t.start()
 
-
-class GeneralTask(Task):
-    def __init__(self,
-                 agent: BaseAgent = None,
-                 swarm: Swarm = None,
-                 name: str = uuid.uuid1().hex,
-                 input: Any = None,
-                 conf: Union[Dict[str, Any], BaseModel] = {},
-                 tools: List[EnvTool] = None,
-                 *args,
-                 **kwargs):
-        super().__init__(agent, swarm, name, input, conf, tools, *args, **kwargs)
-
     def run(self):
         # init tool state by reset(), and ignore them observation
         observation = None
@@ -116,14 +121,14 @@ class GeneralTask(Task):
             observation = Observation(content=self.input)
 
         if self.agent:
-            return self.agent_process(observation, info)
+            return self._agent_process(observation, info)
         elif self.swarm:
             # example now
-            return self.swarm_process(observation, info)
+            return self._swarm_process(observation, info)
 
-    def swarm_process(self,
-                      observation: Observation,
-                      info: Dict[str, Any]) -> Dict[str, Any]:
+    def _swarm_process(self,
+                       observation: Observation,
+                       info: Dict[str, Any]) -> Dict[str, Any]:
         start = time.time()
 
         input = observation.content
@@ -180,9 +185,9 @@ class GeneralTask(Task):
                     "success": False,
                     "total_time": (time.time() - start)}
 
-    def agent_process(self,
-                      observation: Observation,
-                      info: Dict[str, Any]) -> Dict[str, Any]:
+    def _agent_process(self,
+                       observation: Observation,
+                       info: Dict[str, Any]) -> Dict[str, Any]:
         agent = self.agent
         agent.reset({"task": observation.content})
         step = 0

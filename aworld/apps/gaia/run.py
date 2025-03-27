@@ -6,7 +6,7 @@ from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.swarm import Swarm
-from aworld.core.task import GeneralTask
+from aworld.core.task import Task
 from aworld.dataset.mock import mock_dataset
 
 
@@ -31,7 +31,7 @@ def main():
     swarm = Swarm((agent1, agent2))
 
     # Define a task
-    task = GeneralTask(input=test_sample, swarm=swarm, conf=TaskConfig())
+    task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())
 
     # Run task
     result = client.submit(task=[task])
