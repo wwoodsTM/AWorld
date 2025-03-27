@@ -31,18 +31,22 @@ export CLAUDE_API_KEY=sk-ant-api03xyz...
 
 ## Usage
 ### Running Pre-defined Agents ([demo code](./aworld/apps/browsers/run.py))
-Below are two demos showcasing how a single agent can use both a browser and a phone, respectively.
+Below are two YouTube demo videos showcasing how a single agent can use both a browser and a phone, respectively. 
 
 <table>
   <tr>
     <td width="50%">
       <a href="https://www.youtube.com/watch?v=R7keOLrRDoM" target="_blank">
-        <img src="https://img.youtube.com/vi/R7keOLrRDoM/0.jpg" alt="AWorld Browser Demo" width="95%">
+        <img src="https://img.youtube.com/vi/R7keOLrRDoM/0.jpg" alt="AWorld Browser Demo on YouTube" width="95%">
+        <br>
+        <p align="center">▶️ Watch Browser Demo on YouTube</p>
       </a>
     </td>
     <td width="50%">
       <a href="https://www.youtube.com/watch?v=TYh3iqDeIoQ" target="_blank">
-        <img src="https://img.youtube.com/vi/TYh3iqDeIoQ/0.jpg" alt="AWorld Mobile Demo" width="95%">
+        <img src="https://img.youtube.com/vi/TYh3iqDeIoQ/0.jpg" alt="AWorld Mobile Demo on YouTube" width="95%">
+        <br>
+        <p align="center">▶️ Watch Mobile Demo on YouTube</p>
       </a>
     </td>
   </tr>
