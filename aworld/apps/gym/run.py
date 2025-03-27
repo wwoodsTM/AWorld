@@ -43,7 +43,7 @@ async def async_run_gym_game(agent: BaseAgent, tool: AsyncEnvTool):
         await gym_tool.close()
 
 
-if __name__ == "__main__":
+def main():
     gym_tool = OpenAIGym({'env_id': 'CartPole-v1'})
     agent = GymAgent(AgentConfig())
 
@@ -51,6 +51,11 @@ if __name__ == "__main__":
     client = Client()
     task = GeneralTask(agent=agent, tools=[gym_tool])
     res = client.submit([task], parallel=False)
+    return res
+
+
+if __name__ == "__main__":
+    main()
 
     # We can run the task use utility method, as follows:
     # async run gym

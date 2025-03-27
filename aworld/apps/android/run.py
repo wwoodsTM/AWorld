@@ -1,3 +1,6 @@
+# coding: utf-8
+# Copyright (c) 2025 inclusionAI.
+
 from aworld.agents import AndroidAgent
 from aworld.config import AgentConfig
 from aworld.core.client import Client
@@ -6,7 +9,8 @@ from aworld.core.task import GeneralTask
 from aworld.virtual_environments.android.android import AndroidTool
 from aworld.virtual_environments.conf import AndroidToolConfig
 
-if __name__ == '__main__':
+
+def main():
     client = Client()
     android_tool_config = AndroidToolConfig(avd_name='8ABX0PHWU',
                                             headless=False,
@@ -32,3 +36,7 @@ if __name__ == '__main__':
                     agent=AndroidAgent(conf=agent_config),
                     tools=[AndroidTool(conf=android_tool_config)],
                     task_config=task_config))
+
+
+if __name__ == '__main__':
+    main()

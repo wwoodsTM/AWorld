@@ -139,7 +139,12 @@ def get_llm_model(conf: AgentConfig, **kwargs):
     provider = conf.llm_provider
     if provider not in ["ollama"]:
         env_var = f"{provider.upper()}_API_KEY"
-        api_key = conf.llm_api_key if conf.llm_api_key else os.getenv(env_var, "")
+        # special process
+        env_key = os.getenv(env_var, "")
+        if not env_key and env_var == 'CHATOPENAI_API_KEY':
+            env_key = os.getenv('CHATOPENAI_API_KEY', "")
+
+        api_key = conf.llm_api_key if conf.llm_api_key else env_key
         if not api_key:
             raise ValueError(f"Can not found {provider} api key! Please set the `{env_var}` "
                              f"environment variable or provide it in the UI.")

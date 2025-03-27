@@ -9,7 +9,8 @@ from aworld.core.swarm import Swarm
 from aworld.core.task import GeneralTask
 from aworld.dataset.mock import mock_dataset
 
-if __name__ == '__main__':
+
+def main():
     # Initialize client
     client = Client()
 
@@ -38,3 +39,7 @@ if __name__ == '__main__':
     print(f"Task completed: {result['success']}")
     print(f"Time cost: {result['time_cost']}")
     print(f"Task Answer: {result['task_0']['answer']}")
+
+
+if __name__ == '__main__':
+    main()

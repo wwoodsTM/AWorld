@@ -210,13 +210,13 @@ setup(
     packages=find_packages(where=".", exclude=['tests', 'tests.*', '*.tests', '*.tests.*', '*.test', '*.test.*']),
     package_data={
         'aworld': [
-            'virtual_environments/browsers/config/*.js',
+            'virtual_environments/browsers/script/*.js',
             'requirements.txt'
         ]
     },
     license='MIT',
     platforms=["any"],
-    keywords=['sandbox', 'agent', 'environment', "tool"],
+    keywords=['multi-agent', 'agent', 'environment', "tool", 'sandbox'],
     cmdclass={
         'sdist': AWorldPackage,
         'install': AWorldInstaller,
