@@ -3,7 +3,6 @@
 
 import os
 import sys
-import logging
 import re
 import subprocess
 
@@ -17,6 +16,8 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist
 from setuptools.command.install import install
 from setuptools.dist import Distribution
+
+from aworld.logs.util import logger
 
 version_template = """
 # auto generated
@@ -66,11 +67,11 @@ def call_process(cmd, raise_on_error=True, logging=True):
     except subprocess.CalledProcessError as e:
         if raise_on_error:
             raise e
-        print("Fail to execute %s, %s" % (cmd, e))
+        logger.error(f"Fail to execute {cmd}, {e}")
         return e.returncode
 
     if logging:
-        print("Successfully execute: %s" % cmd)
+        logger.info(f"Successfully execute: {cmd}")
     return 0
 
 
@@ -95,7 +96,7 @@ class AWorldInstaller(install):
         super(AWorldInstaller, self).__init__(*args, **kwargs)
         self._requirements = parse_requirements("aworld/requirements.txt")
         self._extra = os.getenv(self.EXTRA_ENV)
-        print("%s: Install AWORLD using extra: %s" % (os.getcwd(), self._extra))
+        logger.info(f"{os.getcwd()}: Install AWORLD using extra: {self._extra}")
 
     def run(self):
         # 1. build wheel using this setup.py, thus using the right install_requires according to ALPS_EXTRA
@@ -134,13 +135,13 @@ class AWorldInstaller(install):
                 try:
                     cmd = f"{sys.executable} -m pip install {info} {req}"
                     call_process(cmd)
-                    logging.info("Installing optional package %s have succeeded." % req)
+                    logger.info(f"Installing optional package {req} have succeeded.")
                 except:
-                    logging.warning("Installing optional package %s is failed, Ignored." % req)  # ignore
+                    logger.warning(f"Installing optional package {req} is failed, Ignored.")  # ignore
         elif reqs:
             cmd = f"{sys.executable} -m pip install {info} {' '.join(reqs)}"
             call_process(cmd)
-            logging.info("Packages %s have been installed." % str(reqs))
+            logger.info(f"Packages {str(reqs)} have been installed.")
 
 
 def parse_requirements(req_fname):
