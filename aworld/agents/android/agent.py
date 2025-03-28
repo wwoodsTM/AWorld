@@ -149,7 +149,7 @@ class AndroidAgent(BaseAgent):
 
             except Exception as e:
                 logger.warning(traceback.format_exc())
-                raise e
+                raise RuntimeError("Android agent encountered exception while making the policy.", e)
             finally:
                 if llm_result:
                     self.trajectory.add_step(observation, info, llm_result)

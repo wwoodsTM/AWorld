@@ -177,7 +177,7 @@ class BrowserAgent(BaseAgent):
             # Add the error state to the trajectory
             self.trajectory.add_step(observation, info, error_result)
 
-            return [ActionModel(tool_name=Tools.BROWSER.value, action_name="stop")]
+            raise RuntimeError("Browser agent encountered exception while making the policy.", e)
         finally:
             if llm_result:
                 # Remove duplicate trajectory addition, as it's already been added in the try block
@@ -215,6 +215,7 @@ class BrowserAgent(BaseAgent):
                                    actions=[ActionModel(tool_name=Tools.BROWSER.value, action_name="stop")])
         except:
             logger.error(f"[agent] Response content: {output_message}")
+            raise RuntimeError('call llm fail, please check llm conf and network.')
 
         if self.model_name == 'deepseek-reasoner':
             output_message.content = _remove_think_tags(output_message.content)

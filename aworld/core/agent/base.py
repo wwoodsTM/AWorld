@@ -62,7 +62,13 @@ class Agent(Generic[INPUT, OUTPUT]):
 
     def reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
+        if options is None:
+            options = {}
         self.task = options.get("task")
+        self.tool_names = options.get("tool_names")
+        self.handoffs = options.get("agent_names", [])
+        self.trajectory = []
+        self._finished = False
 
     async def async_reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
