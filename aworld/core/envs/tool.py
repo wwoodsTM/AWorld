@@ -133,6 +133,12 @@ class ToolsManager(Factory):
         name = "async_" + name if asyn else name
 
         conf = self._tool_conf.get(name)
+        if not conf:
+            logger.warning(f"{name} not find conf in tool factory")
+            conf = dict()
+        elif isinstance(conf, BaseModel):
+            conf = conf.model_dump()
+
         user_conf = kwargs.pop('conf', None)
         if user_conf:
             if isinstance(user_conf, BaseModel):
@@ -180,7 +186,7 @@ class ToolsManager(Factory):
         if not conf:
             logger.warning(f"can not load conf from {conf_file_name}")
             # use general tool config
-            conf = ToolConfig()
+            conf = ToolConfig().model_dump()
         name = prefix + name
         self._tool_with_action[name] = supported_action
         self._tool_conf[name] = conf
