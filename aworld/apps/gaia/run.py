@@ -23,8 +23,7 @@ def main():
         llm_model_name="gpt-4o",
     )
     agent1 = PlanAgent(conf=agent_config)
-    agent2 = ExecuteAgent(conf=agent_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value,
-                                                         Tools.PYTHON_EXECUTE.value])
+    agent2 = ExecuteAgent(conf=agent_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
 
     # Create swarm for multi-agents
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
