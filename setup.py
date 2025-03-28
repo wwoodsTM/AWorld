@@ -9,6 +9,7 @@ import subprocess
 
 import aworld
 from aworld.utils.import_package import import_package
+
 # if no setuptools, install first
 import_package("setuptools")
 
@@ -107,6 +108,11 @@ class AWorldInstaller(install):
         # install optional requirements here since pip install doesn't ignore requirement error
         reqs = self._requirements.get(self.BASE_OPT, [])
         self._install_reqs(reqs, ignore_error=True)
+
+        try:
+            subprocess.check_call('playwright install', shell=True, timeout=60)
+        except Exception as e:
+            logger.error(f"Fail to execute playwright install\n {e}")
 
     def _contains_module(self, module):
         if self._extra is None:
@@ -211,7 +217,8 @@ setup(
     package_data={
         'aworld': [
             'virtual_environments/browsers/script/*.js',
-            'requirements.txt'
+            'requirements.txt',
+            'config/*.yaml'
         ]
     },
     license='MIT',
