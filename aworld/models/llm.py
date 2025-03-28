@@ -124,17 +124,6 @@ class DeepSeekR1ChatOllama(ChatOllama):
         return AIMessage(content=content, reasoning_content=reasoning_content)
 
 
-PROVIDER_DISPLAY_NAMES = {
-    "openai": "OpenAI",
-    "azure_openai": "Azure OpenAI",
-    "anthropic": "Anthropic",
-    "deepseek": "DeepSeek",
-    "google": "Google",
-    "alibaba": "Alibaba",
-    "moonshot": "MoonShot"
-}
-
-
 def get_llm_model(conf: AgentConfig, **kwargs):
     provider = conf.llm_provider
     if provider not in ["ollama"]:
@@ -142,12 +131,13 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         # special process
         env_key = os.getenv(env_var, "")
         if not env_key and env_var == 'CHATOPENAI_API_KEY':
-            env_key = os.getenv('CHATOPENAI_API_KEY', "")
+            env_var = 'OPENAI_API_KEY'
+            env_key = os.getenv('OPENAI_API_KEY', "")
 
         api_key = conf.llm_api_key if conf.llm_api_key else env_key
         if not api_key:
-            raise ValueError(f"Can not found {provider} api key! Please set the `{env_var}` "
-                             f"environment variable or provide it in the UI.")
+            raise ValueError(f"Can not found {provider} api key! "
+                             f"Please set the `{env_var}` environment variable or set `llm_api_key` in AgentConfig.")
         kwargs["api_key"] = api_key
         kwargs['base_url'] = conf.llm_base_url
 
@@ -181,7 +171,7 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         )
     elif provider == "openai":
         if not kwargs.get("base_url", ""):
-            base_url = os.getenv("OPENAI_ENDPOINT")
+            base_url = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
         else:
             base_url = kwargs.get("base_url")
 
@@ -193,7 +183,7 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         )
     elif provider == "chatopenai":
         if not kwargs.get("base_url", ""):
-            base_url = os.getenv("OPENAI_ENDPOINT")
+            base_url = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
         else:
             base_url = kwargs.get("base_url")
 
@@ -285,14 +275,3 @@ def get_llm_model(conf: AgentConfig, **kwargs):
         )
     else:
         raise ValueError(f"Unsupported provider: {provider}")
-
-
-# Predefined model names for common providers
-model_names = {
-    "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229"],
-    "openai": ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini"],
-    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
-    "ollama": ["qwen2.5:7b", "qwen2.5:14b", "qwen2.5:32b", "qwen2.5-coder:14b", "qwen2.5-coder:32b", "llama2:7b",
-               "deepseek-r1:14b", "deepseek-r1:32b"],
-    "alibaba": ["qwen-plus", "qwen-max", "qwen-turbo", "qwen-long"],
-}
