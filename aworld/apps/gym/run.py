@@ -1,8 +1,9 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-import asyncio
 
 import time
+
+from aworld.core.common import Tools
 
 from aworld.core.client import Client
 from aworld.core.agent.base import BaseAgent
@@ -10,10 +11,9 @@ from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.core.envs.tool import AsyncTool
+from aworld.core.envs.tool import AsyncTool, ToolFactory
 from aworld.core.task import Task
-from aworld.virtual_environments.gym.openai_gym import OpenAIGym
-from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym
+from aworld.virtual_environments import OpenAIGym
 
 
 async def async_run_gym_game(agent: BaseAgent, tool: AsyncTool):
@@ -44,7 +44,8 @@ async def async_run_gym_game(agent: BaseAgent, tool: AsyncTool):
 
 
 def main():
-    gym_tool = OpenAIGym({'env_id': 'CartPole-v1'})
+    # use default config
+    gym_tool = ToolFactory(Tools.GYM.value)
     agent = GymAgent(AgentConfig())
 
     # can run tasks like this:

@@ -79,6 +79,7 @@ class ModelConfig(BaseModel):
     llm_api_key: str | None = None
     max_input_tokens: int = 128000
 
+
 class AgentConfig(BaseModel):
     agent_name: str = None
     max_steps: int = 10
@@ -104,33 +105,21 @@ class AgentConfig(BaseModel):
     ]
     message_context: Optional[str] = None
     available_file_paths: Optional[List[str]] = None
-    ext: dict | None = None
+    ext: dict = {}
 
 
 class TaskConfig(BaseModel):
-    task_id: str | None = str(uuid.uuid4())
+    task_id: str = str(uuid.uuid4())
     task_name: str | None = None
-    task: str | None = None
     max_steps: int = 100
     max_actions_per_step: int = 10
-    ext: dict | None = None
+    ext: dict = {}
 
 
 class ToolConfig(BaseModel):
-    use_vision: bool | None = None
-    custom_executor: bool = True
-    tool_calling_method: str | None = None
-    headless: bool | None = False
-    disable_security: bool | None = None
-    enable_recording: bool | None = None
-    window_w: int | None = None
-    window_h: int | None = None
-    save_recording_path: str | None = None
-    save_trace_path: str | None = None
-    save_agent_history_path: str | None = None
-    task: str | None = None
-    config_data: dict | None = None
-    max_retry: int | None = None
-    ext: dict | None = None
+    name: str = None
+    custom_executor: bool = False
+    enable_recording: bool = False
     working_dir: str = ""
-    env: dict = {}
+    max_retry: int = 3
+    ext: dict = {}

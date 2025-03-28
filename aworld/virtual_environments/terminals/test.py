@@ -2,17 +2,14 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 
-from aworld.config.conf import ToolConfig
-from aworld.virtual_environments.terminals.shell_tool import ShellTool
+from aworld.core.common import Tools
+
+from aworld.core.envs.tool import ToolFactory
 
 
 class TestShellTool(unittest.TestCase):
     def setUp(self):
-        self.config = ToolConfig(**{
-            "working_dir": "/tmp",
-            "env": {"TEST_ENV": "test"}
-        })
-        self.shell_tool = ShellTool(self.config)
+        self.shell_tool = ToolFactory(Tools.SHELL.value)
 
     def test_init(self):
         """Test initialization"""

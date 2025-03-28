@@ -5,7 +5,6 @@ from typing import Dict, Any, Tuple, SupportsFloat, Union, List
 
 from pydantic import BaseModel
 
-from aworld.config.conf import ToolConfig
 from aworld.core.envs.tool_action import GymAction
 from aworld.core.common import Tools, ActionModel, Observation
 from aworld.core.envs.tool import AsyncTool, ToolFactory
@@ -26,19 +25,14 @@ class OpenAIGym(AsyncTool):
             env_id: gym environment full name
             wrappers: gym environment wrapper list
         """
-        super(OpenAIGym, self).__init__(conf, **kwargs)
-        self.env_id = self.dict_conf.get("env_id")
-        self._render = kwargs.pop('render', True)
-        if self._render and 'render_mode' not in kwargs:
-            kwargs['render_mode'] = 'human'
-        self.env = self._gym_env_wrappers(self.env_id, self.dict_conf.get("wrappers", []), **kwargs)
-        self.action_space = self.env.action_space
-        conf = ToolConfig()
         import_package('gymnasium')
         super(OpenAIGym, self).__init__(conf, **kwargs)
-
-    def name(self):
-        return f"async_{Tools.GYM.value}"
+        self.env_id = self.dict_conf.get("env_id")
+        self._render = self.dict_conf.get('render', True)
+        if self._render:
+            kwargs['render_mode'] = self.dict_conf.get('render_mode', True)
+        self.env = self._gym_env_wrappers(self.env_id, self.dict_conf.get("wrappers", []), **kwargs)
+        self.action_space = self.env.action_space
 
     async def step(self, action: List[ActionModel], **kwargs) -> Tuple[
         Observation, SupportsFloat, bool, bool, Dict[str, Any]]:

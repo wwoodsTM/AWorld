@@ -11,13 +11,13 @@ from aworld.core.common import Observation, ActionModel, Tools, ActionResult
 from aworld.logs.util import logger
 
 
-@ToolFactory.register(name=Tools.SEARCH_API.value, desc="search tool", supported_action=SearchAction)
+@ToolFactory.register(name=Tools.SEARCH_API.value,
+                      desc="search tool",
+                      supported_action=SearchAction,
+                      conf_file_name=f'{Tools.SEARCH_API.value}_tool.yaml',)
 class SearchTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         super(SearchTool, self).__init__(conf, **kwargs)
-
-    def name(self):
-        return Tools.SEARCH_API.value
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, dict[str, Any]]:

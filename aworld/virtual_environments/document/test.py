@@ -1,27 +1,23 @@
-
-from aworld.config import ToolConfig
-from aworld.logs.util import logger
-from aworld.virtual_environments.document.document import DocumentTool
-import traceback
-
-
-class TestDocumentTool():
-    def __init__(self):
-        conf = ToolConfig(use_vision=True)
-        self.document_tool = DocumentTool(conf=conf)
-
-    def test_document_analysis(self,document_path):
-        try:
-            content, keyframes, error = self.document_tool.document_analysis(document_path)
-            # content, keyframes, error
-            logger.info(f"document_path:{document_path}")
-            logger.info(f"content:{content}")
-            logger.info(f"keyframes:{keyframes}")
-        except Exception as e:
-            logger.error(f"error: {e}")
-            traceback.print_exc()
+# coding: utf-8
+# Copyright (c) 2025 inclusionAI.
+import os
+import unittest
+from pathlib import Path
+from aworld.core.common import Tools
+from aworld.core.envs.tool import ToolFactory
 
 
-if __name__ == '__main__':
-    document_path = "/tmp/test.pptx"
-    TestDocumentTool().test_document_analysis(document_path)
+class TestDocumentTool(unittest.TestCase):
+    def setUp(self):
+        self.document_tool = ToolFactory(Tools.DOCUMENT_ANALYSIS.value)
+
+    def tearDown(self):
+        self.document_tool.close()
+
+    def test_document_analysis(self):
+        current_dir = Path(__file__).parent.absolute()
+        document_path = os.path.join(current_dir, 'test.json')
+        content, keyframes, error = self.document_tool.document_analysis(document_path)
+        self.assertEqual(content, {'test': 'test content'})
+        self.assertEqual(keyframes, [])
+        self.assertEqual(error, None)

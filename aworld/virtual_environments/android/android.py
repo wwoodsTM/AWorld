@@ -15,19 +15,20 @@ from aworld.core.envs.tool import ToolFactory, Tool
 ALL_UNICODE_CHARS = frozenset(chr(i) for i in range(0x10FFFF + 1))
 
 
-@ToolFactory.register(name=Tools.ANDROID.value, desc="android", supported_action=AndroidAction)
+@ToolFactory.register(name=Tools.ANDROID.value,
+                      desc="android",
+                      supported_action=AndroidAction,
+                      conf_file_name=f'{Tools.ANDROID.value}_tool.yaml')
 class AndroidTool(Tool[Observation, List[ActionModel]]):
 
     def __init__(self, conf: AndroidToolConfig, **kwargs):
         super(AndroidTool, self).__init__(conf, **kwargs)
-        self.controller = ADBController(avd_name=conf.avd_name,
-                                        adb_path=conf.adb_path,
-                                        emulator_path=conf.emulator_path)
+        self.controller = ADBController(avd_name=self.dict_conf.get('avd_name'),
+                                        adb_path=self.dict_conf.get('adb_path'),
+                                        emulator_path=self.dict_conf.get('emulator_path'))
 
-        self.action_executor = AndroidToolActionExecutor(self.controller)
-
-    def name(self):
-        return Tools.ANDROID.value
+        if self.dict_conf.get("custom_executor"):
+            self.action_executor = AndroidToolActionExecutor(self.controller)
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, Dict[str, Any]]:

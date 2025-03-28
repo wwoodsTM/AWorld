@@ -3,13 +3,17 @@
 
 import unittest
 
+from aworld.core.common import Tools, ActionModel
+
+from aworld.core.envs.tool import ToolFactory
 from aworld.logs.util import logger
 from aworld.virtual_environments.gym.openai_gym import OpenAIGym
 
 
 class OpenAIGymTest(unittest.TestCase):
     def setUp(self):
-        self.gym = OpenAIGym('CartPole-v0', [], render=False)
+        # self.gym = OpenAIGym('CartPole-v0', [], render=False)
+        self.gym = ToolFactory(Tools.GYM.value)
 
     def tearDown(self):
         self.gym.close()
@@ -19,10 +23,10 @@ class OpenAIGymTest(unittest.TestCase):
 
     def test_reset(self):
         state = self.gym.reset()
-        self.assertEqual(len(state), 4)
+        self.assertEqual(len(state), 2)
 
         self.gym.reset()
-        state, reward, terminal, _, _ = self.gym.step(0)
+        state, reward, terminal, _, _ = self.gym.step([ActionModel(action_name='play', params={'result': 0})])
         transform_state = self.gym.transform_state(state)
         action = [0.1, 0.1, 0.1, -0.1]
         transform_action = self.gym.transform_action(action)
@@ -30,12 +34,11 @@ class OpenAIGymTest(unittest.TestCase):
 
     def test_gym(self):
         self.gym.reset()
-        state, reward, terminal, _, _ = self.gym.step(0)
+        state, reward, terminal, _, _ = self.gym.step([ActionModel(action_name='play', params={'result': 0})])
         transform_state = self.gym.transform_state(state)
 
         logger.info(transform_state)
-        self.assertEqual(len(state), 4)
-        self.assertTrue((state == transform_state).all())
+        self.assertTrue((state == transform_state))
 
     def test_dim(self):
         self.assertEqual(self.gym._state_dim(), 4)
@@ -52,11 +55,11 @@ class OpenAIGymTest(unittest.TestCase):
 
         state = tuple([0.1, 0.1, 0.1, -0.1])
         transform_state = self.gym.transform_state(state)
-        self.assertEqual(transform_state, {'gymtpl1': 0.1, 'gymtpl3': -0.1, 'gymtpl0': 0.1, 'gymtpl2': 0.1})
+        self.assertEqual(transform_state, {'gym0': 0.1, 'gym1': 0.1, 'gym2': 0.1, 'gym3': -0.1})
 
         state = tuple([{'transform-state': {'inner': [0.1, 0.1, 0.1, -0.1]}}])
         transform_state = self.gym.transform_state(state)
-        self.assertEqual(transform_state, {'gymtpl0-transform-state-inner': [0.1, 0.1, 0.1, -0.1]})
+        self.assertEqual(transform_state, {'gym0-transform-state-inner': [0.1, 0.1, 0.1, -0.1]})
 
     def test_transform_action(self):
         action = [0.1, 0.1, 0.1, -0.1]

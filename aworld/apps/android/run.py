@@ -4,9 +4,9 @@
 from aworld.agents import AndroidAgent
 from aworld.config import AgentConfig
 from aworld.core.client import Client
-from aworld.core.common import Agents
+from aworld.core.common import Agents, Tools
+from aworld.core.envs.tool import ToolFactory
 from aworld.core.task import Task
-from aworld.virtual_environments.android.android import AndroidTool
 from aworld.virtual_environments.conf import AndroidToolConfig
 
 
@@ -14,9 +14,7 @@ def main():
     client = Client()
     android_tool_config = AndroidToolConfig(avd_name='8ABX0PHWU',
                                             headless=False,
-                                            max_retry=2,
-                                            max_episode_steps=None
-                                            )
+                                            max_retry=2)
 
     agent_config: AgentConfig = AgentConfig(
         agent_name=Agents.ANDROID.value,
@@ -30,10 +28,9 @@ def main():
         'max_steps': 100,
         'max_actions_per_step': 100
     }
-
     client.submit(Task(input="""open rednote""",
                        agent=AndroidAgent(conf=agent_config),
-                       tools=[AndroidTool(conf=android_tool_config)],
+                       tools=[ToolFactory(Tools.ANDROID.value, conf=android_tool_config)],
                        task_config=task_config))
 
 
