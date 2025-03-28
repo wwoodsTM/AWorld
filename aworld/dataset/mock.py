@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import os
+from importlib import resources
 
 import pandas as pd
 import numpy as np
@@ -8,14 +9,17 @@ import numpy as np
 
 def mock_dataset(name: str):
     if name == 'gaia':
-        current_work_dir = os.path.abspath(os.path.dirname(__file__))
-        file_path = os.path.join(current_work_dir, 'gaia/gaia.npy')
+        res = resources.read_binary("aworld.dataset.gaia", "gaia.npy")
 
-        numpy_array = np.load(file_path, allow_pickle=True)
+        npy_path = f"{os.getcwd()}/gaia.npy"
+        with open(npy_path, "wb+") as write:
+            write.write(res)
+
+        numpy_array = np.load(npy_path, allow_pickle=True)
         df = pd.DataFrame(numpy_array[:-1])
         query = numpy_array[-1][0]
 
-        save_file_path = os.path.join(current_work_dir, 'gaia/gaia.xlsx')
+        save_file_path = f"{os.getcwd()}/gaia.xlsx"
         df.to_excel(save_file_path, index=False, header=None)
         return query.format(file_path=save_file_path)
     return None
