@@ -21,6 +21,8 @@ def main():
     agent_config = AgentConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
+        llm_api_key="OPENAI_API_KEY",
+        llm_base_url="OPENAI_API_BASE_URL"
     )
     agent1 = PlanAgent(conf=agent_config)
     agent2 = ExecuteAgent(conf=agent_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
