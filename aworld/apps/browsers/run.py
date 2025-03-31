@@ -8,6 +8,8 @@ from aworld.core.common import Agents, Tools
 from aworld.core.task import Task
 from aworld.agents.browser.agent import BrowserAgent
 from aworld.config.conf import AgentConfig
+from aworld.agents.browser.config import BrowserAgentConfig
+from aworld.virtual_environments import BrowserTool
 from aworld.virtual_environments.conf import BrowserToolConfig
 
 
@@ -15,7 +17,7 @@ def main():
     client = Client()
     browser_tool_config = BrowserToolConfig(width=1280, height=720, keep_browser_open=True)
 
-    agent_config = AgentConfig(
+    agent_config = BrowserAgentConfig(
         agent_name=Agents.BROWSER.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
