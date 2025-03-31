@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 from aworld.core.envs.tool import ToolFactory
-from aworld.core.swarm import Swarm
+from aworld.core.agent.swarm import Swarm
 
 from aworld.core.client import Client
 from aworld.core.common import Agents, Tools

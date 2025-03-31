@@ -6,14 +6,14 @@ from aworld.core.common import Tools
 from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.core.swarm import Swarm
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.dataset.mock import mock_dataset
 
 # Need OPENAI_API_KEY
 os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`
-os.environ['OPENAI_ENDPOINT'] = ""
+# os.environ['OPENAI_ENDPOINT'] = "https://api.openai.com/v1"
 
 def main():
     # Initialize client

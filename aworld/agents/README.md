@@ -195,7 +195,7 @@ The OPENAI_API_KEY and OPENAI_ENDPOINT can be used as a parameter, example in th
 
 from aworld.config.conf import AgentConfig
 from aworld.core.client import Client
-from aworld.core.swarm import Swarm
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 
 if __name__ == '__main__':

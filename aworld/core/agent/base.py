@@ -29,7 +29,7 @@ class Agent(Generic[INPUT, OUTPUT]):
             self.dict_conf = dict()
         self.task = None
         # An agent can use the tool list
-        self.tool_names: List[str] = kwargs.get("tool_names")
+        self.tool_names: List[str] = kwargs.get("tool_names", [])
         # An agent can delegate tasks to other agent
         self.handoffs: List[str] = kwargs.get("agent_names", [])
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
