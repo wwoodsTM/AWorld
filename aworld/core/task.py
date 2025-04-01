@@ -214,6 +214,7 @@ class Task(object):
         start = time.time()
         step = 0
         max_steps = self.conf.get("max_steps", 100)
+        self.swarm.cur_agent = self.swarm.communicate_agent
         # use entry agent every time
         policy: List[ActionModel] = self.swarm.cur_agent.policy(observation, info)
         if not policy:
@@ -229,6 +230,7 @@ class Task(object):
         msg = None
         response = None
         return_entry = False
+        cur_agent = None
         try:
             while step < max_steps:
                 terminated = False

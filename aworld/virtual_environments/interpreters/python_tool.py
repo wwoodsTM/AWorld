@@ -10,6 +10,8 @@ from aworld.core.envs.tool_action import PythonToolAction
 from aworld.core.common import ActionModel, Observation, ActionResult, Tools
 from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.utils import import_package
+from aworld.virtual_environments.utils import build_observation
+
 
 @ToolFactory.register(name=Tools.PYTHON_EXECUTE.value,
                       desc="python interpreter tool",
@@ -34,7 +36,6 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         self.global_namespace = {}
         self.original_stdout = sys.stdout
         self.output_buffer = StringIO()
-        self.step_finished = True
         self.installed_packages = set()
         import_package('langchain_experimental')
         from langchain_experimental.utilities.python import PythonREPL
@@ -136,16 +137,11 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         self.close()
         self.local_namespace = {}
         self.global_namespace = {}
-        self.step_finished = True
+        self._finished = True
         self.installed_packages.clear()
 
-    def finished(self) -> bool:
-        """
-        Check if the executor is finished
-        Returns:
-            bool: True if finished, False otherwise
-        """
-        return self.step_finished
+        return build_observation(observer=self.name(),
+                                 ability=PythonToolAction.EXECUTE.value.name), {}
 
     def close(self) -> None:
         """
@@ -162,7 +158,7 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         except:
             pass
         finally:
-            self.step_finished = True
+            self._finished = True
 
     def step(
             self,
@@ -179,12 +175,8 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         self.step_finished = False
         reward = 0
         fail_error = ""
-        observation: 'Observation' = Observation(**{
-            'dom_tree': '',
-            'image': '',
-            'action_result': [],
-            'info': {}
-        })
+        observation = build_observation(observer=self.name(),
+                                        ability=PythonToolAction.EXECUTE.value.name)
         try:
             if not actions:
                 return (observation, reward,
@@ -195,6 +187,7 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
             for action in actions:
                 code = action.params.get("code", "")
                 if not code:
+                    logger.warning(f"{action} no code to execute.")
                     continue
                 _, output, error = self.execute(code)
                 observation.content = output
@@ -208,12 +201,12 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         except Exception as e:
             fail_error = str(e)
         finally:
-            self.step_finished = True
+            self._finished = True
 
+        info = {"exception": fail_error}
+        info.update(kwargs)
         return (observation, reward, kwargs.get("terminated", False),
-                kwargs.get("truncated", False), {
-                    "exception": fail_error
-                })
+                kwargs.get("truncated", False), info)
 
     def execute(self, code, timeout=300):
         """
