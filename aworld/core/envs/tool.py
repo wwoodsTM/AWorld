@@ -33,6 +33,8 @@ class Tool(Generic[AgentInput, ToolInput]):
             self.dict_conf = conf
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        self._finished = False
         self._name = self.dict_conf.get("name", self.__class__.__name__)
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
@@ -56,9 +58,9 @@ class Tool(Generic[AgentInput, ToolInput]):
             Quintuple，key information: AgentInput and extended info dict.
         """
 
-    @abc.abstractmethod
     def finished(self) -> bool:
         """The final execution status of the task from agent instructions."""
+        return self._finished
 
     @abc.abstractmethod
     def close(self) -> None:
@@ -84,6 +86,8 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
             self.dict_conf = conf
         for k, v in kwargs.items():
             setattr(self, k, v)
+        self._finished = False
+
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
 
@@ -106,9 +110,9 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
             Quintuple，key information: AgentInput and extended info dict.
         """
 
-    @abc.abstractmethod
     async def finished(self) -> bool:
         """The final execution status of the task from agent instructions."""
+        return self._finished
 
     @abc.abstractmethod
     async def close(self) -> None:
