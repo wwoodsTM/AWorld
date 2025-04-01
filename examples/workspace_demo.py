@@ -15,8 +15,8 @@ current_dir = Path(__file__).parent
 root_dir = current_dir.parent
 sys.path.insert(0, str(root_dir))
 
-from aworld.memory.workspace.artifact import ArtifactType
-from aworld.memory.workspace.workspace import ArtifactWorkSpace
+from aworld.workspace.artifact import ArtifactType
+from aworld.workspace.workspace import WorkSpace
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
     os.makedirs("data/workspace_demo", exist_ok=True)
     
     # Create workspace
-    workspace = ArtifactWorkSpace(name="Example Workspace", storage_path="data/workspace_demo")
+    workspace = WorkSpace(name="Example Workspace", storage_path="data/workspace_demo")
     print(f"Created workspace: {workspace.name} (ID: {workspace.workspace_id})")
 
     # Create several different types of artifacts
@@ -89,7 +89,7 @@ def main():
     
     # Reload workspace
     print("\nReloading workspace...")
-    loaded_workspace = ArtifactWorkSpace.load(workspace.workspace_id, "data/workspace_demo")
+    loaded_workspace = WorkSpace.load(workspace.workspace_id, "data/workspace_demo")
     print(f"Loaded workspace: {loaded_workspace.name}")
     print(f"Number of artifacts: {len(loaded_workspace.artifacts)}")
     

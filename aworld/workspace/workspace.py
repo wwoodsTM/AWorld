@@ -3,11 +3,11 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Union, Callable
 
-from aworld.memory.workspace.artifact import ArtifactType, Artifact
-from aworld.memory.workspace.artifact_repository import LocalArtifactRepository
+from aworld.workspace.artifact import ArtifactType, Artifact
+from aworld.workspace.artifact_repository import LocalArtifactRepository
 
 
-class ArtifactWorkSpace:
+class WorkSpace:
     """
     Artifact workspace, managing a group of related artifacts
     
@@ -216,7 +216,7 @@ class ArtifactWorkSpace:
         )
 
     @classmethod
-    def load(cls, workspace_id: str, storage_path: Optional[str] = None) -> Optional["ArtifactWorkSpace"]:
+    def load(cls, workspace_id: str, storage_path: Optional[str] = None) -> Optional["WorkSpace"]:
         """
         Load workspace
         

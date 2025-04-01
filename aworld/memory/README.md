@@ -26,11 +26,11 @@ Key features of workspaces:
 Below is a basic example of workspace usage:
 
 ```python
-from aworld.memory.workspace.artifact import ArtifactType
-from aworld.memory.workspace.workspace import ArtifactWorkSpace
+from aworld.workspace.artifact import ArtifactType
+from aworld.workspace.workspace import WorkSpace
 
 # Create workspace
-workspace = ArtifactWorkSpace(name="Example Workspace")
+workspace = WorkSpace(name="Example Workspace")
 
 # Create different types of artifacts
 text_artifact = workspace.create_artifact(
@@ -56,7 +56,7 @@ workspace.update_artifact(
 workspace_version_id = workspace.save()
 
 # Load workspace
-loaded_workspace = ArtifactWorkSpace.load(workspace.workspace_id)
+loaded_workspace = WorkSpace.load(workspace.workspace_id)
 ```
 
 For a more comprehensive example, refer to `examples/workspace_demo.py`.
