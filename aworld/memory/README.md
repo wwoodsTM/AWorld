@@ -59,13 +59,6 @@ workspace_version_id = workspace.save()
 loaded_workspace = ArtifactWorkSpace.load(workspace.workspace_id)
 ```
 
-Key features of workspaces:
-- Support for creating and managing multiple types of artifacts
-- Complete version history for each artifact
-- Content-addressable persistent storage
-- Observer pattern for change notifications
-- Artifacts are archived rather than physically deleted, allowing for recovery
-
 For a more comprehensive example, refer to `examples/workspace_demo.py`.
 
 ### CheckPoint
