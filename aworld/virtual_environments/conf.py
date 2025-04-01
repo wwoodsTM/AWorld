@@ -30,6 +30,7 @@ class BrowserToolConfig(ToolConfig):
     enable_recording: bool = False
     sleep_after_init: float = 0
     max_retry: int = 3
+    inner_llm_model_config: ModelConfig = ModelConfig()
 
 
 class AndroidToolConfig(ToolConfig):
