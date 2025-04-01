@@ -6,9 +6,10 @@ from typing import Dict, Any, Tuple, SupportsFloat, List, Union
 from pydantic import BaseModel
 
 from aworld.core.envs.tool_action import GymAction
-from aworld.core.common import Tools, Observation, ActionModel
+from aworld.core.common import Tools, Observation, ActionModel, AgentPolicy
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.utils import import_package
+from aworld.virtual_environments.utils import build_observation
 
 
 class ActionType(object):
@@ -19,8 +20,8 @@ class ActionType(object):
 @ToolFactory.register(name=Tools.GYM.value,
                       desc="gym classic control game",
                       supported_action=GymAction,
-                      conf_file_name=f'{Tools.GYM.value}_tool.yaml',)
-class OpenAIGym(Tool[Observation, List[ActionModel]]):
+                      conf_file_name=f'{Tools.GYM.value}_tool.yaml', )
+class OpenAIGym(Tool[Observation, AgentPolicy]):
     def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
         """Gym environment constructor.
 
@@ -45,7 +46,10 @@ class OpenAIGym(Tool[Observation, List[ActionModel]]):
         state, reward, terminal, truncate, info = self.env.step(action)
         info['env_id'] = self.env_id
         self._finished = terminal
-        return (Observation(content=OpenAIGym.transform_state(state=state)),
+
+        return (build_observation(observer=self.name(),
+                                  ability=GymAction.PLAY.value.name,
+                                  content=OpenAIGym.transform_state(state=state)),
                 reward,
                 terminal,
                 truncate,

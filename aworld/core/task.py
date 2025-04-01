@@ -127,6 +127,7 @@ class Task(object):
         info = dict()
         if self.tools:
             for _, tool in self.tools.items():
+                # use the observation and info of the last one
                 observation, info = tool.reset()
 
         if observation:
@@ -326,7 +327,7 @@ class Task(object):
                     policy = cur_agent.policy(observation, info)
 
             if policy:
-                response = policy[0].policy_info
+                response = policy[0].policy_info if policy[0].policy_info else policy[0].action_name
 
             # All agents or tools have completed their tasks
             if all(agent.finished for _, agent in self.swarm.agents.items()) or (all(
