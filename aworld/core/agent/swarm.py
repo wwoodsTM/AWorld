@@ -3,8 +3,7 @@
 
 from typing import Dict, Any, List
 
-from aworld.agents import agent_desc
-from aworld.core.agent.agent_desc import get_agent_desc_by_name
+from aworld.core.agent.agent_desc import agent_handoffs_desc
 from aworld.core.agent.base import Agent, BaseAgent
 from aworld.core.common import ActionModel, Observation
 from aworld.logs.util import logger
@@ -45,7 +44,7 @@ class Swarm(object):
         # Agent that communicate with the outside world, the default is the first.
         self.communicate_agent: Agent = valid_agent_pair[0][0]
         # agents in swarm.
-        self.agents = {}
+        self.agents: Dict[str, BaseAgent] = {}
 
         # agent handoffs build.
         for pair in valid_agent_pair:
@@ -75,7 +74,11 @@ class Swarm(object):
         self.cur_agent = self.communicate_agent
         self.initialized = True
 
-    def handoffs_desc(self, agent_name: str = None):
+    def _check(self):
+        if not self.initialized:
+            self.reset()
+
+    def handoffs_desc(self, agent_name: str = None, use_all: bool = False):
         """Get agent description by name for handoffs.
 
         Args:
@@ -83,14 +86,9 @@ class Swarm(object):
         Returns:
             Description of agent dict.
         """
-        if agent_name:
-            res = get_agent_desc_by_name(agent_name)
-            if not res:
-                return {}
-            else:
-                return {agent_name: res}
-        else:
-            return agent_desc()
+        self._check()
+        agent: BaseAgent = self.agents.get(agent_name, None)
+        return agent_handoffs_desc(agent, use_all)
 
     def action_to_observation(self, policy: List[ActionModel], observation: List[Observation], strategy: str = None):
         """Based on the strategy, transform the agent's policy into an observation, the case of the agent as a tool.
@@ -100,9 +98,13 @@ class Swarm(object):
             observation: History of the current observable state in the environment.
             strategy: Transform strategy, default is None. enum?
         """
+        self._check()
+
         if not policy:
-            logger.warning("no agent policy, return origin observation.")
+            logger.warning("no agent policy, will return origin observation.")
             # get the latest one
+            if not observation:
+                raise RuntimeError("no observation and policy to transform in swarm, please check your params.")
             return observation[-1]
 
         if not strategy:
@@ -115,12 +117,16 @@ class Swarm(object):
                 res = observation[-1]
                 res.content = policy_info
             return res
+        else:
+            logger.warning(f"{strategy} not supported now.")
 
     def supported_tools(self):
-        """Tool names that can be used by agents in Swarm."""
+        """Tool names that can be used by all agents in Swarm."""
+        self._check()
         return self.tools
 
     @property
     def finished(self) -> bool:
         """Need all agents in a finished state."""
+        self._check()
         return all([agent.finished for _, agent in self.agents.items()])
