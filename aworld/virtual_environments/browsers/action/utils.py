@@ -29,8 +29,14 @@ class DomUtil:
                 center_x = bound['x'] + bound['width'] / 2
                 center_y = bound['y'] + bound['height'] / 2
 
-                await page.mouse.click(center_x, center_y)
-                await page.wait_for_load_state()
+                try:
+                    browser: ABrowserContext = kwargs.get('browser')
+                    async with browser.expect_page() as new_page_info:
+                        await page.mouse.click(center_x, center_y)
+                    await page.mouse.click(center_x, center_y)
+                    await page.wait_for_load_state()
+                except:
+                    logger.warning(traceback.format_exc())
             except:
                 logger.info(f"click {element_handle}!!")
                 if await element_handle.text_content():
@@ -68,8 +74,14 @@ class DomUtil:
                 center_x = bound['x'] + bound['width'] / 2
                 center_y = bound['y'] + bound['height'] / 2
 
-                page.mouse.click(center_x, center_y)
-                page.wait_for_load_state()
+                try:
+                    browser: BrowserContext = kwargs.get('browser')
+                    with browser.expect_page() as new_page_info:
+                        page.mouse.click(center_x, center_y)
+                    page = new_page_info.value
+                    page.wait_for_load_state()
+                except:
+                    logger.warning(traceback.format_exc())
             except:
                 logger.info(f"click {element_handle}!!")
                 if element_handle.text_content():
