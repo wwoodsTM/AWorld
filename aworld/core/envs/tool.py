@@ -7,7 +7,7 @@ from typing import Dict, Tuple, Any, TypeVar, Generic, List, Union
 
 from pydantic import BaseModel
 
-from aworld.config.conf import ToolConfig, load_config
+from aworld.config.conf import ToolConfig, load_config, ConfigDict
 from aworld.core.envs.tool_action import ToolAction
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult, Tools
@@ -25,17 +25,18 @@ class Tool(Generic[AgentInput, ToolInput]):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
+    def __init__(self, conf: Union[ConfigDict, BaseModel], **kwargs) -> None:
         self.conf = conf
-        if isinstance(conf, BaseModel):
-            self.dict_conf = conf.model_dump()
-        else:
-            self.dict_conf = conf
+        if isinstance(conf, ConfigDict):
+            pass
+        elif isinstance(conf, ToolConfig):
+            # To add flexibility
+            self.conf = ConfigDict(conf.model_dump())
         for k, v in kwargs.items():
             setattr(self, k, v)
-
+        self.dict_conf = self.conf
         self._finished = False
-        self._name = self.dict_conf.get("name", self.__class__.__name__)
+        self._name = self.conf.get("name", self.__class__.__name__)
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
 
@@ -78,12 +79,13 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
+    def __init__(self, conf: Union[ConfigDict, BaseModel], **kwargs) -> None:
         self.conf = conf
-        if isinstance(conf, BaseModel):
-            self.dict_conf = conf.model_dump()
-        else:
-            self.dict_conf = conf
+        if isinstance(conf, ConfigDict):
+            pass
+        elif isinstance(conf, ToolConfig):
+            # To add flexibility
+            self.conf = ConfigDict(conf.model_dump())
         for k, v in kwargs.items():
             setattr(self, k, v)
         self._finished = False
@@ -154,6 +156,7 @@ class ToolsManager(Factory):
 
         # must is a dict
         conf['name'] = name
+        conf = ConfigDict(conf)
         if name in self._cls:
             tool = self._cls[name](conf=conf, **kwargs)
         else:
