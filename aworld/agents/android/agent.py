@@ -20,7 +20,7 @@ from aworld.agents.android.utils import (
     Trajectory
 )
 from aworld.agents.browser.common import AgentStepInfo
-from aworld.config.conf import AgentConfig
+from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
 from aworld.core.envs.tool_action import AndroidAction
@@ -29,7 +29,7 @@ from aworld.logs.util import logger
 
 @AgentFactory.register(name=Agents.ANDROID.value, desc="android agent")
 class AndroidAgent(BaseAgent):
-    def __init__(self, conf: AgentConfig, **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(AndroidAgent, self).__init__(conf, **kwargs)
         if self.conf.llm_provider == 'openai':
             self.conf.llm_provider = 'chatopenai'
@@ -42,9 +42,6 @@ class AndroidAgent(BaseAgent):
         # History
         self.history = AgentHistoryList(history=[])
         self.trajectory = Trajectory(history=[])
-
-    def name(self) -> str:
-        return Agents.ANDROID.value
 
     def _build_action_prompt(self) -> str:
         def _prompt(info: ToolActionInfo) -> str:
@@ -73,7 +70,7 @@ class AndroidAgent(BaseAgent):
         if step_info and step_info.is_last_step():
             # Add last step warning if needed
             last_step_msg = HumanMessage(
-                content = LAST_STEP_PROMPT)
+                content=LAST_STEP_PROMPT)
             logger.info('Last step finishing up')
 
         logger.info(f'[agent] 📍 Step {self.state.n_steps}')

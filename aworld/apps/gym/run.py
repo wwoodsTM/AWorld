@@ -3,10 +3,10 @@
 
 import time
 
-from aworld.core.common import Tools
+from aworld.core.common import Tools, Agents
 
 from aworld.core.client import Client
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import BaseAgent, AgentFactory
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
@@ -46,7 +46,7 @@ async def async_run_gym_game(agent: BaseAgent, tool: AsyncTool):
 def main():
     # use default config
     gym_tool = ToolFactory(Tools.GYM.value)
-    agent = GymAgent(AgentConfig())
+    agent = AgentFactory(Agents.GYM.value, conf=AgentConfig())
 
     # can run tasks like this:
     client = Client()

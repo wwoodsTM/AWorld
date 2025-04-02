@@ -3,6 +3,7 @@
 
 from aworld.agents import AndroidAgent
 from aworld.config import AgentConfig
+from aworld.core.agent.base import AgentFactory
 from aworld.core.client import Client
 from aworld.core.common import Agents, Tools
 from aworld.core.envs.tool import ToolFactory
@@ -20,7 +21,6 @@ def main():
         agent_name=Agents.ANDROID.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_num_ctx=32000,
         llm_temperature=1,
     )
 
@@ -29,7 +29,7 @@ def main():
         'max_actions_per_step': 100
     }
     client.submit(Task(input="""open rednote""",
-                       agent=AndroidAgent(conf=agent_config),
+                       agent=AgentFactory(Agents.ANDROID.value, conf=agent_config),
                        tools=[ToolFactory(Tools.ANDROID.value, conf=android_tool_config)],
                        task_config=task_config))
 
