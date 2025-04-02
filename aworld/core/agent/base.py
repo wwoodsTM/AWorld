@@ -5,10 +5,11 @@ import abc
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
+from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
 from pydantic import BaseModel
 
-from aworld.config.conf import AgentConfig
+from aworld.config.conf import AgentConfig, load_config
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 
@@ -29,7 +30,7 @@ class Agent(Generic[INPUT, OUTPUT]):
             self.dict_conf = dict()
         self.task = None
         # An agent can use the tool list
-        self.tool_names: List[str] = kwargs.get("tool_names")
+        self.tool_names: List[str] = kwargs.get("tool_names", [])
         # An agent can delegate tasks to other agent
         self.handoffs: List[str] = kwargs.get("agent_names", [])
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
@@ -123,26 +124,54 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
 
 
 class AgentManager(Factory):
+    def __init__(self, type_name: str = None):
+        super(AgentManager, self).__init__(type_name)
+        self._agent_conf = {}
+
     def __call__(self, name: str = None, *args, **kwargs):
         if name is None:
             return self
 
-        # Agent must have conf params
-        if 'conf' not in kwargs:
-            if not args:
-                raise ValueError("params `conf` must in args or kwargs!")
+        conf = self._agent_conf.get(name)
+        if not conf:
+            logger.warning(f"{name} not find conf in tool factory")
+            conf = dict()
+        elif isinstance(conf, BaseModel):
+            conf = conf.model_dump()
+
+        user_conf = kwargs.pop('conf', None)
+        if user_conf:
+            if isinstance(user_conf, BaseModel):
+                conf.update(user_conf.model_dump())
+            elif isinstance(user_conf, dict):
+                conf.update(user_conf)
             else:
-                conf = args[0]
-        else:
-            conf = kwargs.pop('conf')
-            if conf is None:
-                raise ValueError("params `conf` must in args or kwargs!")
+                logger.warning(f"Unknown conf type: {type(user_conf)}, ignored!")
 
         if name in self._cls:
             agent = self._cls[name](conf=conf, **kwargs)
         else:
             raise ValueError(f"Can not find {name} agent!")
         return agent
+
+    def register(self, name: str, desc: str, conf_file_name: str = None, **kwargs):
+        """Register a tool to tool factory.
+
+        Args:
+            name: Tool name
+            desc: Tool description
+            supported_action: Tool abilities
+            conf_file_name: Default tool config
+        """
+        res = super(AgentManager, self).register(name, desc, **kwargs)
+        conf_file_name = conf_file_name if conf_file_name else f"{name}_tool.yaml"
+        conf = load_config(conf_file_name, kwargs.get("dir"))
+        if not conf:
+            logger.warning(f"can not load conf from {conf_file_name}")
+            # use general tool config
+            conf = AgentConfig().model_dump()
+        self._agent_conf[name] = conf
+        return res
 
 
 AgentFactory = AgentManager("agent_type")
