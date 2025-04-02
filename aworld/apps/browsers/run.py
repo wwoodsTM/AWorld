@@ -18,14 +18,7 @@ if __name__ == '__main__':
     inner_llm_model_config=ModelConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_temperature=0.3,
-        # llm_api_key="sk-duKYX5S7l5jtHPpC5277469201Af4596B244F20b3eFfA7F4",
-        # llm_base_url="https://aihubmix.com/v1",
-        # llm_api_key="sk-zk269394c1f9a516d4a292c560e3b75b03267e26d31c1055",
-        # llm_base_url="https://api.zhizengzeng.com/v1",
-        llm_api_key="dummy-key",
-        llm_base_url="http://localhost:5000",
-        max_input_tokens = 128000
+        llm_temperature=0.3
     )
     browser_tool_config = BrowserToolConfig(window_w=1280, window_h=720, keep_browser_open=True,inner_llm_model_config=inner_llm_model_config)
     agent_config = BrowserAgentConfig(
@@ -34,12 +27,6 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
         llm_num_ctx=32000,
         llm_temperature=1,
-        # llm_api_key="sk-duKYX5S7l5jtHPpC5277469201Af4596B244F20b3eFfA7F4",
-        # llm_base_url="https://aihubmix.com/v1",
-        # llm_api_key="sk-zk269394c1f9a516d4a292c560e3b75b03267e26d31c1055",
-        # llm_base_url="https://api.zhizengzeng.com/v1",
-        llm_api_key="dummy-key",
-        llm_base_url="http://30.230.177.89:5000",
         max_actions_per_step=10
     )
 
