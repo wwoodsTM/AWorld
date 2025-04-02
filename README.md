@@ -15,7 +15,7 @@ Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) ca
 ![AWorld Framework](readme_assets/framework.png)
 
 ## [Core](aworld/core/README.md) concepts:
-- `agent`: AI-powered components that autonomously make decisions, use tools, do collaboration, and do on.
+- `agent`: AI-powered components that autonomously make decisions, use tools, do collaboration, and so on.
 - `swarm`: define the topology structure of a multiple agents system. 
 - `environment`: the runtime supporting communication among agents and tools.
 - `task`: complete runnable specific work that includes dataset, agents, environment, eval metrics, etc.
