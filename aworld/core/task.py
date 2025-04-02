@@ -337,7 +337,7 @@ class Task(object):
                 logger.info("entry agent finished, swarm process finished.")
                 self.finished = True
 
-            if return_entry:
+            if return_entry or not self.finished:
                 # Return to the entrance, reset current agent finished state
                 self.swarm.cur_agent._finished = False
             return {"steps": step,
