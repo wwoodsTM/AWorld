@@ -208,6 +208,7 @@ class Task(object):
             observation: Observation based on env
             info: Extend info by env
         """
+        self.finished = False
         if not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
 
