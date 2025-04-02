@@ -73,21 +73,21 @@ def wipe_secret_info(config: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
 
 class ModelConfig(BaseModel):
     llm_provider: str = None
-    llm_model_name: str | None = None
-    llm_temperature: float | None = None
-    llm_base_url: str | None = None
-    llm_api_key: str | None = None
+    llm_model_name: str = None
+    llm_temperature: float = 1.
+    llm_base_url: str = None
+    llm_api_key: str = None
 
 
 class AgentConfig(BaseModel):
-    agent_name: str = None
+    name: str = None
     llm_config: ModelConfig = ModelConfig()
     # for compatibility
     llm_provider: str = None
-    llm_model_name: str | None = None
-    llm_temperature: float | None = None
-    llm_base_url: str | None = None
-    llm_api_key: str | None = None
+    llm_model_name: str = None
+    llm_temperature: float = 1.
+    llm_base_url: str = None
+    llm_api_key: str = None
 
     max_steps: int = 10
     max_input_tokens: int = 128000

@@ -1,4 +1,4 @@
-agent_name: "android_agent"
+name: "android_agent"
 llm_config: 
   llm_provider: openai
   llm_model_name: gpt-4o

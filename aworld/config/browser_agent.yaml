@@ -1,4 +1,4 @@
-agent_name: "browser_agent"
+name: "browser_agent"
 llm_config: 
   llm_provider: openai
   llm_model_name: gpt-4o

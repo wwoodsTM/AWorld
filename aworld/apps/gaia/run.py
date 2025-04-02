@@ -2,6 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 import os
 
+from aworld.core.agent.base import AgentFactory
 from aworld.core.common import Tools, Agents
 from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
@@ -15,6 +16,7 @@ os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`
 os.environ['OPENAI_ENDPOINT'] = ""
 
+
 def main():
     # Initialize client
     client = Client()
@@ -24,14 +26,16 @@ def main():
 
     # Create agents
     plan_config = AgentConfig(
-        agent_name=Agents.PLAN.value,
+        name=Agents.PLAN.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
     )
     agent1 = PlanAgent(conf=plan_config)
+    # or use this style
+    # agent1 = AgentFactory(Agents.PLAN.value, conf=plan_config)
 
     exec_config = AgentConfig(
-        agent_name=Agents.EXECUTE.value,
+        name=Agents.EXECUTE.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
     )
