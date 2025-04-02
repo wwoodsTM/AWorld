@@ -95,10 +95,10 @@ class ActionModel(BaseModel):
 
 class AgentPolicy(BaseModel):
     """The unified model of BaseAgent response can be provided to the agent, or tool actions in environmental."""
-    
+
     # decision to agent policy
     actions: List[ActionModel]
     # which agent made the policy
     name: str
     # belongs to which swarm
-    swarm_id: str
+    swarm_id: str = None

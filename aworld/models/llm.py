@@ -38,7 +38,7 @@ class DeepSeekR1ChatOpenAI(ChatOpenAI):
 
     async def ainvoke(
             self,
-            input: LanguageModelInput,
+            messages: LanguageModelInput,
             config: Optional[RunnableConfig] = None,
             *,
             stop: Optional[list[str]] = None,
@@ -64,7 +64,7 @@ class DeepSeekR1ChatOpenAI(ChatOpenAI):
 
     def invoke(
             self,
-            input: LanguageModelInput,
+            messages: LanguageModelInput,
             config: Optional[RunnableConfig] = None,
             *,
             stop: Optional[list[str]] = None,
@@ -207,9 +207,9 @@ def get_llm_model(conf: AgentConfig, **kwargs):
                 api_key=api_key or secrets.deep_seek_api_key,
             )
         else:
-            return ChatOpenAI(
-                model=kwargs.get("model_name", "deepseek-chat"),
-                temperature=kwargs.get("temperature", 0.0),
+            return OpenAI(
+                # model=kwargs.get("model_name", "deepseek-chat"),
+                # temperature=kwargs.get("temperature", 0.0),
                 base_url=base_url,
                 api_key=api_key or secrets.deep_seek_api_key,
             )

@@ -11,6 +11,7 @@ from aworld.virtual_environments.android.action.adb_controller import ADBControl
 from aworld.virtual_environments.android.action.executor import AndroidToolActionExecutor
 from aworld.virtual_environments.conf import AndroidToolConfig
 from aworld.core.envs.tool import ToolFactory, Tool
+from aworld.virtual_environments.utils import build_observation
 
 ALL_UNICODE_CHARS = frozenset(chr(i) for i in range(0x10FFFF + 1))
 
@@ -38,7 +39,11 @@ class AndroidTool(Tool[Observation, List[ActionModel]]):
         # snapshot screen and annotate
         xml, pic_base64 = self.get_observation()
         action_result_list = [ActionResult(content='start', keep=True)]
-        return Observation(dom_tree=xml, image=pic_base64, action_result=action_result_list), {}
+        return build_observation(observer=self.name(),
+                                 ability='',
+                                 dom_tree=xml,
+                                 image=pic_base64,
+                                 action_result=action_result_list), {}
 
     def step(self, action_list: List[ActionModel], **kwargs) -> Tuple[
         Observation, float, bool, bool, Dict[str, Any]]:
@@ -63,7 +68,11 @@ class AndroidTool(Tool[Observation, List[ActionModel]]):
         info = {"exception": fail_error}
         xml, pic_base64 = self.get_observation()
 
-        return (Observation(dom_tree=xml, image=pic_base64, action_result=action_result_list),
+        return (build_observation(observer=self.name(),
+                                  ability=action_list[-1].action_name,
+                                  dom_tree=xml,
+                                  image=pic_base64,
+                                  action_result=action_result_list),
                 exec_state,
                 terminated,
                 kwargs.get("truncated", False),

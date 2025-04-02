@@ -44,6 +44,7 @@ class OpenAIGym(Tool[Observation, AgentPolicy]):
         action = action[0].params['result']
         action = OpenAIGym.transform_action(action=action)
         state, reward, terminal, truncate, info = self.env.step(action)
+        info.update(kwargs)
         info['env_id'] = self.env_id
         self._finished = terminal
 
@@ -65,7 +66,9 @@ class OpenAIGym(Tool[Observation, AgentPolicy]):
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[Any, Dict[str, Any]]:
         state = self.env.reset()
-        return Observation(content=OpenAIGym.transform_state(state=state)), {"env_id": self.env_id}
+        return Observation(observer=self.name(),
+                           ability=GymAction.PLAY.value.name,
+                           content=OpenAIGym.transform_state(state=state)), {"env_id": self.env_id}
 
     def _action_dim(self):
         from gymnasium import spaces
