@@ -11,8 +11,6 @@ from aworld.config.conf import AgentConfig
 from aworld.agents.browser.config import BrowserAgentConfig
 from aworld.virtual_environments import BrowserTool
 from aworld.virtual_environments.conf import BrowserToolConfig
-from aworld.config.conf import ModelConfig
-
 
 if __name__ == '__main__':
     client = Client()
