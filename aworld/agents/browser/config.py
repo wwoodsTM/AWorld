@@ -18,3 +18,4 @@ class BrowserAgentConfig(AgentConfig):
 	available_file_paths: Optional[list[str]] = None
 	override_system_message: Optional[str] = None
 	extend_system_message: Optional[str] = None
+	tool_calling_method: str = 'auto'

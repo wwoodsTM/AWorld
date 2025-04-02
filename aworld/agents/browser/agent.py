@@ -251,6 +251,8 @@ class BrowserAgent(BaseAgent):
 
                         action_model = ActionModel(tool_name=Tools.BROWSER.value, action_name=k, params=v)
                         result.append(action_model)
+                        if k=="done":
+                            self._finished = True
             return AgentResult(current_state=agent_brain, actions=result)
         except (ValueError, ValidationError) as e:
             logger.warning(f'Failed to parse model output: {output_message} {str(e)}')
