@@ -18,6 +18,7 @@ from aworld.virtual_environments.browsers.util.dom import DomTree
 from aworld.virtual_environments.conf import BrowserToolConfig
 from aworld.virtual_environments.browsers.util.dom_build import async_build_dom_tree
 from aworld.utils import import_package
+from aworld.virtual_environments.utils import build_observation
 
 URL_MAX_LENGTH = 4096
 UTF8 = "".join(chr(x) for x in range(0, 55290))
@@ -242,6 +243,10 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         if not self.initialized:
             raise RuntimeError("Call init first before calling step.")
 
+        if not action:
+            logger.warning(f"{self.name()} has no action")
+            return build_observation(observer=self.name(), ability='', content='no action'), 0., False, False, {}
+
         reward = 0
         fail_error = ""
         action_result = None
@@ -294,6 +299,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         else:
             # normal observation
             observation = await self._get_observation()
+            observation.ability = action[-1].action_name
             observation.action_result = action_result
             self.cur_observation = observation
             return (observation,

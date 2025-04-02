@@ -164,10 +164,10 @@ class AgentManager(Factory):
             conf_file_name: Default tool config
         """
         res = super(AgentManager, self).register(name, desc, **kwargs)
-        conf_file_name = conf_file_name if conf_file_name else f"{name}_tool.yaml"
+        conf_file_name = conf_file_name if conf_file_name else f"{name}_agent.yaml"
         conf = load_config(conf_file_name, kwargs.get("dir"))
         if not conf:
-            logger.warning(f"can not load conf from {conf_file_name}")
+            logger.warning(f"can not load conf from {conf_file_name}, will use default")
             # use general tool config
             conf = AgentConfig().model_dump()
         self._agent_conf[name] = conf

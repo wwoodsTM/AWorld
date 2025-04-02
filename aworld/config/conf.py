@@ -77,34 +77,24 @@ class ModelConfig(BaseModel):
     llm_temperature: float | None = None
     llm_base_url: str | None = None
     llm_api_key: str | None = None
-    max_input_tokens: int = 128000
 
 
 class AgentConfig(BaseModel):
     agent_name: str = None
-    max_steps: int = 10
+    llm_config: ModelConfig = ModelConfig()
+    # for compatibility
     llm_provider: str = None
     llm_model_name: str | None = None
-    llm_num_ctx: int | None = None
     llm_temperature: float | None = None
     llm_base_url: str | None = None
     llm_api_key: str | None = None
+
+    max_steps: int = 10
     max_input_tokens: int = 128000
     max_actions_per_step: int = 10
-    include_attributes: List[str] = [
-        'title',
-        'type',
-        'name',
-        'role',
-        'aria-label',
-        'placeholder',
-        'value',
-        'alt',
-        'aria-expanded',
-        'data-date-format',
-    ]
-    message_context: Optional[str] = None
-    available_file_paths: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
+    working_dir: Optional[str] = None
+    enable_recording: bool = False
     ext: dict = {}
 
 
