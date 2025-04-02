@@ -297,3 +297,19 @@ class PythonToolAction(ToolAction):
                                         required=True,
                                         desc="The input python code to execute. Python codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")},
         desc="Execute the given python codes. Codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")
+
+
+class WriteAction(ToolAction):
+    """Info Write actions."""
+    WRITE_HTML = ToolActionInfo(name="write_html",
+                          input_params={"goal": ParamInfo(name="goal",
+                                                           type="str",
+                                                           required=True,
+                                                           desc="the write goal, about theme, requirements for writing html file."),
+                                        "information": ParamInfo(name="information",
+                                                                 type="str",
+                                                                 required=True,
+                                                                 desc="the related information for writing html file. lengths should less than 6000 words."
+                                            )
+                                        },
+                          desc="write the html file about `goal` based on `information`.")
