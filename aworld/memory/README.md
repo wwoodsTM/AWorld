@@ -1,7 +1,7 @@
 
 
 
-## multi-agens memory
+## multi-agents memory
 ![](../../readme_assets/framework_memory_example.png)
 
 ### Short-Term Memory
