@@ -70,7 +70,13 @@ Below are demonstration videos showcasing AWorld's capabilities across different
   <tr>
     <td rowspan="3">Multi Agent</td>
     <td>Cooperative Teams</td>
-    <td align="center"><i>Coming Soon</i> 🚀</td>
+    <td>
+       <a href="https://www.youtube.com/watch?v=sEsgasRrlTs" target="_blank">
+        <img src="https://img.youtube.com/vi/sEsgasRrlTs/0.jpg" alt="AWorld Travel Demo on YouTube" width="95%">
+        <br>
+        <p align="center">▶️ Watch Travel Demo on YouTube</p>
+      </a>
+    </td>
   </tr>
   <tr>
     <td>Competitive Teams</td>
