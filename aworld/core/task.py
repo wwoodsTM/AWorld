@@ -265,5 +265,5 @@ class Task(object):
             # Cleanup if not keeping open
             if self.tools:
                 for _, tool in self.tools.items():
-                    if not tool.dict_conf.get("keep_open", False):
+                    if not tool.conf.get("keep_open", False):
                         tool.close()

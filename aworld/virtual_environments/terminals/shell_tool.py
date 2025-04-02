@@ -33,8 +33,8 @@ class ShellTool(Tool[Observation, List[ActionModel]]):
         """
         super(ShellTool, self).__init__(conf, **kwargs)
         self.type = "function"
-        self.working_dir = self.dict_conf.get('working_dir')
-        self.env = self.dict_conf.get('env') if self.dict_conf.get('env') else os.environ.copy()
+        self.working_dir = self.conf.get('working_dir')
+        self.env = self.conf.get('env') if self.conf.get('env') else os.environ.copy()
         self.processes = []
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[

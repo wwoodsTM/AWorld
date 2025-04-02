@@ -9,9 +9,10 @@ from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
 from pydantic import BaseModel
 
-from aworld.config.conf import AgentConfig, load_config
+from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
+from aworld.utils.name_transform import convert_to_snake
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -20,14 +21,21 @@ OUTPUT = TypeVar('OUTPUT')
 class Agent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: AgentConfig, **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
+        self.conf = conf
+        if isinstance(conf, ConfigDict):
+            pass
+        elif isinstance(conf, Dict):
+            self.conf = ConfigDict(conf)
+        elif isinstance(conf, AgentConfig):
+            # To add flexibility
+            self.conf = ConfigDict(conf.model_dump())
+        else:
+            logger.warning(f"Unknown conf type: {type(conf)}")
+
+        self._name = self.conf.get("name", convert_to_snake(self.__class__.__name__))
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
-        self.conf = conf
-        if conf:
-            self.dict_conf = conf.model_dump()
-        else:
-            self.dict_conf = dict()
         self.task = None
         # An agent can use the tool list
         self.tool_names: List[str] = kwargs.get("tool_names", [])
@@ -39,9 +47,9 @@ class Agent(Generic[INPUT, OUTPUT]):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    @abc.abstractmethod
     def name(self) -> str:
         """Agent name that must be implemented in subclasses"""
+        return self._name
 
     @abc.abstractmethod
     def policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
@@ -84,7 +92,7 @@ class Agent(Generic[INPUT, OUTPUT]):
 class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
     """Basic agent for unified protocol within the framework."""
 
-    def __init__(self, conf: AgentConfig, **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(BaseAgent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_model_name
         self._llm = None
@@ -148,6 +156,8 @@ class AgentManager(Factory):
             else:
                 logger.warning(f"Unknown conf type: {type(user_conf)}, ignored!")
 
+        conf['name'] = name
+        conf = ConfigDict(conf)
         if name in self._cls:
             agent = self._cls[name](conf=conf, **kwargs)
         else:
@@ -164,10 +174,10 @@ class AgentManager(Factory):
             conf_file_name: Default tool config
         """
         res = super(AgentManager, self).register(name, desc, **kwargs)
-        conf_file_name = conf_file_name if conf_file_name else f"{name}_agent.yaml"
+        conf_file_name = conf_file_name if conf_file_name else f"{name}.yaml"
         conf = load_config(conf_file_name, kwargs.get("dir"))
         if not conf:
-            logger.warning(f"can not load conf from {conf_file_name}, will use default")
+            logger.warning(f"{conf_file_name} not find, will use default")
             # use general tool config
             conf = AgentConfig().model_dump()
         self._agent_conf[name] = conf

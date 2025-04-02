@@ -112,4 +112,26 @@ class ToolConfig(BaseModel):
     enable_recording: bool = False
     working_dir: str = ""
     max_retry: int = 3
+    llm_config: ModelConfig = None
     ext: dict = {}
+
+
+class ConfigDict(dict):
+    """Object mode operates dict, can read non-existent attributes through `get` method."""
+    __setattr__ = dict.__setitem__
+    __getattr__ = dict.__getitem__
+
+    def __init__(self, seq: dict, **kwargs):
+        super(ConfigDict, self).__init__(seq, **kwargs)
+        self.nested(self)
+
+    def nested(self, seq: dict):
+        """Nested recursive processing dict.
+
+        Args:
+            seq: Python original format dict
+        """
+        for k, v in seq.items():
+            if isinstance(v, dict):
+                seq[k] = ConfigDict(v)
+                self.nested(v)

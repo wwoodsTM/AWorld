@@ -24,11 +24,11 @@ class AndroidTool(Tool[Observation, List[ActionModel]]):
 
     def __init__(self, conf: AndroidToolConfig, **kwargs):
         super(AndroidTool, self).__init__(conf, **kwargs)
-        self.controller = ADBController(avd_name=self.dict_conf.get('avd_name'),
-                                        adb_path=self.dict_conf.get('adb_path'),
-                                        emulator_path=self.dict_conf.get('emulator_path'))
+        self.controller = ADBController(avd_name=self.conf.get('avd_name'),
+                                        adb_path=self.conf.get('adb_path'),
+                                        emulator_path=self.conf.get('emulator_path'))
 
-        if self.dict_conf.get("custom_executor"):
+        if self.conf.get("custom_executor"):
             self.action_executor = AndroidToolActionExecutor(self.controller)
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
