@@ -137,7 +137,7 @@ class PythonTool(Tool[Observation, List[ActionModel]]):
         self.close()
         self.local_namespace = {}
         self.global_namespace = {}
-        self._finished = True
+        self._finished = False
         self.installed_packages.clear()
 
         return build_observation(observer=self.name(),

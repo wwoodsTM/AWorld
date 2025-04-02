@@ -7,12 +7,13 @@ from typing import Dict, Tuple, Any, TypeVar, Generic, List, Union
 
 from pydantic import BaseModel
 
-from aworld.config.conf import ToolConfig, load_config
+from aworld.config.conf import ToolConfig, load_config, ConfigDict
 from aworld.core.envs.tool_action import ToolAction
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult, Tools
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
+from aworld.utils.name_transform import convert_to_snake
 
 AgentInput = TypeVar("AgentInput")
 ToolInput = TypeVar("ToolInput")
@@ -25,17 +26,23 @@ class Tool(Generic[AgentInput, ToolInput]):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs) -> None:
         self.conf = conf
-        if isinstance(conf, BaseModel):
-            self.dict_conf = conf.model_dump()
+        if isinstance(conf, ConfigDict):
+            pass
+        elif isinstance(conf, Dict):
+            self.conf = ConfigDict(conf)
+        elif isinstance(conf, ToolConfig):
+            # To add flexibility
+            self.conf = ConfigDict(conf.model_dump())
         else:
-            self.dict_conf = conf
+            logger.warning(f"Unknown conf type: {type(conf)}")
         for k, v in kwargs.items():
             setattr(self, k, v)
 
         self._finished = False
-        self._name = self.dict_conf.get("name", self.__class__.__name__)
+
+        self._name = self.conf.get("name", convert_to_snake(self.__class__.__name__))
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
 
@@ -58,6 +65,7 @@ class Tool(Generic[AgentInput, ToolInput]):
             Quintuple，key information: AgentInput and extended info dict.
         """
 
+    @property
     def finished(self) -> bool:
         """The final execution status of the task from agent instructions."""
         return self._finished
@@ -78,12 +86,17 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs) -> None:
         self.conf = conf
-        if isinstance(conf, BaseModel):
-            self.dict_conf = conf.model_dump()
+        if isinstance(conf, ConfigDict):
+            pass
+        elif isinstance(conf, Dict):
+            self.conf = ConfigDict(conf)
+        elif isinstance(conf, ToolConfig):
+            # To add flexibility
+            self.conf = ConfigDict(conf.model_dump())
         else:
-            self.dict_conf = conf
+            logger.warning(f"Unknown conf type: {type(conf)}")
         for k, v in kwargs.items():
             setattr(self, k, v)
         self._finished = False
@@ -110,6 +123,7 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
             Quintuple，key information: AgentInput and extended info dict.
         """
 
+    @property
     async def finished(self) -> bool:
         """The final execution status of the task from agent instructions."""
         return self._finished
@@ -154,6 +168,7 @@ class ToolsManager(Factory):
 
         # must is a dict
         conf['name'] = name
+        conf = ConfigDict(conf)
         if name in self._cls:
             tool = self._cls[name](conf=conf, **kwargs)
         else:

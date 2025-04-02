@@ -15,7 +15,7 @@ from aworld.virtual_environments.utils import build_observation
 @ToolFactory.register(name=Tools.SEARCH_API.value,
                       desc="search tool",
                       supported_action=SearchAction,
-                      conf_file_name=f'{Tools.SEARCH_API.value}_tool.yaml', )
+                      conf_file_name=f'{Tools.SEARCH_API.value}_tool.yaml')
 class SearchTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
         super(SearchTool, self).__init__(conf, **kwargs)

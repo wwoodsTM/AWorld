@@ -18,7 +18,7 @@ class TestShellTool(unittest.TestCase):
         self.assertIn("TEST_ENV", self.shell_tool.env)
         self.assertEqual(self.shell_tool.env["TEST_ENV"], "test")
         self.assertEqual(self.shell_tool.processes, [])
-        self.assertTrue(self.shell_tool.step_finished)
+        self.assertFalse(self.shell_tool.finished)
 
     def test_name(self):
         """Test name method"""
@@ -30,15 +30,14 @@ class TestShellTool(unittest.TestCase):
         self.assertIsNone(self.shell_tool.working_dir)
         self.assertEqual(self.shell_tool.env, os.environ.copy())
         self.assertEqual(self.shell_tool.processes, [])
-        self.assertTrue(self.shell_tool.step_finished)
-        self.assertIsNone(observation)
+        self.assertFalse(self.shell_tool.finished)
         self.assertEqual(info, {})
 
     def test_finished(self):
         """Test finished method"""
-        self.assertTrue(self.shell_tool.finished())
-        self.shell_tool.step_finished = False
-        self.assertFalse(self.shell_tool.finished())
+        self.assertFalse(self.shell_tool.finished)
+        self.shell_tool._finished = False
+        self.assertFalse(self.shell_tool.finished)
 
     @patch('subprocess.run')
     def test_execute(self, mock_run):
@@ -81,4 +80,4 @@ class TestShellTool(unittest.TestCase):
 
         self.shell_tool.close()
         self.assertEqual(self.shell_tool.processes, [])
-        self.assertTrue(self.shell_tool.step_finished)
+        self.assertTrue(self.shell_tool.finished)

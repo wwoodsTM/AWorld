@@ -5,6 +5,7 @@ from typing import Dict, Any, Tuple, SupportsFloat, Union, List
 
 from pydantic import BaseModel
 
+from aworld.config import ConfigDict
 from aworld.core.envs.tool_action import GymAction
 from aworld.core.common import Tools, ActionModel, Observation
 from aworld.core.envs.tool import AsyncTool, ToolFactory
@@ -17,8 +18,8 @@ class ActionType(object):
 
 
 @ToolFactory.register(name=Tools.GYM.value, desc="gym classic control game", asyn=True, supported_action=GymAction)
-class OpenAIGym(AsyncTool):
-    def __init__(self, conf: Union[Dict[str, Any], BaseModel], **kwargs) -> None:
+class OpenAIGym(AsyncTool[Observation, List[ActionModel]]):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, BaseModel], **kwargs) -> None:
         """Gym environment constructor.
 
         Args:
@@ -27,11 +28,11 @@ class OpenAIGym(AsyncTool):
         """
         import_package('gymnasium')
         super(OpenAIGym, self).__init__(conf, **kwargs)
-        self.env_id = self.dict_conf.get("env_id")
-        self._render = self.dict_conf.get('render', True)
+        self.env_id = self.conf.get("env_id")
+        self._render = self.conf.get('render', True)
         if self._render:
-            kwargs['render_mode'] = self.dict_conf.get('render_mode', True)
-        self.env = self._gym_env_wrappers(self.env_id, self.dict_conf.get("wrappers", []), **kwargs)
+            kwargs['render_mode'] = self.conf.get('render_mode', True)
+        self.env = self._gym_env_wrappers(self.env_id, self.conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
 
     async def step(self, action: List[ActionModel], **kwargs) -> Tuple[

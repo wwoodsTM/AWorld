@@ -231,6 +231,7 @@ class Task(object):
         response = None
         return_entry = False
         cur_agent = None
+        finished = False
         try:
             while step < max_steps:
                 terminated = False
@@ -335,9 +336,9 @@ class Task(object):
             if all(agent.finished for _, agent in self.swarm.agents.items()) or (all(
                     tool.finished for _, tool in self.tools.items()) and len(self.swarm.agents) == 1):
                 logger.info("entry agent finished, swarm process finished.")
-                self.finished = True
+                finished = True
 
-            if return_entry:
+            if return_entry and not finished:
                 # Return to the entrance, reset current agent finished state
                 self.swarm.cur_agent._finished = False
             return {"steps": step,

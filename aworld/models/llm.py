@@ -19,9 +19,10 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from typing import (
     Any,
-    Optional,
+    Optional, Union,
 )
 
+from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig
 from aworld.env_secrets import secrets
 from aworld.logs.util import logger
@@ -124,7 +125,7 @@ class DeepSeekR1ChatOllama(ChatOllama):
         return AIMessage(content=content, reasoning_content=reasoning_content)
 
 
-def get_llm_model(conf: AgentConfig, **kwargs):
+def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
     provider = conf.llm_provider
     if provider not in ["ollama"]:
         env_var = f"{provider.upper()}_API_KEY"

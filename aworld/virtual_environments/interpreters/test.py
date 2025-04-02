@@ -51,15 +51,15 @@ class TestPythonTool:
 
         assert python_tool.local_namespace == {}
         assert python_tool.global_namespace == {}
-        assert python_tool.step_finished == True
+        assert python_tool.finished == False
         assert len(python_tool.installed_packages) == 0
 
     def test_finished(self, python_tool):
-        python_tool.step_finished = True
-        assert python_tool.finished() == True
+        python_tool._finished = True
+        assert python_tool.finished == True
 
-        python_tool.step_finished = False
-        assert python_tool.finished() == False
+        python_tool._finished = False
+        assert python_tool.finished == False
 
     def test_execute_success(self, python_tool):
         code = """x = 1 + 2
@@ -95,4 +95,4 @@ x
 
         assert python_tool.local_namespace == {}
         assert python_tool.global_namespace == {}
-        assert python_tool.step_finished == True
+        assert python_tool.finished == True
