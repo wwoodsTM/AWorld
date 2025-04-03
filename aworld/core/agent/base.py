@@ -21,6 +21,10 @@ INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
 
 
+def is_agent_by_name(name: str) -> bool:
+    return name in AgentFactory
+
+
 class AgentStatus:
     # Init status
     START = 0
