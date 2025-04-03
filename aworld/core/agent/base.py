@@ -5,6 +5,8 @@ import abc
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
+from aworld.core.agent.agent_desc import get_agent_desc
+from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.models.llm import get_llm_model
 from pydantic import BaseModel
@@ -12,10 +14,28 @@ from pydantic import BaseModel
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
+from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.utils.name_transform import convert_to_snake
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
+
+
+class AgentStatus:
+    # Init status
+    START = 0
+    # Agent is running for monitor or collection
+    RUNNING = 1
+    # Agent reject the task
+    REJECT = 2
+    # Agent is idle
+    IDLE = 3
+    # Agent meets exception
+    ERROR = 4
+    # End of one agent step
+    DONE = 5
+    # End of one task step
+    FINISHED = 6
 
 
 class Agent(Generic[INPUT, OUTPUT]):
@@ -41,7 +61,12 @@ class Agent(Generic[INPUT, OUTPUT]):
         self.tool_names: List[str] = kwargs.get("tool_names", [])
         # An agent can delegate tasks to other agent
         self.handoffs: List[str] = kwargs.get("agent_names", [])
+        # Supported MCP server
+        self.mcp_servers: List[str] = kwargs.get("mcp_servers", [])
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
+        # all tools that the agent can use. note: string name/id only
+        self._tools = []
+        self.state = AgentStatus.START
         self._finished = False
 
         for k, v in kwargs.items():
@@ -96,6 +121,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         super(BaseAgent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_model_name
         self._llm = None
+        self.memory = []
 
     @property
     def llm(self):
@@ -103,6 +129,62 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         if self._llm is None:
             self._llm = get_llm_model(self.conf)
         return self._llm
+
+    def desc_transform(self):
+        """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
+
+        # Stateless tool
+        self.tools = tool_desc_transform(get_tool_desc(),
+                                         tools=self.tool_names if self.tool_names else [])
+        # Agents as tool
+        agents_desc = agent_desc_transform(get_agent_desc(),
+                                           agents=self.handoffs if self.handoffs else [])
+        self.tools.extend(agents_desc)
+        # MCP servers are tool
+
+    def messages_transform(self,
+                           content: str,
+                           image_urls: List[str] = None,
+                           sys_prompt: str = None,
+                           max_step: int = 100,
+                           **kwargs):
+        """Transform the original content to LLM messages of native format.
+
+        Args:
+            content: User content.
+            image_urls: List of images encoded using base64.
+            sys_prompt: Agent system prompt.
+            max_step: The maximum list length obtained from memory.
+        Returns:
+            Message list for LLM.
+        """
+        messages = []
+        if sys_prompt:
+            messages.append({'role': 'system', 'content': sys_prompt})
+
+        cur_msg = {'role': 'user', 'content': content}
+        # query from memory, TODO: memory.query()
+        histories = self.memory[-max_step:]
+        if histories:
+            for history in histories:
+                if history.tool_calls:
+                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': history.tool_calls})
+                else:
+                    messages.append({'role': 'assistant', 'content': history.content})
+
+            if histories[-1].tool_calls:
+                tool_id = histories[-1].tool_calls[0].id
+                if tool_id:
+                    cur_msg['tool_call_id'] = tool_id
+
+        if image_urls:
+            urls = [{'type': 'text', 'text': content}]
+            for image_url in image_urls:
+                urls.append({'type': 'image_url', 'image_url': {"url": image_url}})
+
+            cur_msg['content'] = urls
+        messages.append(cur_msg)
+        return messages
 
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
