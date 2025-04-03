@@ -265,6 +265,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         try:
             action_result, self.page = await self.action_executor.async_execute_action(action,
                                                                                        observation=self.cur_observation,
+                                                                                       llm_config=self.conf.llm_config
                                                                                        **kwargs)
             reward = 1
         except Exception as e:
@@ -300,7 +301,6 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         else:
             # normal observation
             observation = await self._get_observation()
-            observation.ability = action[-1].action_name
             observation.action_result = action_result
             observation.ability = action[-1].action_name
             self.cur_observation = observation

@@ -17,6 +17,7 @@ from aworld.logs.util import logger
 from aworld.virtual_environments.browsers.action.utils import DomUtil
 from aworld.virtual_environments.action import ExecutableAction
 from aworld.utils import import_packages
+from aworld.models.llm import get_llm_model
 
 
 def get_page(**kwargs):
@@ -394,7 +395,9 @@ class ExtractContent(ExecutableAction):
             return ActionResult(content="extract content no page", keep=True), page
 
         goal = action.params.get("goal")
-        llm = kwargs.get("llm")
+        llm_config=kwargs.get("llm_config")
+        if llm_config:
+            llm = get_llm_model(llm_config)
         content = markdownify.markdownify(page.content())
 
         prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}'

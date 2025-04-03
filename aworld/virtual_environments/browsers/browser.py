@@ -270,6 +270,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         try:
             action_result, self.page = self.action_executor.execute_action(action,
                                                                            observation=self.cur_observation,
+                                                                           llm_config=self.conf.llm_config,
                                                                            **kwargs)
             reward = 1
         except Exception as e:
