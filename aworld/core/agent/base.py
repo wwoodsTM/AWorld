@@ -2,8 +2,12 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
+import json
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
+
+from openai import Stream
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
@@ -189,6 +193,34 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
             cur_msg['content'] = urls
         messages.append(cur_msg)
         return messages
+
+    def response_parse(self, resp: ChatCompletion | Stream[ChatCompletionChunk]):
+        """Default parse response by LLM."""
+        results = []
+        if not resp:
+            return []
+
+        content = resp.choices[0].message.content
+        if resp.choices[0].message.tool_calls:
+            for tool_call in resp:
+                full_name: str = tool_call.function.name
+                if not full_name:
+                    logger.warning("tool call response no tool name.")
+                    continue
+
+                params = json.loads(tool_call.function.arguments)
+                # format in framework
+                names = full_name.split("__")
+                tool_name = names[0]
+                if is_agent_by_name(tool_name):
+                    results.append(ActionModel(agent_name=tool_name, params=params, policy_info=content))
+                else:
+                    action_name = names[1] if len(names) > 1 else None
+                    results.append(ActionModel(tool_name=tool_name,
+                                               action_name=action_name,
+                                               params=params,
+                                               policy_info=content))
+        return results
 
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
