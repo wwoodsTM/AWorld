@@ -89,6 +89,8 @@ class InputText(ExecutableAction):
 
         params = action.params
         index = params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         input = params.get("text", "")
 
         ob: Observation = kwargs.get("observation")
@@ -113,6 +115,8 @@ class InputText(ExecutableAction):
 
         params = action.params
         index = params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         input = params.get("text", "")
 
         ob: Observation = kwargs.get("observation")
@@ -210,6 +214,8 @@ class ClickElement(ExecutableAction):
             return ActionResult(content="none browser context", keep=True), page
 
         index = action.params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         ob: Observation = kwargs.get("observation")
         if not ob or index not in ob.dom_tree.element_map:
             raise RuntimeError(f'Element index {index} does not exist')
@@ -249,6 +255,8 @@ class ClickElement(ExecutableAction):
             return ActionResult(content="none browser context", keep=True), page
 
         index = action.params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         ob: Observation = kwargs.get("observation")
         if not ob or index not in ob.dom_tree.element_map:
             raise RuntimeError(f'Element index {index} does not exist')
@@ -528,6 +536,8 @@ class ScrollUp(ExecutableAction):
 class Wait(ExecutableAction):
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         seconds = action.params.get("seconds")
+        if not seconds:
+            seconds = action.params.get("duration")
         msg = f'Waiting for {seconds} seconds'
         logger.info(msg)
         time.sleep(seconds)

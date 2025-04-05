@@ -83,11 +83,9 @@ Your responses must be always JSON with the specified format.
 
 class SystemPrompt:
     def __init__(self,
-                 action_description: str,
                  max_actions_per_step: int = 10,
                  override_system_message: Optional[str] = None,
                  extend_system_message: Optional[str] = None):
-        self.default_action_description = action_description
         self.max_actions_per_step = max_actions_per_step
         if override_system_message:
             prompt = override_system_message
