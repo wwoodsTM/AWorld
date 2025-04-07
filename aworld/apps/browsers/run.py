@@ -17,10 +17,9 @@ def main():
     browser_tool_config = BrowserToolConfig(width=1280, height=720, keep_browser_open=True)
 
     agent_config = AgentConfig(
-        agent_name=Agents.BROWSER.value,
+        name=Agents.BROWSER.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_num_ctx=32000,
         llm_temperature=1,
     )
 

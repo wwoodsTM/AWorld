@@ -40,7 +40,7 @@ class BrowserAgent(BaseAgent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
-        self.settings = conf.model_dump()
+        self.settings = self.conf
         if conf.llm_provider == 'openai':
             conf.llm_provider = 'chatopenai'
 
