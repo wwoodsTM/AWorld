@@ -99,3 +99,10 @@ data/processed/
 *.temp
 .*.swp
 .*.swo
+*.webm
+*.mp4
+*.avi
+*.mov
+*.flv
+*.wmv
+*.mkv
