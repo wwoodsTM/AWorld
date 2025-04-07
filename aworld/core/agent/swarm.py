@@ -12,7 +12,8 @@ from aworld.logs.util import logger
 class Swarm(object):
     """Simple implementation of interactive collaboration between multi-agent and supported env tools."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, root_agent: BaseAgent = None, *args, **kwargs):
+        self.communicate_agent = root_agent
         self._topology = args
         self._ext_params = kwargs
         self.initialized = False
@@ -41,8 +42,9 @@ class Swarm(object):
             logger.warning("no valid agent pair to build graph.")
             return
 
-        # Agent that communicate with the outside world, the default is the first.
-        self.communicate_agent: Agent = valid_agent_pair[0][0]
+        # Agent that communicate with the outside world, the default is the first if the root agent is None.
+        if self.communicate_agent is None:
+            self.communicate_agent: Agent = valid_agent_pair[0][0]
         # agents in swarm.
         self.agents: Dict[str, BaseAgent] = {}
 

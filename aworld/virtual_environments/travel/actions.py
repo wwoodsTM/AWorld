@@ -1,37 +1,29 @@
 # coding: utf-8
 
-import json
 import os
 import re
 
-import requests
+from typing import Tuple, Any
 
-from typing import Tuple, Any, List, Dict
-
+from aworld.config.common import Tools
 from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.action import ExecutableAction
 from aworld.models.llm import get_llm_model
-from aworld.config.conf import AgentConfig
 
 
 @ActionFactory.register(name="write_html",
                         desc="a tool use for write html.",
-                        tool_name="write_tool")
+                        tool_name=Tools.HTML.value)
 class WriteHTML(ExecutableAction):
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
-        print("start write html!")
+        logger.info("start write html!")
         goal = action.params.get("goal")
         information = action.params.get("information")
 
-        llm = get_llm_model(
-            AgentConfig(
-                llm_provider = "chatopenai",
-                llm_base_url = "http://localhost:5000",
-                llm_api_key = "dummy-key",
-            )
-        )
+        llm_conf = kwargs.get("llm_config")
+        llm = get_llm_model(llm_conf)
         sys_prompt = "you are a helpful html writer."
         prompt = """Your task is to create a detailed and visually appealing HTML document based on the specified theme. 
         The document must meet the following requirements, and you should utilize the provided reference materials to ensure accuracy and aesthetic quality.
@@ -50,22 +42,20 @@ class WriteHTML(ExecutableAction):
         please give me html code directly, no need other words
         """
 
-
         messages = [{'role': 'system', 'content': sys_prompt},
                     {'role': 'user', 'content': prompt.format(goal=goal, information=information)}]
 
         content = llm.invoke(input=messages, temperature=0.8)
-        print("**"*20)
-        print(content)
-        print("**"*20)
-        content = content.content
-        # print(content)
-        html_pattern = re.compile(r'<html.*?>.*?</html>', re.DOTALL)  # re.DOTALL 让 . 匹配换行符
-        matches = html_pattern.findall(content)
-        # print(matches)
 
-        title_pattern = re.compile(r'<title.*?>.*?</title>', re.DOTALL)  # re.DOTALL 让 . 匹配换行符
-        filename = title_pattern.findall(content)[0].replace("<title>","").replace("</title>","").replace(" ", "_") + ".html"
+        content = content.content
+        html_pattern = re.compile(r'<html.*?>.*?</html>', re.DOTALL)
+        matches = html_pattern.findall(content)
+
+        title_pattern = re.compile(r'<title.*?>.*?</title>', re.DOTALL)
+        filename = (title_pattern.findall(content)[0]
+                    .replace("<title>", "")
+                    .replace("</title>", "")
+                    .replace(" ", "_") + ".html")
 
         with open(filename, "a", encoding='utf-8') as f:
             f.write(matches[0])

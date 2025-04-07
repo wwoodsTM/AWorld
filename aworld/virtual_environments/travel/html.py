@@ -2,6 +2,7 @@
 import json
 from typing import Any, Tuple, List, Dict
 
+from aworld.config.common import Tools
 from aworld.config.tool_action import WriteAction
 from aworld.core.common import ActionModel, Observation, ActionResult
 from aworld.logs.util import logger
@@ -9,13 +10,10 @@ from aworld.core.envs.tool import ToolFactory, Tool
 from aworld.config.conf import ToolConfig
 
 
-@ToolFactory.register(name="write_tool", desc="write tool", supported_action=WriteAction)
-class WriteTool(Tool[Observation, List[ActionModel]]):
+@ToolFactory.register(name=Tools.HTML.value, desc="html tool", supported_action=WriteAction)
+class HtmlTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: ToolConfig, **kwargs) -> None:
-        super(WriteTool, self).__init__(conf, **kwargs)
-
-    def name(self):
-        return "write_tool"
+        super(HtmlTool, self).__init__(conf, **kwargs)
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, dict[str, Any]]:

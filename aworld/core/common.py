@@ -23,11 +23,15 @@ class Observation(BaseModel):
     """
     # default is None, means the main virtual environment or swarm
     container_id: str = None
-    # default is None for compatible, means an agent name or a tool name
+    # Observer who obtains observation, default is None for compatible, means an agent name or a tool name
     observer: str = None
     # default is None for compatible, means with its action/ability name of an agent or a tool
     # NOTE: The only ability of an agent as a tool is handoffs
     ability: str = None
+    # The agent wants the observation to be created, default is None for compatible.
+    from_agent_name: str = None
+    # To which agent should the observation be given, default is None for compatible.
+    to_agent_name: str = None
     # general info for agent
     content: Any = None
     # dom_tree is a str or DomTree object

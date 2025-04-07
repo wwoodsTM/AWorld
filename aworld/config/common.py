@@ -15,6 +15,7 @@ class Tools(Enum):
     FILE = "file"
     IMAGE_ANALYSIS = "image_analysis"
     DOCUMENT_ANALYSIS = "document_analysis"
+    HTML = "html"
 
 
 class Agents(Enum):
