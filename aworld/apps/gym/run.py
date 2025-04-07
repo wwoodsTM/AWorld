@@ -3,8 +3,7 @@
 import asyncio
 import time
 
-from aworld.core.common import Tools, Agents
-
+from aworld.config.common import Tools, Agents
 from aworld.core.client import Client
 from aworld.core.agent.base import BaseAgent, AgentFactory
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent

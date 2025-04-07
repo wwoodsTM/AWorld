@@ -20,10 +20,11 @@ from aworld.agents.android.utils import (
     Trajectory
 )
 from aworld.agents.browser.common import AgentStepInfo
+from aworld.config.common import Agents, Tools
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
-from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents
-from aworld.core.envs.tool_action import AndroidAction
+from aworld.core.common import Observation, ActionModel, ToolActionInfo
+from aworld.config.tool_action import AndroidAction
 from aworld.logs.util import logger
 
 

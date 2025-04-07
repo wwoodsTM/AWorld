@@ -8,9 +8,9 @@ from typing import Dict, Tuple, Any, TypeVar, Generic, List, Union
 from pydantic import BaseModel
 
 from aworld.config.conf import ToolConfig, load_config, ConfigDict
-from aworld.core.envs.tool_action import ToolAction
+from aworld.config.tool_action import ToolAction
 from aworld.core.envs.action_factory import ActionFactory
-from aworld.core.common import Observation, ActionModel, ActionResult, Tools
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
 from aworld.utils.name_transform import convert_to_snake
@@ -175,10 +175,7 @@ class ToolsManager(Factory):
             # default browser env tool
             logger.warning("Empty tool name, default use 'browser'")
             asyn = kwargs.get('async', False)
-            if asyn:
-                name = "async_" + Tools.BROWSER.value
-            else:
-                name = Tools.BROWSER.value
+            name = "async_browser" if asyn else "browser"
             tool = self._cls[name](conf=conf, **kwargs)
         action_executor.register(name, tool)
         return tool

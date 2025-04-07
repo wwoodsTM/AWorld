@@ -9,11 +9,12 @@ from typing import Dict, Any, Optional, List, Union
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage, SystemMessage
 from pydantic import ValidationError
 
+from aworld.config.common import Agents, Tools
 from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
-from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents, ActionResult
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.agents.browser.prompts import AgentMessagePrompt
 from langchain_openai import ChatOpenAI
@@ -480,7 +481,7 @@ if __name__ == '__main__':
     search_agent = SearchAgent(agentConfig)
     browser_agent = BrowserAgent(agentConfig)
     write_agent = WriteAgent(agentConfig)
-    browser_tool_config = BrowserToolConfig(window_w=800, window_h=1100, keep_browser_open=True)
+    browser_tool_config = BrowserToolConfig(width=800, height=1100, keep_browser_open=True)
     browser_tool = ToolFactory(Tools.BROWSER.value, browser_tool_config)
 
     goal = (

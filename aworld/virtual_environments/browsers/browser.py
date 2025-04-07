@@ -9,8 +9,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from aworld.core.envs.tool_action import BrowserAction
-from aworld.core.common import Observation, ActionModel, ActionResult, Tools
+from aworld.config.common import Tools
+from aworld.config.tool_action import BrowserAction
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.core.envs.tool import action_executor, ToolFactory
 from aworld.core.envs.tool import Tool

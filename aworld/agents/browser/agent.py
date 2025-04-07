@@ -10,13 +10,14 @@ from dataclasses import dataclass, field
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage
 from pydantic import ValidationError
 
+from aworld.config.common import Agents, Tools
 from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.core.envs.tool_action import BrowserAction
-from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents, ActionResult
+from aworld.config.tool_action import BrowserAction
+from aworld.core.common import Observation, ActionModel, ToolActionInfo, ActionResult
 from aworld.logs.util import logger
 from aworld.agents.browser.prompts import AgentMessagePrompt
 

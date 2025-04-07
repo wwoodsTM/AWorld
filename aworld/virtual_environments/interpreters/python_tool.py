@@ -4,10 +4,12 @@ import re
 import subprocess
 from typing import Any, Dict, Tuple, List
 from io import StringIO
+
+from aworld.config.common import Tools
 from aworld.logs.util import logger
 from aworld.config.conf import ToolConfig
-from aworld.core.envs.tool_action import PythonToolAction
-from aworld.core.common import ActionModel, Observation, ActionResult, Tools
+from aworld.config.tool_action import PythonToolAction
+from aworld.core.common import ActionModel, Observation, ActionResult
 from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.utils import import_package
 from aworld.virtual_environments.utils import build_observation

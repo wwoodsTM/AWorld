@@ -3,9 +3,10 @@
 
 from typing import Any, Dict, Union, List
 
+from aworld.config.common import Agents, Tools
 from aworld.core.agent.base import BaseAgent, AgentFactory
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.core.common import Observation, ActionModel, Tools, Agents
+from aworld.core.common import Observation, ActionModel
 
 
 @AgentFactory.register(name=Agents.GYM.value, desc="gym agent")
