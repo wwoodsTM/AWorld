@@ -14,7 +14,10 @@ class Swarm(object):
 
     def __init__(self, root_agent: BaseAgent = None, *args, **kwargs):
         self.communicate_agent = root_agent
-        self._topology = args
+        if root_agent not in args:
+            self._topology = [root_agent] + list(args)
+        else:
+            self._topology = args
         self._ext_params = kwargs
         self.initialized = False
 

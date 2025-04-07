@@ -257,9 +257,12 @@ class ToolActionExecutor(object):
 
             try:
                 action_result, ctx = self.do_act(action, tool, **kwargs)
-                action_results.append(action_result)
             except:
                 logger.warning(traceback.format_exc())
+                action_result = ActionResult(error=traceback.format_exc(), success=False)
+            action_result.action_name = action.action_name
+            action_result.tool_name = action.tool_name
+            action_results.append(action_result)
         return action_results, ctx
 
     async def async_execute_env_action(self,
@@ -282,9 +285,12 @@ class ToolActionExecutor(object):
                     self.tools[tool_name] = tool
             try:
                 action_result, ctx = await self.async_do_act(action, tool, **kwargs)
-                action_results.append(action_result)
             except:
                 logger.warning(traceback.format_exc())
+                action_result = ActionResult(error=traceback.format_exc(), success=False)
+            action_result.action_name = action.action_name
+            action_result.tool_name = action.tool_name
+            action_results.append(action_result)
         return action_results, ctx
 
     def do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]], **kwargs):
@@ -292,11 +298,11 @@ class ToolActionExecutor(object):
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name
             if action_name not in ActionFactory:
-                raise ValueError(f'Action {action_name} not found in ActionFactory')
+                raise ValueError(f'Action {action_model.action_name} not found in ActionFactory')
 
         action = ActionFactory(action_name)
         action_result, page = action.act(action_model, tool=tool, **kwargs)
-        logger.info(f"{tool.name()}-{action_name} execute finished")
+        logger.info(f"{tool.name()}-{action_model.action_name} execute finished")
         return action_result, page
 
     async def async_do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]],
@@ -305,11 +311,11 @@ class ToolActionExecutor(object):
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name
             if action_name not in ActionFactory:
-                raise ValueError(f'Action {action_name} not found in ActionFactory')
+                raise ValueError(f'Action {action_model.action_name} not found in ActionFactory')
 
         action = ActionFactory(action_name)
         action_result, page = await action.async_act(action_model, tool=tool, **kwargs)
-        logger.info(f"{tool.name()}-{action_name} execute finished")
+        logger.info(f"{tool.name()}-{action_model.action_name} execute finished")
         return action_result, page
 
 

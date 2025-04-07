@@ -14,6 +14,8 @@ class ActionResult(BaseModel):
     content: str = None
     error: str = None
     keep: bool = False
+    action_name: str = None
+    tool_name: str = None
 
 
 class Observation(BaseModel):

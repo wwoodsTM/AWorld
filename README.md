@@ -37,7 +37,7 @@ export CLAUDE_API_KEY=sk-ant-api03xyz...
 ```
 
 ## Usage
-### Running Pre-defined Agents ([demo code](./aworld/apps/browsers/run.py))
+### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
 Below are demonstration videos showcasing AWorld's capabilities across different agent configurations and environments.
 
 <table>

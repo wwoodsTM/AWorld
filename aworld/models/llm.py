@@ -127,6 +127,8 @@ class DeepSeekR1ChatOllama(ChatOllama):
 
 def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
     provider = conf.llm_provider
+    if not provider:
+        raise ValueError("no provider")
     if provider not in ["ollama"]:
         env_var = f"{provider.upper()}_API_KEY"
         # special process
@@ -208,9 +210,9 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
                 api_key=api_key or secrets.deep_seek_api_key,
             )
         else:
-            return OpenAI(
-                # model=kwargs.get("model_name", "deepseek-chat"),
-                # temperature=kwargs.get("temperature", 0.0),
+            return ChatOpenAI(
+                model=kwargs.get("model_name", "deepseek-chat"),
+                temperature=kwargs.get("temperature", 0.0),
                 base_url=base_url,
                 api_key=api_key or secrets.deep_seek_api_key,
             )
