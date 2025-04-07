@@ -14,7 +14,7 @@ from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
-from aworld.config.conf import AgentConfig
+from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.envs.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents, ActionResult
 from aworld.logs.util import logger
@@ -37,10 +37,10 @@ class Trajectory:
 
 @AgentFactory.register(name=Agents.BROWSER.value, desc="browser agent")
 class BrowserAgent(BaseAgent):
-    def __init__(self, conf: AgentConfig, **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
-        self.settings = conf.model_dump()
+        self.settings = self.conf
         if conf.llm_provider == 'openai':
             conf.llm_provider = 'chatopenai'
 
@@ -59,9 +59,6 @@ class BrowserAgent(BaseAgent):
         # _estimate_tokens_for_messages method now directly uses functions from utils.py
 
         self._init = True
-
-    def name(self) -> str:
-        return Agents.BROWSER.value
 
     def _build_action_prompt(self) -> str:
         def _prompt(info: ToolActionInfo) -> str:

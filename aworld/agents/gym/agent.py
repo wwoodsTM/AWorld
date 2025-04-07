@@ -4,7 +4,7 @@
 from typing import Any, Dict, Union, List
 
 from aworld.core.agent.base import BaseAgent, AgentFactory
-from aworld.config.conf import AgentConfig
+from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.common import Observation, ActionModel, Tools, Agents
 
 
@@ -12,11 +12,8 @@ from aworld.core.common import Observation, ActionModel, Tools, Agents
 class GymDemoAgent(BaseAgent):
     """Example agent"""
 
-    def __init__(self, conf: AgentConfig, **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(GymDemoAgent, self).__init__(conf, **kwargs)
-
-    def name(self) -> str:
-        return Agents.GYM.value
 
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
