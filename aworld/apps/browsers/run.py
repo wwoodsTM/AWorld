@@ -85,21 +85,21 @@ if __name__ == '__main__':
     #          tools=[ToolFactory(Tools.BROWSER.value, conf=browser_tool_config)],
     #          task_config=task_config))
 
+    # client.submit(
+    #     Task(input="""访问www.baidu.com，搜索姚明的信息，找到他的百度百科介绍页，打开并将页面html存到本地""",
+    #          swarm=Swarm(BrowserAgent(conf=agent_config,save_file_path="tmp_his.json")),
+    #          tools=[ToolFactory(Tools.BROWSER.value, conf=browser_tool_config)],
+    #          task_config=task_config))
+
+
     client.submit(
-        Task(input="""访问www.baidu.com，搜索姚明的信息，找到他的百度百科介绍页，打开并将页面html存到本地""",
+        Task(input="""How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia.Please decompose the task into several sub-tasks and find the answer step-by-step.""",
              swarm=Swarm(BrowserAgent(conf=agent_config)),
              tools=[ToolFactory(Tools.BROWSER.value, conf=browser_tool_config)],
              task_config=task_config))
-
-
-    # client.submit(
-    #     Task(input="""How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia.Please decompose the task into several sub-tasks and find the answer step-by-step.""",
-    #          swarm=Swarm(BrowserAgent(conf=agent_config)),
-    #          tools=[ToolFactory(Tools.BROWSER.value, conf=browser_tool_config)],
-    #          task_config=task_config))
     
     # client.submit(
-    #     Task(input="""open www.baidu.com""",
+    #     Task(input="""If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary.""",
     #          swarm=Swarm(BrowserAgent(conf=agent_config)),
     #          tools=[ToolFactory(Tools.BROWSER.value, conf=browser_tool_config)],
     #          task_config=task_config))

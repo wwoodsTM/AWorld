@@ -284,8 +284,11 @@ class ClickElement(ExecutableAction):
             return ActionResult(error=str(e)), page
 
 
-SEARCH_ENGINE = {"": "https://www.google.com/search?udm=14&q=",
-                 "google": "https://www.google.com/search?udm=14&q="}
+# SEARCH_ENGINE = {"": "https://www.google.com/search?udm=14&q=",
+#                  "google": "https://www.google.com/search?udm=14&q="}
+
+SEARCH_ENGINE = {"": "https://www.bing.com/search?q=",
+                 "google": "https://www.bing.com/search?q="}
 
 
 @ActionFactory.register(name=BrowserAction.SEARCH.value.name,

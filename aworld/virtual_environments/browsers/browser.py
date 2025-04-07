@@ -242,6 +242,9 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             self.context.close()
         if hasattr(self, 'browser') and self.browser:
             self.browser.close()
+        if hasattr(self, 'playwright') and self.playwright:
+            self.playwright.stop()
+        
         if self.initialized:
             self.context_manager.__exit__()
 

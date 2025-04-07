@@ -51,7 +51,7 @@ class BrowserAgent(BaseAgent):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
         self.settings = conf.model_dump()
-        self.save_file_path=kwargs.get("save_file_path", "browser_agent_history2.json")
+        self.save_file_path=kwargs.get("save_file_path", "browser_agent_history3.json")
         if conf.llm_provider == 'openai':
             conf.llm_provider = 'chatopenai'
         # raw actions list
@@ -150,6 +150,7 @@ class BrowserAgent(BaseAgent):
         tokens = self._estimate_tokens_for_messages(input_messages)
 
         llm_result = None
+        output_message =None
         try:
             # Log the message sequence
             self._log_message_sequence(input_messages)
@@ -185,6 +186,7 @@ class BrowserAgent(BaseAgent):
                 current_state=AgentBrain(
                     evaluation_previous_goal="Failed due to error",
                     memory=f"Error occurred: {str(e)}",
+                    thought="Recover from error",
                     next_goal="Recover from error"
                 ),
                 actions=[]  # Empty actions list
@@ -229,7 +231,7 @@ class BrowserAgent(BaseAgent):
 
             if not output_message or not output_message.content:
                 logger.warning("[agent] LLM returned empty response")
-                return output_message, AgentResult(current_state=AgentBrain(evaluation_previous_goal="", memory="", next_goal=""),
+                return output_message, AgentResult(current_state=AgentBrain(evaluation_previous_goal="", memory="", thought="", next_goal=""),
                                    actions=[ActionModel(tool_name=Tools.BROWSER.value, action_name="stop")])
         except:
             logger.error(f"[agent] Response content: {output_message}")
@@ -352,6 +354,7 @@ class BrowserAgent(BaseAgent):
                     'current_state': {
                         'evaluation_previous_goal': 'Success - I opend the first page',
                         'memory': 'Starting with the new task. I have completed 1/10 steps',
+                        'thought': 'From the current page I can get information about all the companies.',
                         'next_goal': 'Click on company a',
                     },
                     'action': [{'click_element': {'index': 0}}],
