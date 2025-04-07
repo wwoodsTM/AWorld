@@ -1,22 +1,5 @@
 from abc import ABC, abstractmethod
-
-_global_metric_provider = None
-
-def set_metric_provider(provider):
-    """
-    Set the global metric provider.
-    """
-    global _global_metric_provider
-    _global_metric_provider = provider
-
-def get_metric_provider():
-    """
-    Get the global metric provider.
-    """
-    global _global_metric_provider
-    if _global_metric_provider is None:
-        raise ValueError("No metric provider has been set.")
-    return _global_metric_provider
+from typing import Optional
 
 class BaseMetricProvider(ABC):
     """
@@ -122,3 +105,22 @@ class BaseMetricExporter(ABC):
         Export the metrics.
         """ 
         pass
+
+
+_GLOBAL_METRIC_PROVIDER: Optional[BaseMetricProvider] = None
+
+def set_metric_provider(provider):
+    """
+    Set the global metric provider.
+    """
+    global _GLOBAL_METRIC_PROVIDER
+    _GLOBAL_METRIC_PROVIDER = provider
+
+def get_metric_provider():
+    """
+    Get the global metric provider.
+    """
+    global _GLOBAL_METRIC_PROVIDER
+    if _GLOBAL_METRIC_PROVIDER is None:
+        raise ValueError("No metric provider has been set.")
+    return _GLOBAL_METRIC_PROVIDER

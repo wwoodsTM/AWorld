@@ -1,7 +1,7 @@
 import time
 import threading
 from prometheus_client import Counter, start_http_server, generate_latest, REGISTRY
-from aworld.metrics.metric import BaseMetric, BaseMetricProvider, BaseCounter, BaseMetricExporter
+from aworld.core.metrics.metric import BaseMetric, BaseMetricProvider, BaseCounter, BaseMetricExporter
 
 
 class PrometheusMetricProvider(BaseMetricProvider):
@@ -59,8 +59,10 @@ class PrometheusCounter(BaseCounter):
             value: The value to add to the counter.
             labels: The labels to associate with the value.
         """
-        labels = labels or {}
-        self._counter.labels(**labels).inc(value)
+        if labels:
+            self._counter.labels(**labels).inc(value)
+        else:
+            self._counter.inc(value)
 
 class PrometheusMetricExporter(BaseMetricExporter):
     """
@@ -103,6 +105,7 @@ class PrometheusConsoleMetricExporter(BaseMetricExporter):
     def _output_metrics_to_console(self):
         while not self._should_shutdown:
             metrics_text = generate_latest(REGISTRY)
+            print("==============================================")
             print(metrics_text.decode('utf-8'))
             time.sleep(self.out_interval_secs)
 
