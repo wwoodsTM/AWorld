@@ -1,13 +1,12 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+from aworld.config.common import Agents, Tools
 from aworld.core.agent.base import AgentFactory
 from aworld.core.envs.tool import ToolFactory
 from aworld.core.agent.swarm import Swarm
 
 from aworld.core.client import Client
-from aworld.core.common import Agents, Tools
 from aworld.core.task import Task
-from aworld.agents.browser.agent import BrowserAgent
 from aworld.config.conf import AgentConfig
 from aworld.virtual_environments.conf import BrowserToolConfig
 
