@@ -135,7 +135,8 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
     def llm(self):
         # lazy
         if self._llm is None:
-            self._llm = get_llm_model(self.conf)
+            conf = self.conf.llm_config if self.conf.llm_config.llm_provider else self.conf
+            self._llm = get_llm_model(conf)
         return self._llm
 
     def desc_transform(self):
