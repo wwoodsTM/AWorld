@@ -37,7 +37,7 @@ class AndroidAgent(BaseAgent):
         self._build_prompt()
         self.available_actions_desc = self._build_action_prompt()
         # Settings
-        self.settings = AgentSettings(**conf.model_dump())
+        self.settings = AgentSettings(**conf)
         # State
         self.state = AgentState()
         # History

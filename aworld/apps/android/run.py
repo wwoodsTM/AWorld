@@ -18,7 +18,7 @@ def main():
                                             max_retry=2)
 
     agent_config: AgentConfig = AgentConfig(
-        agent_name=Agents.ANDROID.value,
+        name=Agents.ANDROID.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
         llm_temperature=1,
