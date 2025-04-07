@@ -3,6 +3,7 @@
 
 import abc
 import json
+import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
@@ -309,3 +310,69 @@ AgentFactory = AgentManager("agent_type")
 class AgentResult(BaseModel):
     current_state: Any
     actions: List[ActionModel]
+
+
+class AgentExecutor(object):
+    """The default executor for agent execution can be used for sequential execution by the user."""
+
+    def __init__(self, agent: BaseAgent = None):
+        self.agent = agent
+        self.agents: Dict[str, BaseAgent] = {}
+
+    def register(self, name: str, agent: BaseAgent):
+        self.agents[name] = agent
+
+    def execute(self, observation: Observation, **kwargs) -> AgentResult:
+        """"""
+        return self.execute_agent(observation, self.agent, **kwargs)
+
+    async def async_execute(self, observation: Observation, **kwargs) -> AgentResult:
+        """"""
+        return await self.async_execute_agent(observation, self.agent, **kwargs)
+
+    def execute_agent(self,
+                      observation: Observation,
+                      agent: BaseAgent,
+                      **kwargs) -> AgentResult:
+        """The synchronous execution process of the agent with some hooks.
+
+        Args:
+            observation: Observation source from a tool or an agent.
+            agent: The special agent instance.
+        """
+        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
+        try:
+            actions = agent.policy(observation, kwargs)
+            return AgentResult(actions=actions, current_state=None)
+        except:
+            logger.warning(traceback.format_exc())
+            return AgentResult(actions=[ActionModel(tool_name="", action_name="")], current_state=None)
+
+    async def async_execute_agent(self,
+                                  observation: Observation,
+                                  agent: BaseAgent,
+                                  **kwargs) -> AgentResult:
+        """The asynchronous execution process of the agent.
+
+        Args:
+            observation: Observation source from a tool or an agent.
+            agent: The special agent instance.
+        """
+        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
+        try:
+            actions = await agent.async_policy(observation, kwargs)
+            return AgentResult(actions=actions, current_state=None)
+        except:
+            logger.warning(traceback.format_exc())
+            return AgentResult(actions=[ActionModel(tool_name="", action_name="")], current_state=None)
+
+    def _get_or_create_agent(self, name: str, agent: BaseAgent = None, conf=None):
+        if agent is None:
+            agent = self.agents.get(name)
+            if agent is None:
+                agent = AgentFactory(name, conf=conf if conf else AgentConfig())
+                self.agents[name] = agent
+        return agent
+
+
+agent_executor = AgentExecutor()

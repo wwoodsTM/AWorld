@@ -20,9 +20,9 @@ from aworld.agents.browser.prompts import AgentMessagePrompt
 from langchain_openai import ChatOpenAI
 from aworld.agents.browser.agent import Trajectory
 
-from aworld.agents.travel.searchAgent import SearchAgent
+from aworld.agents.travel.search_agent import SearchAgent
 from aworld.agents.browser.agent import BrowserAgent
-from aworld.agents.travel.writeAgent import WriteAgent
+from aworld.agents.travel.write_agent import WriteAgent
 from aworld.core.envs.tool import ToolFactory
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.virtual_environments.conf import BrowserToolConfig
@@ -61,9 +61,6 @@ Previous steps
 - Don't hallucinate actions
 - Make sure you include everything you found out for the ultimate task in the done text parameter. Do not just say you are done, but include the requested information of the task. 
 
-"""
-
-AGENT_CAN_USE = """
 there are actions you can use：
 [{'type': 'function', 'function': {'name': 'search_agent', 'description': 'Search the abstract and url from search api for the specific task.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the search query input.', 'type': 'string'}}, 'required': ['query']}}}, {'type': 'function', 'function': {'name': 'browser_agent', 'description': 'use browser agent execute specific task like extract content from url.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the task you want browser agent to do, if extract, please give extract goal and complete url', 'type': 'string'}, 'required': ['task']}}}, {'type': 'function', 'function': {'name': 'write_agent', 'description': 'Use write agent to write file about specific tasks.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the specific writing task description.', 'type': 'string'}, 'refer': {'description': 'the related information write agent need refer.', 'type': 'string'}}, 'required': ['task', 'refer']}}}]
 """

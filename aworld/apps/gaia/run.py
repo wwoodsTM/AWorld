@@ -3,7 +3,7 @@
 import os
 
 from aworld.core.agent.base import AgentFactory
-from aworld.core.common import Tools, Agents
+from aworld.config.common import Tools, Agents
 from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig
