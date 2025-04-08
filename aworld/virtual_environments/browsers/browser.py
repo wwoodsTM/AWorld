@@ -297,6 +297,8 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
                 if res.is_done:
                     terminated = res.is_done
                     self._finish = True
+                if res.error:
+                    fail_error += res.error
 
         info = {"exception": fail_error}
 
