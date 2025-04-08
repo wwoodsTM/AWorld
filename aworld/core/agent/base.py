@@ -94,7 +94,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(BaseAgent, self).__init__(conf, **kwargs)
-        self.model_name = conf.llm_model_name
+        self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
 
     @property
