@@ -446,7 +446,7 @@ class BrowserAgent(BaseAgent):
             if obs.action_result is not None:
                 # The previous action entries should match with action results
                 if len(previous_action_entries) == 0:
-                    # 如果previous_action_entries为空，直接处理所有action_result，不做条数一致性检测
+                    # if previous_action_entries is empty，process action_result directly
                     logger.info(
                         f"History item with action_result count ({len(obs.action_result)}) with empty previous actions - skipping count check")
                 elif len(previous_action_entries) == len(obs.action_result):
@@ -495,7 +495,7 @@ class BrowserAgent(BaseAgent):
             if hasattr(observation, 'action_result') and observation.action_result is not None:
                 # Match action results with previous actions
                 if len(previous_action_entries) == 0:
-                    # 如果previous_action_entries为空，直接处理所有action_result，不做条数一致性检测
+                    # if previous_action_entries is empty，process action_result directly
                     logger.info(
                         f"Current observation with action_result count ({len(observation.action_result)}) with empty previous actions - skipping count check")
                 elif len(previous_action_entries) == len(observation.action_result):
