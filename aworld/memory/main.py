@@ -1,5 +1,5 @@
 from typing import Optional
-from memory.base import MemoryBase, MemoryItem, MemoryStore, InMemoryMemoryStore
+from aworld.memory.base import MemoryBase, MemoryItem, MemoryStore, InMemoryMemoryStore
 
 
 class Memory(MemoryBase):
