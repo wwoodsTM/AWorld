@@ -153,6 +153,7 @@ class Task(object):
         step = 0
         max_steps = self.conf.get("max_steps", 100)
         results = []
+        swarm_resp = None
         try:
             while step < max_steps:
                 # Loose protocol
@@ -186,7 +187,7 @@ class Task(object):
                         "success": False,
                         "total_time": time_cost}
 
-            answer = results[-1].get('observation')
+            answer = results[-1].get('observation').content if results[-1].get('observation') else swarm_resp
             return {"answer": answer,
                     "steps": step,
                     "success": True,
