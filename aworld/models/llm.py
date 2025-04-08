@@ -143,6 +143,7 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
                              f"Please set the `{env_var}` environment variable or set `llm_api_key` in AgentConfig.")
         kwargs["api_key"] = api_key
         kwargs['base_url'] = conf.llm_base_url
+        kwargs['model_name'] = conf.llm_model_name
 
     if provider == "anthropic":
         if not kwargs.get("base_url", ""):
