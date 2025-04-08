@@ -342,7 +342,7 @@ class DomUtil:
                     break
                 if now - start_time > kwargs.get('max_wait_time', 5):
                     logger.debug(
-                        f'Network timeout after {kwargs.get('max_wait_time', 5)}s with {len(pending_requests)} '
+                        f'Network timeout after {kwargs.get("max_wait_time", 5)}s with {len(pending_requests)} '
                         f'pending requests: {[r.url for r in pending_requests]}'
                     )
                     break
@@ -351,7 +351,7 @@ class DomUtil:
             # Clean up event listeners
             page.remove_listener('request', on_request)
             page.remove_listener('response', on_response)
-        logger.debug(f'Network stabilized for {kwargs.get('idle_wait_time', 0.5)} seconds')
+        logger.debug(f'Network stabilized for {kwargs.get("idle_wait_time", 0.5)} seconds')
 
     @staticmethod
     def _enhanced_css_selector_for_element(element: DOMElementNode, include_dynamic_attributes: bool = True) -> str:
