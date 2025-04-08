@@ -52,6 +52,15 @@ class GotoUrl(ExecutableAction):
 
         params = action.params
         url = params.get("url")
+        if not url:
+            logger.warning("empty url, go to nothing.")
+            return ActionResult(content="empty url", keep=True), page
+        items = url.split('://')
+        if len(items) == 1:
+            if items[0][0] != '/':
+                url = "file://" + os.path.join(os.getcwd(), url)
+
+        print(url)
         page.goto(url)
         page.wait_for_load_state()
         msg = f'Navigated to {url}'
@@ -69,6 +78,11 @@ class GotoUrl(ExecutableAction):
         if not url:
             logger.warning("empty url, go to nothing.")
             return ActionResult(content="empty url", keep=True), page
+
+        items = url.split('://')
+        if len(items) == 1:
+            if items[0][0] != '/':
+                url = "file://" + os.path.join(os.getcwd(), url)
 
         await page.goto(url)
         await page.wait_for_load_state()

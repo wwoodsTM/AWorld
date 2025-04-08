@@ -13,9 +13,9 @@ from aworld.virtual_environments.conf import BrowserToolConfig
 class TestBrowserTool(unittest.TestCase):
     def setUp(self):
         self.browser_tool = BrowserTool(BrowserToolConfig(width=1280,
-                                            height=720,
-                                            headless=False,
-                                            keep_browser_open=True), name="browser")
+                                                          height=720,
+                                                          headless=False,
+                                                          keep_browser_open=True), name="browser")
         self.browser_tool.reset()
 
     def tearDown(self):
@@ -27,3 +27,12 @@ class TestBrowserTool(unittest.TestCase):
                               params={"url": "https://www.baidu.com"})]
         ob, _, _, _, info = self.browser_tool.step(action)
         self.assertEqual(info, {'exception': ''})
+
+    def test_goto_url(self):
+        action = [ActionModel(tool_name=Tools.BROWSER.value,
+                              action_name=BrowserAction.GO_TO_URL.value.name,
+                              params={"url": "test.json"})]
+        ob, _, _, _, info = self.browser_tool.step(action)
+        self.assertEqual(info, {'exception': ''})
+        import time
+        time.sleep(10)
