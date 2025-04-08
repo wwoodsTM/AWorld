@@ -7,8 +7,9 @@ import os
 import time
 from importlib import resources
 from pathlib import Path
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Union
 
+from aworld.config import ConfigDict
 from aworld.config.common import Tools
 from aworld.config.tool_action import BrowserAction
 from aworld.core.common import Observation, ActionModel, ActionResult
@@ -32,7 +33,7 @@ ASCII = "".join(chr(x) for x in range(32, 128))
                       supported_action=BrowserAction,
                       conf_file_name=f'{Tools.BROWSER.value}_tool.yaml')
 class BrowserTool(Tool[Observation, List[ActionModel]]):
-    def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
+    def __init__(self, conf: Union[ConfigDict, BrowserToolConfig], **kwargs) -> None:
         super(BrowserTool, self).__init__(conf)
 
         self.initialized = False
@@ -243,6 +244,9 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             self.context.close()
         if hasattr(self, 'browser') and self.browser:
             self.browser.close()
+        if hasattr(self, 'playwright') and self.playwright:
+            self.playwright.stop()
+        
         if self.initialized:
             self.context_manager.__exit__()
 

@@ -89,7 +89,9 @@ class InputText(ExecutableAction):
             return ActionResult(content="input text no page", keep=True), page
 
         params = action.params
-        index = params.get("index")
+        index = params.get("index", 0)
+        # compatible with int and str datatype
+        index = int(index)
         input = params.get("text", "")
 
         ob: Observation = kwargs.get("observation")
@@ -114,6 +116,8 @@ class InputText(ExecutableAction):
 
         params = action.params
         index = params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         input = params.get("text", "")
 
         ob: Observation = kwargs.get("observation")
@@ -211,6 +215,8 @@ class ClickElement(ExecutableAction):
             return ActionResult(content="none browser context", keep=True), page
 
         index = action.params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         ob: Observation = kwargs.get("observation")
         if not ob or index not in ob.dom_tree.element_map:
             raise RuntimeError(f'Element index {index} does not exist')
@@ -250,6 +256,8 @@ class ClickElement(ExecutableAction):
             return ActionResult(content="none browser context", keep=True), page
 
         index = action.params.get("index")
+        # compatible with int and str datatype
+        index = int(index)
         ob: Observation = kwargs.get("observation")
         if not ob or index not in ob.dom_tree.element_map:
             raise RuntimeError(f'Element index {index} does not exist')
@@ -277,8 +285,11 @@ class ClickElement(ExecutableAction):
             return ActionResult(error=str(e)), page
 
 
-SEARCH_ENGINE = {"": "https://www.google.com/search?udm=14&q=",
-                 "google": "https://www.google.com/search?udm=14&q="}
+# SEARCH_ENGINE = {"": "https://www.google.com/search?udm=14&q=",
+#                  "google": "https://www.google.com/search?udm=14&q="}
+
+SEARCH_ENGINE = {"": "https://www.bing.com/search?q=",
+                 "google": "https://www.bing.com/search?q="}
 
 
 @ActionFactory.register(name=BrowserAction.SEARCH.value.name,
@@ -351,6 +362,29 @@ class SearchGoogle(ExecutableAction):
         msg = f'Searched for "{query}" in Google'
         logger.info(msg)
         return ActionResult(content=msg, keep=True), page
+
+
+@ActionFactory.register(name=BrowserAction.NEW_TAB.value.name,
+                        desc=BrowserAction.NEW_TAB.value.desc,
+                        tool_name=Tools.BROWSER.value)
+class NewTab(ExecutableAction):
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
+        browser = get_browser(**kwargs)
+        url = action.params.get("url")
+        browser.create_new_tab(url)
+        msg = f'Opened new tab with {url}'
+        logger.debug(msg)
+        return ActionResult(content=msg, keep=True), get_page(**kwargs)
+
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
+        browser = get_browser(**kwargs)
+        url = action.params.get("url")
+        await browser.create_new_tab(url)
+        msg = f'Opened new tab with {url}'
+        logger.debug(msg)
+        return ActionResult(content=msg, keep=True), get_page(**kwargs)
 
 
 @ActionFactory.register(name=BrowserAction.GO_BACK.value.name,
@@ -529,6 +563,8 @@ class ScrollUp(ExecutableAction):
 class Wait(ExecutableAction):
     def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         seconds = action.params.get("seconds")
+        if not seconds:
+            seconds = action.params.get("duration")
         msg = f'Waiting for {seconds} seconds'
         logger.info(msg)
         time.sleep(seconds)
@@ -553,7 +589,7 @@ class SwitchTab(ExecutableAction):
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
-        page_id = action.params.get("page_id")
+        page_id = action.params.get("page_id", 0)
         pages = browser.pages
 
         if page_id >= len(pages):
@@ -573,7 +609,7 @@ class SwitchTab(ExecutableAction):
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
-        page_id = action.params.get("page_id")
+        page_id = action.params.get("page_id", 0)
         pages = browser.pages
 
         if page_id >= len(pages):

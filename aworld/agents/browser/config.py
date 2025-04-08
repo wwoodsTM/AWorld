@@ -1,8 +1,10 @@
 # coding: utf-8
-# Copyright (c) 2025 inclusionAI.
 
 from typing import Optional
 from aworld.config.conf import AgentConfig
+from typing import Literal
+
+ToolCallingMethod = Literal['function_calling', 'json_mode', 'raw', 'auto']
 
 
 class BrowserAgentConfig(AgentConfig):
@@ -19,3 +21,6 @@ class BrowserAgentConfig(AgentConfig):
     available_file_paths: Optional[list[str]] = None
     override_system_message: Optional[str] = None
     extend_system_message: Optional[str] = None
+    tool_calling_method: Optional[ToolCallingMethod] = 'auto'
+    max_llm_json_retries: int = 3,
+    save_file_path: str = "browser_agent_history.json"
