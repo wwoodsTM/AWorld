@@ -372,16 +372,28 @@ class NewTab(ExecutableAction):
         logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
         browser = get_browser(**kwargs)
         url = action.params.get("url")
-        browser.create_new_tab(url)
+
+        new_page = browser.new_page()
+        new_page.wait_for_load_state()
+
+        if url:
+            new_page.goto(url)
+            DomUtil.wait_for_stable_network(new_page)
+
         msg = f'Opened new tab with {url}'
         logger.debug(msg)
-        return ActionResult(content=msg, keep=True), get_page(**kwargs)
+        return ActionResult(content=msg, keep=True), new_page
 
     async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
         logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
         browser = get_browser(**kwargs)
         url = action.params.get("url")
-        await browser.create_new_tab(url)
+        new_page = await browser.new_page()
+        await new_page.wait_for_load_state()
+
+        if url:
+            await new_page.goto(url)
+            DomUtil.wait_for_stable_network(new_page)
         msg = f'Opened new tab with {url}'
         logger.debug(msg)
         return ActionResult(content=msg, keep=True), get_page(**kwargs)
