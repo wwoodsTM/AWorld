@@ -39,7 +39,7 @@ class DeepSeekR1ChatOpenAI(ChatOpenAI):
 
     async def ainvoke(
             self,
-            input: LanguageModelInput,
+            messages: LanguageModelInput,
             config: Optional[RunnableConfig] = None,
             *,
             stop: Optional[list[str]] = None,
@@ -65,7 +65,7 @@ class DeepSeekR1ChatOpenAI(ChatOpenAI):
 
     def invoke(
             self,
-            input: LanguageModelInput,
+            messages: LanguageModelInput,
             config: Optional[RunnableConfig] = None,
             *,
             stop: Optional[list[str]] = None,
@@ -127,6 +127,8 @@ class DeepSeekR1ChatOllama(ChatOllama):
 
 def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
     provider = conf.llm_provider
+    if not provider:
+        raise ValueError("no provider")
     if provider not in ["ollama"]:
         env_var = f"{provider.upper()}_API_KEY"
         # special process
@@ -141,6 +143,7 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig], **kwargs):
                              f"Please set the `{env_var}` environment variable or set `llm_api_key` in AgentConfig.")
         kwargs["api_key"] = api_key
         kwargs['base_url'] = conf.llm_base_url
+        kwargs['model_name'] = conf.llm_model_name
 
     if provider == "anthropic":
         if not kwargs.get("base_url", ""):

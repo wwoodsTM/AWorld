@@ -7,10 +7,12 @@ import os
 import time
 from importlib import resources
 from pathlib import Path
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Union
 
-from aworld.core.envs.tool_action import BrowserAction
-from aworld.core.common import Observation, ActionModel, ActionResult, Tools
+from aworld.config import ConfigDict
+from aworld.config.common import Tools
+from aworld.config.tool_action import BrowserAction
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.core.envs.tool import action_executor, ToolFactory
 from aworld.core.envs.tool import Tool
@@ -31,8 +33,8 @@ ASCII = "".join(chr(x) for x in range(32, 128))
                       supported_action=BrowserAction,
                       conf_file_name=f'{Tools.BROWSER.value}_tool.yaml')
 class BrowserTool(Tool[Observation, List[ActionModel]]):
-    def __init__(self, conf: BrowserToolConfig, **kwargs) -> None:
-        super(BrowserTool, self).__init__(conf)
+    def __init__(self, conf: Union[ConfigDict, BrowserToolConfig], **kwargs) -> None:
+        super(BrowserTool, self).__init__(conf, **kwargs)
 
         self.initialized = False
         self._finish = False
@@ -52,9 +54,11 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
     def init(self) -> None:
         from playwright.sync_api import sync_playwright
 
+        if self.initialized:
+            return
+
         self.context_manager = sync_playwright()
         self.playwright = self.context_manager.start()
-
         self.browser = self._create_browser()
         self.context = self._create_browser_context()
 
@@ -186,7 +190,10 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         screenshot_base64 = base64.b64encode(screenshot).decode('utf-8')
         return screenshot_base64
 
-    def _get_observation(self) -> Observation:
+    def _get_observation(self, fail_error: str = None) -> Observation:
+        if fail_error:
+            return Observation(observer=self.name(), info={"exception": fail_error})
+
         dom_tree = self._parse_dom_tree()
         image = self.screenshot()
         pixels_above, pixels_below = self._scroll_info()
@@ -217,6 +224,11 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, Dict[str, Any]]:
         super().reset(seed=seed, options=options)
+        if self.initialized:
+            observation = self._get_observation()
+            observation.action_result = [ActionResult(content='start', keep=True)]
+            self.cur_observation = observation
+            return observation, {}
 
         self.close()
         self.init()
@@ -242,6 +254,9 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             self.context.close()
         if hasattr(self, 'browser') and self.browser:
             self.browser.close()
+        if hasattr(self, 'playwright') and self.playwright:
+            self.playwright.stop()
+
         if self.initialized:
             self.context_manager.__exit__()
 
@@ -270,6 +285,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         try:
             action_result, self.page = self.action_executor.execute_action(action,
                                                                            observation=self.cur_observation,
+                                                                           llm_config=self.conf.llm_config,
                                                                            **kwargs)
             reward = 1
         except Exception as e:
@@ -304,7 +320,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
                     info)
         else:
             # normal observation
-            observation = self._get_observation()
+            observation = self._get_observation(fail_error)
             observation.ability = action[-1].action_name
             observation.action_result = action_result
             self.cur_observation = observation

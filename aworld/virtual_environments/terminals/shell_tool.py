@@ -7,9 +7,10 @@ import signal
 import sys
 from typing import Any, Dict, Tuple, List
 
+from aworld.config.common import Tools
 from aworld.config.conf import ToolConfig
-from aworld.core.envs.tool_action import ShellAction
-from aworld.core.common import ActionModel, Observation, ActionResult, Tools
+from aworld.config.tool_action import ShellAction
+from aworld.core.common import ActionModel, Observation, ActionResult
 from aworld.core.envs.tool import Tool, AgentInput, ToolFactory
 from aworld.logs.util import logger
 from aworld.virtual_environments.utils import build_observation

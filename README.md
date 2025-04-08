@@ -37,7 +37,7 @@ export CLAUDE_API_KEY=sk-ant-api03xyz...
 ```
 
 ## Usage
-### Running Pre-defined Agents ([demo code](./aworld/apps/browsers/run.py))
+### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
 Below are demonstration videos showcasing AWorld's capabilities across different agent configurations and environments.
 
 <table>
@@ -94,8 +94,8 @@ Here is a multi-agent example of running a level2 task from the [GAIA](https://h
 ```python
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.core.client import Client
-from aworld.core.common import Tools
-from aworld.core.swarm import Swarm
+from aworld.core.agent.swarm import Swarm
+from aworld.core.common import Agents, Tools
 from aworld.core.task import Task
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
@@ -113,12 +113,19 @@ client = Client()
 test_sample = mock_dataset("gaia")
 
 # Create agents
-agent_config = AgentConfig(
+plan_config = AgentConfig(
+    name=Agents.PLAN.value,
     llm_provider="openai",
     llm_model_name="gpt-4o",
 )
-agent1 = PlanAgent(conf=agent_config)
-agent2 = ExecuteAgent(conf=agent_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
+agent1 = PlanAgent(conf=plan_config)
+
+exec_config = AgentConfig(
+    name=Agents.EXECUTE.value,
+    llm_provider="openai",
+    llm_model_name="gpt-4o",
+)
+agent2 = ExecuteAgent(conf=exec_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
 
 # Create swarm for multi-agents
 # define (head_node, tail_node) edge in the topology graph

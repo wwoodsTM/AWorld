@@ -70,8 +70,6 @@ class GymAction(ToolAction):
 
 class BrowserAction(ToolAction):
     """Definition of Browser tool supported action."""
-    NONE = ToolActionInfo(name="none",
-                          desc="Do nothing")
     GO_TO_URL = ToolActionInfo(name="go_to_url",
                                input_params={"url": ParamInfo(name="url",
                                                               type="str",
@@ -110,8 +108,6 @@ class BrowserAction(ToolAction):
                                    desc="Search the query in Google in the current tab, the query should be a search query like humans search in Google, concrete and not vague or super long. More the single most important items. ")
     GO_BACK = ToolActionInfo(name="go_back",
                              desc="Go back")
-    GO_FORWARD = ToolActionInfo(name="go_forward",
-                                desc="Go forward")
     SCROLL_DOWN = ToolActionInfo(name="scroll_down",
                                  input_params={"amount": ParamInfo(name="amount",
                                                                    type="str",
@@ -130,7 +126,6 @@ class BrowserAction(ToolAction):
                                                                     required=True,
                                                                     desc="Index of click element in page on browser.")},
                                    desc="Click element")
-    SAYING = ToolActionInfo(name="saying")
     NEW_TAB = ToolActionInfo(name="new_tab",
                              input_params={"url": ParamInfo(name="url",
                                                             type="str",
@@ -143,12 +138,6 @@ class BrowserAction(ToolAction):
                                                                    required=True,
                                                                    desc="Switch tab by page id on browser.")},
                                 desc="Switch tab")
-    OPEN_NEW_TAB = ToolActionInfo(name="open_new_tab",
-                                  input_params={"url": ParamInfo(name="url",
-                                                                 type="str",
-                                                                 required=True,
-                                                                 desc="Open url in new tab on browser.")},
-                                  desc="Open url in new tab")
     WAIT = ToolActionInfo(name="wait",
                           input_params={"seconds": ParamInfo(name="seconds",
                                                              type="str",
@@ -297,3 +286,19 @@ class PythonToolAction(ToolAction):
                                         required=True,
                                         desc="The input python code to execute. Python codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")},
         desc="Execute the given python codes. Codes should be complete and runnable (like running a script), and need to explicitly use the print statement to get the output.")
+
+
+class WriteAction(ToolAction):
+    """Info Write actions."""
+    WRITE_HTML = ToolActionInfo(name="write_html",
+                          input_params={"goal": ParamInfo(name="goal",
+                                                           type="str",
+                                                           required=True,
+                                                           desc="the write goal, about theme, requirements for writing html file."),
+                                        "information": ParamInfo(name="information",
+                                                                 type="str",
+                                                                 required=True,
+                                                                 desc="the related information for writing html file. lengths should less than 6000 words."
+                                            )
+                                        },
+                          desc="write the html file about `goal` based on `information`.")

@@ -6,8 +6,9 @@ from typing import Dict, Any, Tuple, SupportsFloat, Union, List
 from pydantic import BaseModel
 
 from aworld.config import ConfigDict
-from aworld.core.envs.tool_action import GymAction
-from aworld.core.common import Tools, ActionModel, Observation
+from aworld.config.common import Tools
+from aworld.config.tool_action import GymAction
+from aworld.core.common import ActionModel, Observation
 from aworld.core.envs.tool import AsyncTool, ToolFactory
 from aworld.utils import import_package
 

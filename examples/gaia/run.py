@@ -3,14 +3,18 @@
 import os
 
 from aworld.core.agent.base import AgentFactory
-from aworld.core.common import Tools, Agents
+from aworld.config.common import Tools, Agents
 from aworld.core.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig, ModelConfig
-from aworld.core.swarm import Swarm
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.dataset.mock import mock_dataset
 
+# Need OPENAI_API_KEY
+# os.environ['OPENAI_API_KEY'] = "your key"
+# Optional endpoint settings, default `https://api.openai.com/v1`
+# os.environ['OPENAI_ENDPOINT'] = "https://api.openai.com/v1"
 
 def main():
     # Initialize client
@@ -31,14 +35,12 @@ def main():
         name=Agents.PLAN.value,
         llm_config=model_config
     )
-
     agent1 = PlanAgent(conf=agent1_config)
-    
+
     agent2_config = AgentConfig(
         name=Agents.EXECUTE.value,
         llm_config=model_config
     )
-
     agent2 = ExecuteAgent(conf=agent2_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
 
     # Create swarm for multi-agents
