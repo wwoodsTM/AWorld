@@ -22,5 +22,5 @@ class BrowserAgentConfig(AgentConfig):
     override_system_message: Optional[str] = None
     extend_system_message: Optional[str] = None
     tool_calling_method: Optional[ToolCallingMethod] = 'auto'
-    max_llm_json_retries: int = 3,
+    max_llm_json_retries: int = 3
     save_file_path: str = "browser_agent_history.json"
