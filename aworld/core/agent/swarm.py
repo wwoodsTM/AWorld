@@ -1,6 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-
+import collections
 from typing import Dict, Any, List
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
@@ -12,14 +12,13 @@ from aworld.logs.util import logger
 class Swarm(object):
     """Simple implementation of interactive collaboration between multi-agent and supported env tools."""
 
-    def __init__(self, *args, root_agent: BaseAgent = None, is_determine=True, **kwargs):
+    def __init__(self, *args, root_agent: BaseAgent = None, **kwargs):
         self.communicate_agent = root_agent
-        if root_agent not in args:
+        if root_agent and root_agent not in args:
             self._topology = [root_agent] + list(args)
         else:
             self._topology = args
         self._ext_params = kwargs
-        self.is_determine = is_determine
         self.initialized = False
 
     def _init(self, **kwargs):
@@ -27,6 +26,7 @@ class Swarm(object):
         valid_agent_pair = []
         for pair in self._topology:
             if isinstance(pair, (list, tuple)):
+                self.topology_type = 'social'
                 # (agent1, agent2)
                 if len(pair) != 2:
                     raise RuntimeError(f"{pair} is not a pair value, please check it.")
@@ -37,7 +37,8 @@ class Swarm(object):
                 # agent
                 if not isinstance(pair, BaseAgent):
                     raise RuntimeError(f"agent in {pair} is not a base agent instance, please check it.")
-                valid_agent_pair.append(pair)
+                self.topology_type = 'sequence'
+                valid_agent_pair.append((pair,))
 
         if not valid_agent_pair:
             logger.warning("no valid agent pair to build graph.")
@@ -47,19 +48,21 @@ class Swarm(object):
         if self.communicate_agent is None:
             self.communicate_agent: Agent = valid_agent_pair[0][0]
         # agents in swarm.
-        self.agents: Dict[str, BaseAgent] = {}
-        self.order_agents = valid_agent_pair
+        self.agents: Dict[str, BaseAgent] = collections.OrderedDict()
 
         # agent handoffs build.
         for pair in valid_agent_pair:
             if pair[0] not in self.agents:
                 self.agents[pair[0].name()] = pair[0]
                 pair[0].tool_names.extend(self.tools)
+            if len(pair) == 1:
+                continue
+
             if pair[1] not in self.agents:
                 self.agents[pair[1].name()] = pair[1]
                 pair[1].tool_names.extend(self.tools)
 
-            if not self.is_determine:
+            if self.topology_type == 'social':
                 # need to explicitly set handoffs in the agent
                 pair[0].handoffs.append(pair[1].name())
 
@@ -121,7 +124,7 @@ class Swarm(object):
                 res = Observation(content=policy_info)
             else:
                 res = observation[-1]
-                res.content = policy_info
+                res.content = policy_info if policy_info else res.content
             return res
         else:
             logger.warning(f"{strategy} not supported now.")

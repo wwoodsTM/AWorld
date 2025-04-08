@@ -122,7 +122,7 @@ class Agent(Generic[INPUT, OUTPUT]):
         if options is None:
             options = {}
         self.task = options.get("task")
-        self.tool_names = options.get("tool_names")
+        self.tool_names = options.get("tool_names", [])
         self.handoffs = options.get("agent_names", [])
         self.trajectory = []
         self._finished = False

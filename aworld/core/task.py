@@ -136,21 +136,33 @@ class Task(object):
         else:
             observation = Observation(content=self.input)
 
-        return self._swarm_process(observation, info)
+        self.swarm.reset(self.tool_names)
+        for agent in self.swarm.agents.values():
+            agent.reset({"task": observation.content})
+            # global tools
+            agent.tool_names = self.tool_names
 
-    def _determine_process(self, observation: Observation, info: Dict[str, Any]):
+        if self.swarm.topology_type == 'social':
+            return self._social_process(observation, info)
+        else:
+            return self._sequence_process(observation, info)
+
+    def _sequence_process(self, observation: Observation, info: Dict[str, Any]):
+        if not observation:
+            raise RuntimeError("no observation, check run process")
+
         start = time.time()
         step = 0
         max_steps = self.conf.get("max_steps", 100)
         msg = None
 
-        for agent in self.swarm.order_agents:
+        for _, agent in self.swarm.agents.items():
+            observations = [observation]
+            policy = None
             while step < max_steps:
-                observations = []
                 terminated = False
-                if not observation:
-                    raise RuntimeError("no observation, check run process")
 
+                observation = self.swarm.action_to_observation(policy, observations)
                 policy: List[ActionModel] = agent_executor.execute_agent(observation,
                                                                          agent=agent,
                                                                          conf=agent.conf,
@@ -173,7 +185,8 @@ class Task(object):
                         raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
                     if cur_agent.name() == agent.name():
                         # Current agent is entrance agent, means need to exit to the outer loop
-                        logger.warning("Exit to the outer loop")
+                        logger.warning("Exit the loop")
+                        observation = self.swarm.action_to_observation(policy, observations)
                         break
 
                     if agent.handoffs and policy_for_agent.agent_name not in agent.handoffs:
@@ -192,12 +205,12 @@ class Task(object):
                         observation.content = policy_for_agent.policy_info
                     else:
                         observation = Observation(content=policy_for_agent.policy_info)
-                    agent_policy = agent_executor.execute_agent(observation,
+                    policy = agent_executor.execute_agent(observation,
                                                                 agent=cur_agent,
                                                                 conf=cur_agent.conf,
                                                                 step=step)
 
-                    if not agent_policy:
+                    if not policy:
                         logger.warning(
                             f"{observation} can not get the valid policy in {policy_for_agent.agent_name}, exit task!")
                         msg = f"{policy_for_agent.agent_name} invalid policy"
@@ -234,29 +247,16 @@ class Task(object):
                 if terminated and agent.finished:
                     logger.info("swarm finished")
                     break
-                if observation:
-                    policy = agent_executor.execute_agent(observation,
-                                                          agent=agent,
-                                                          conf=agent.conf,
-                                                          step=step)
-                    observation = self.swarm.action_to_observation(policy, [observation])
         return {"steps": step,
-                "response": observation.content,
+                "answer": observation.content,
                 "observation": observation,
                 "msg": msg,
                 "success": True if not msg else False}
 
-    def _swarm_process(self,
-                       observation: Observation,
-                       info: Dict[str, Any]) -> Dict[str, Any]:
+    def _social_process(self,
+                           observation: Observation,
+                           info: Dict[str, Any]) -> Dict[str, Any]:
         start = time.time()
-
-        input = observation.content
-        self.swarm.reset(self.tool_names)
-        for agent in self.swarm.agents.values():
-            agent.reset({"task": input})
-            # global tools
-            agent.tool_names = self.tool_names
 
         step = 0
         max_steps = self.conf.get("max_steps", 100)
