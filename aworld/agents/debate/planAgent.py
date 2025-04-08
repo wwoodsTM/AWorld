@@ -64,14 +64,15 @@ there are actions you can use：
 """
 
 user_assignment_system_prompt = "You are a helpful search agent."
-user_assignment_prompt = """
-You are {player}'s fun. While facing other's statement such as "XXX (not Jordan) is the best basketball player", you must oppose that opinion.
 
-You have an assistant that can help search the relative materials online to support your opinion "{player} is the best and on one else can beat Jordan on basketball."
+user_assignment_prompt = """
+While facing the hot topic: {topic}, your opinion is {opinion}. You stand on your opinion and fight any other opinion that differs from your opinion.
+
+You have an assistant that can help search the relative materials online to support your opinion {opinion} in the topic: {topic}
 
 While facing your opponent's claim {claim}, you decide to fight back! Now you need to ask your assistant to do some online survey, according to that claim, to give you more insights to decide what to debate with your opponent.
 
-For example, you could talk to your assistant: Facing the statement "Lebron can score more points", please search Jordan and Lebron's career total score and average score per game. Then I will see who can score more.
+For example, you could talk to your assistant: Facing the statement "xxxxx", please search "yyyyy". Then I will gain more insights and can decide how to fight back!
 
 Now, you could output your assignment to your assistant.
 """
@@ -83,15 +84,15 @@ You are an outstanding debater, with a fiery and stubborn personality, sharp lan
 
 
 ## Current Debate Topic
-Who is the greatest basketball player in history, Michael Jordan or LeBron James?
+{topic}
 
 
 ## Your Stance
-{player} is the greatest in history.
+{opinion1}
 
 
 ## Opponent's Stance
-LeBron James is the greatest in history.
+{opinion2}
 
 
 ## Your Skills
@@ -109,8 +110,7 @@ LeBron James is the greatest in history.
 
 
 ## Dialogue Style Example
-Opponent: James is stronger and can knock Jordan away.
-You: Basketball is a combination of body, technique, and spirit, and Jordan is undoubtedly the epitome of this. If James likes bumping into people so much, why doesn't he go play wrestling?
+{opinion_1_fewshot}
 
 
 ## Current Task
@@ -552,12 +552,13 @@ if __name__ == '__main__':
     browser_tool = ToolFactory(Tools.BROWSER.value, browser_tool_config)
 
     ## step 1: 对方观点
+    topic = "Who is GOAT? Jordan or Lebron?"
     opponent_claim = "Lebron is stronger, and the body is the most important factor in basketball."
 
     ## step 2: 呼叫己方，布置搜索任务，并赋值到observation里面
     messages = [{'role': 'system', 'content': user_assignment_system_prompt},
                 {'role': 'user',
-                 'content': user_assignment_prompt.format(claim=opponent_claim, player='Michael Jordan')}]
+                 'content': user_assignment_prompt.format(topic = topic, opinion = "Jordan", claim=opponent_claim)}]
 
     llm_result = search_agent.llm.invoke(
         input=messages,
@@ -626,9 +627,11 @@ if __name__ == '__main__':
             f.write("\n\n" + "=" * 50 + "\n\n")
 
     ## step 4: 呼叫己方，布置搜索任务，并赋值到observation里面
+    opinion_1_fewshot = "Opponent: James is stronger and can knock Jordan away. You: Basketball is a combination of body, technique, and spirit, and Jordan is undoubtedly the epitome of this. If James likes bumping into people so much, why doesn't he go play wrestling?"
+    
     messages = [{'role': 'system', 'content': user_debate_system_prompt},
                 {'role': 'user',
-                 'content': user_debate_prompt.format(claim=opponent_claim, player='Michael Jordan',
+                 'content': user_debate_prompt.format(topic = topic, claim=opponent_claim, opinion_1='Michael Jordan', opinion_2 = 'Lebron James', opinion_1_fewshot = opinion_1_fewshot,
                                                       search_materials=search_materials)}]
 
     llm_result = search_agent.llm.invoke(
