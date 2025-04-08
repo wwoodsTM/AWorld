@@ -142,14 +142,14 @@ class Task(object):
         start = time.time()
         step = 0
         max_steps = self.conf.get("max_steps", 100)
-        results = []
+        msg = None
 
         for agent in self.swarm.order_agents:
             while step < max_steps:
                 observations = []
                 terminated = False
                 if not observation:
-                    raise RuntimeError("")
+                    raise RuntimeError("no observation, check run process")
 
                 policy: List[ActionModel] = agent_executor.execute_agent(observation,
                                                                          agent=agent,
@@ -200,6 +200,7 @@ class Task(object):
                     if not agent_policy:
                         logger.warning(
                             f"{observation} can not get the valid policy in {policy_for_agent.agent_name}, exit task!")
+                        msg = f"{policy_for_agent.agent_name} invalid policy"
                         break
                     # clear observation
                     observation = None
@@ -227,6 +228,7 @@ class Task(object):
                         # Check if there's an exception in info
                         if info.get("exception"):
                             color_log(f"Step {step} failed with exception: {info['exception']}")
+                            msg = f"Step {step} failed with exception: {info['exception']}"
                         logger.info(f"step: {step} finished by tool action.")
                 step += 1
                 if terminated and agent.finished:
@@ -238,6 +240,11 @@ class Task(object):
                                                           conf=agent.conf,
                                                           step=step)
                     observation = self.swarm.action_to_observation(policy, [observation])
+        return {"steps": step,
+                "response": observation.content,
+                "observation": observation,
+                "msg": msg,
+                "success": True if not msg else False}
 
     def _swarm_process(self,
                        observation: Observation,
