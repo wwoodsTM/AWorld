@@ -9,19 +9,20 @@ from typing import Dict, Any, Optional, List, Union
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage, SystemMessage
 from pydantic import ValidationError
 
+from aworld.config.common import Agents, Tools
 from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
-from aworld.core.common import Observation, ActionModel, Tools, ToolActionInfo, Agents, ActionResult
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.agents.browser.prompts import AgentMessagePrompt
 from langchain_openai import ChatOpenAI
 from aworld.agents.browser.agent import Trajectory
 
-from aworld.agents.travel.searchAgent import SearchAgent
+from aworld.agents.travel.search_agent import SearchAgent
 from aworld.agents.browser.agent import BrowserAgent
-from aworld.agents.travel.writeAgent import WriteAgent
+from aworld.agents.travel.write_agent import WriteAgent
 from aworld.core.envs.tool import ToolFactory
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.virtual_environments.conf import BrowserToolConfig
@@ -64,9 +65,9 @@ there are actions you can use：
 
 user_assignment_system_prompt = "You are a helpful search agent."
 user_assignment_prompt = """
-You are {palyer}'s fun. While facing other's statement such as "XXX (not Jordan) is the best basketball player", you must oppose that opinion.
+You are {player}'s fun. While facing other's statement such as "XXX (not Jordan) is the best basketball player", you must oppose that opinion.
 
-You have an assistant that can help search the relative materials online to support your opinion "{palyer} is the best and on one else can beat Jordan on basketball."
+You have an assistant that can help search the relative materials online to support your opinion "{player} is the best and on one else can beat Jordan on basketball."
 
 While facing your opponent's claim {claim}, you decide to fight back! Now you need to ask your assistant to do some online survey, according to that claim, to give you more insights to decide what to debate with your opponent.
 
@@ -74,7 +75,6 @@ For example, you could talk to your assistant: Facing the statement "Lebron can 
 
 Now, you could output your assignment to your assistant.
 """
-
 
 user_debate_system_prompt = "You are an impressive debater."
 user_debate_prompt = """
@@ -239,7 +239,7 @@ class TravelPlanAgent(BaseAgent):
 
             if self.state.stopped or self.state.paused:
                 logger.info('Browser gent paused after getting state')
-                return [ActionModel(tool_name=None, action_name="stop")] ## tmp stop
+                return [ActionModel(tool_name=None, action_name="stop")]  ## tmp stop
 
             tool_action = llm_result.actions
 
@@ -330,8 +330,8 @@ class TravelPlanAgent(BaseAgent):
                     if action_name not in ("", "", "", ""):
                         logger.warning(f"Unsupported action: {action_name}")
                     action_model = ActionModel(
-                                               agent_name=action_name,
-                                               params=action.get('params', {}))
+                        agent_name=action_name,
+                        params=action.get('params', {}))
                     result.append(action_model)
                 else:
                     for k, v in action.items():
@@ -423,7 +423,7 @@ class TravelPlanAgent(BaseAgent):
                         'memory': 'search compeleted and gets url',
                         'next_goal': 'extract information from the related url',
                     },
-                    'action': [{'browser_agent': {"task":"goto xxx(url) to extract content about xxx."}}],
+                    'action': [{'browser_agent': {"task": "goto xxx(url) to extract content about xxx."}}],
                 },
                 'id': '1',
                 'type': 'tool_call',
@@ -535,16 +535,19 @@ if __name__ == '__main__':
     agentConfig = AgentConfig(
         llm_provider="chatopenai",
         llm_model_name="gpt-4o",
-        llm_base_url="",
-        llm_api_key="",
+        llm_base_url="http://localhost:5000",
+        llm_api_key="dummy-key",
         max_steps=100,
     )
 
-    
+    # wenwen
+    os.environ["GOOGLE_API_KEY"] = ""
+    os.environ["GOOGLE_ENGINE_ID"] = ""
+
     travelPlanAgent = TravelPlanAgent(agentConfig)
     search_agent = SearchAgent(agentConfig)
     browser_agent = BrowserAgent(agentConfig)
-    write_agent = WriteAgent(agentConfig)
+    # write_agent = WriteAgent(agentConfig)
     browser_tool_config = BrowserToolConfig(window_w=800, window_h=1100, keep_browser_open=True)
     browser_tool = ToolFactory(Tools.BROWSER.value, browser_tool_config)
 
@@ -554,7 +557,7 @@ if __name__ == '__main__':
     ## step 2: 呼叫己方，布置搜索任务，并赋值到observation里面
     messages = [{'role': 'system', 'content': user_assignment_system_prompt},
                 {'role': 'user',
-                 'content': user_assignment_prompt.format(claim=opponent_claim, player = 'Michael Jordan')}]
+                 'content': user_assignment_prompt.format(claim=opponent_claim, player='Michael Jordan')}]
 
     llm_result = search_agent.llm.invoke(
         input=messages,
@@ -562,7 +565,8 @@ if __name__ == '__main__':
 
     search_goal = llm_result.content
     print("search goal:", search_goal)
-    observation = Observation(content=search_goal, action_result=[ActionResult(content='start', keep=True)])  # 拼接observation，作为plan task
+    observation = Observation(content=search_goal,
+                              action_result=[ActionResult(content='start', keep=True)])  # 拼接observation，作为plan task
 
     step = 0
     extract_memorys = []
@@ -572,13 +576,9 @@ if __name__ == '__main__':
     # while True:
     for i in range(3):
         plan_policy = travelPlanAgent.policy(observation=observation)
-        print("plan_policy:", i,  plan_policy)
+        print("plan_policy:", i, plan_policy)
 
         if plan_policy[0].agent_name == "search_agent":
-            ## mock
-            # policy_info = [{"result_id": 1, "title": "Japan Cherry Blossom Forecast 2025 - January 23rd Update : r ...", "description": "Jan 23, 2025 ... Tokyo's full bloom is still forecasted to occur on March 31, while Kyoto's is pushed back by a day to April 5!", "long_description": "Posted by u/Markotan - 72 votes and 44 comments", "url": "https://www.reddit.com/r/JapanTravelTips/comments/1i8fixo/japan_cherry_blossom_forecast_2025_january_23rd/"}, {"result_id": 2, "title": "Release of 2025 Cherry Blossom Forecast (10th forecast) | \u30cb\u30e5\u30fc\u30b9 ...", "description": "On March 27, 2025, JMC released its 10th forecast of the dates when cherry blossoms will start to flower (kaika) and reach full bloom (mankai).", "long_description": "Earth Communication Provider\u3068\u3057\u3066\u3001\u6c17\u8c61\u4e88\u6e2c\u3001\u5927\u6c17\u74b0\u5883\u8abf\u67fb\u3001\u30b7\u30df\u30e5\u30ec\u30fc\u30b7\u30e7\u30f3\u306a\u3069\u69d8\u3005\u306a\u6280\u8853\u3092\u3082\u3063\u3066\u3001\u5168\u56fd\u306b\u5e45\u5e83\u304f\u6d3b\u52d5\u3092\u884c\u3063\u3066\u3044\u307e\u3059\u300224\u6642\u9593365\u65e5\u4f11\u3080\u3053\u3068\u306a\u304f\u7a7a\u30fb\u6d77\u30fb\u5927\u5730\u306e\u5909\u5316\u306b\u6ce8\u610f\u3092\u6255\u3044\u3001\u4eba\u3005\u306e\u304b\u3051\u304c\u3048\u306e\u306a\u3044\u547d\u3068\u5927\u5207\u306a\u8ca1\u7523\u306e\u4fdd\u5168\u3001\u307e\u305f\u3001\u81ea\u7136\u30a8\u30cd\u30eb\u30ae\u30fc\u6d3b\u7528\u578b\u793e\u4f1a\u306e\u63a8\u9032\u3092\u306f\u3058\u3081\u3001\u5730\u7403\u74b0\u5883\u3084\u793e\u4f1a\u306e\u5b89\u5168\u30fb\u5b89\u5fc3\u306b\u8ca2\u732e\u3057\u3066\u307e\u3044\u308a\u307e\u3059\u3002", "url": "https://n-kishou.com/corp/news-contents/sakura/?lang=en"}, {"result_id": 3, "title": "Spring in Japan: Cherry Blossom Forecast 2025", "description": "Spring in Japan: Cherry Blossom Forecast 2025. Where & when to enjoy sakura in Japan. Aomori. Springtime in Japan is a tableau of dreamlike scenes.", "long_description": "N/A", "url": "https://www.japan.travel/en/see-and-do/cherry-blossom-forecast-2025/"}, {"result_id": 4, "title": "Japan Cherry Blossom Forecast 2025 - February 27th Update : r ...", "description": "Feb 28, 2025 ... Predictions for Tokyo's full bloom is April 1, one day earlier compared to the 5th forecast (April 2). Compared to the original forecast (March 31), it is one\u00a0...", "long_description": "Posted by u/Markotan - 66 votes and 58 comments", "url": "https://www.reddit.com/r/JapanTravelTips/comments/1izypka/japan_cherry_blossom_forecast_2025_february_27th/"}, {"result_id": 5, "title": "2025 Cherry Blossom Forecast", "description": "A forecast of the cherry blossom blooming season in Japan for 2025 ... April, before swiftly moving into northern Japan during mid to late April.", "long_description": "A forecast of the cherry blossom blooming season in Japan for 2025.", "url": "https://www.japan-guide.com/sakura/"}, {"result_id": 6, "title": "Here's the official Japan cherry blossom forecast for 2025 \u2013 updated ...", "description": "Mar 21, 2025 ... In Kyoto, the blossoms are expected to open up on March 28 with full bloom by April 6. Nearby, Osaka is also looking at March 29 for its initial\u00a0...", "long_description": "Get an idea of when you can expect to see this year\u2019s blooms across Japan in Tokyo, Osaka, Kyoto, Sapporo and more", "url": "https://www.timeout.com/tokyo/news/heres-the-official-japan-cherry-blossom-forecast-for-2025-011725"}, "If the search result does not contain the information you want, please make reflection on your query: what went well, what didn't, then refine your search plan."]
-            #
-            # observation = Observation(action_result=[ActionResult(content=policy[0].policy_info, keep=True)])
             goal = plan_policy[0].params['task']
             observation = Observation(content=goal)
             while True:
@@ -589,7 +589,8 @@ if __name__ == '__main__':
                     # print(policy[0].policy_info)
                     # observation = Observation(action_result=[ActionResult(content=policy[0].policy_info, keep=True)])
                     observation = Observation(content=str(policy[0].policy_info),
-                                              action_result=[ActionResult(content=str(policy[0].policy_info), keep=True)])
+                                              action_result=[
+                                                  ActionResult(content=str(policy[0].policy_info), keep=True)])
                     break
 
                 tool = ToolFactory(policy[0].tool_name, conf=load_config(f"{policy[0].tool_name}.yaml"))
@@ -600,56 +601,6 @@ if __name__ == '__main__':
                 print("search_observation_details:", i, observation.content)
                 search_materials.append(observation.content)
 
-        elif plan_policy[0].agent_name == "browser_agent":
-            task = plan_policy[0].params['task']
-            goal = plan_policy
-            observation, info = browser_tool.reset()
-            results=[]
-            observation.content = task
-            extract_flag = False
-            browser_agent.reset({"task": observation.content})
-            while True:
-                policy = browser_agent.policy(observation=observation)
-                print(policy)
-                if "done" in policy[0].action_name:
-                    result = str(policy[0].policy_info) + "extract_result:" + str(results)
-                    observation = Observation(content = result, action_result=[ActionResult(content=result, keep=True)])
-                    break
-                if "extract" in policy[0].action_name:
-                    extract_flag = True
-                observation, reward, terminated, _, info = browser_tool.step(policy)
-                if extract_flag:
-                    extract_flag = False
-                    results.append(observation.action_result)
-                    extract_memorys.append(observation.action_result)
-                print(observation)
-
-        elif plan_policy[0].agent_name == "write_agent":
-
-            observation.content = {
-                "task": plan_policy[0].params['task'],
-                "refer": str(extract_memorys)
-            }
-            # print("write_agent_task:", policy[0].params['task'])
-            print("observation.content: ", observation)
-            policy = write_agent.policy(observation=observation)
-            print("final_summary: ", policy)
-
-            observation = Observation(content=str(policy[0].policy_info),
-                                      action_result=[ActionResult(content=str(policy[0].policy_info), keep=True)])
-
-
-            # while True:
-            #     policy = write_agent.policy(observation=observation)
-            #
-            #     if policy[0].tool_name == '[done]':
-            #         observation = Observation(content=str(policy[0].policy_info), action_result=[ActionResult(content=str(policy[0].policy_info), keep=True)])
-            #         break
-            #     # print("write_policy: ", policy)
-            #     # policy[0].params['information'] += str(extract_memorys)
-            #     tool = ToolFactory(policy[0].tool_name, conf=load_config)
-            #     observation, reward, terminated, _, info = tool.step(policy)
-            #     print(observation)
 
         elif "done" in plan_policy[0].agent_name:
             print("now is done.")
@@ -659,25 +610,26 @@ if __name__ == '__main__':
 
         else:
             print("invalid agent name.")
-            observation = Observation(content="invalid agent name, please try again", action_result=[ActionResult(content="invalid agent name, please try again.", keep=True)])
+            observation = Observation(content="invalid agent name, please try again", action_result=[
+                ActionResult(content="invalid agent name, please try again.", keep=True)])
             continue
 
     ## 获得本次搜索返回的内容
     print("search_materials:", search_materials)
-    
+
     # Save search_materials to a text file
     output_file_path = "search_materials.txt"
     with open(output_file_path, "w", encoding="utf-8") as f:
         for i, material in enumerate(search_materials):
-            f.write(f"Search Result #{i+1}:\n")
+            f.write(f"Search Result #{i + 1}:\n")
             f.write(str(material))
-            f.write("\n\n" + "="*50 + "\n\n")
-    
-    
+            f.write("\n\n" + "=" * 50 + "\n\n")
+
     ## step 4: 呼叫己方，布置搜索任务，并赋值到observation里面
     messages = [{'role': 'system', 'content': user_debate_system_prompt},
                 {'role': 'user',
-                 'content': user_debate_prompt.format(claim=opponent_claim, player = 'Michael Jordan', search_materials = search_materials)}]
+                 'content': user_debate_prompt.format(claim=opponent_claim, player='Michael Jordan',
+                                                      search_materials=search_materials)}]
 
     llm_result = search_agent.llm.invoke(
         input=messages,

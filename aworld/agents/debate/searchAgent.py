@@ -3,14 +3,15 @@ import os
 import json
 from typing import Dict, Any, List, Union
 
+# from aworld.agents.travel.prompts import search_prompt, search_sys_prompt
+from aworld.config.common import Agents, Tools
 from aworld.config.conf import AgentConfig
 from aworld.core.agent.base import AgentFactory, BaseAgent
-from aworld.core.common import Agents, Observation, ActionModel, Tools
+from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool_desc import get_tool_desc_by_name
 from aworld.models.utils import tool_desc_transform
 from aworld.core.envs.tool import ToolFactory
 from aworld.config.conf import load_config
-
 
 sys_prompt = "You are a helpful search agent."
 
@@ -93,21 +94,12 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
         llm_base_url="http://localhost:5000",
         llm_api_key="dummy-key",
-        # llm_api_key="sk-zk2a78b5ba086a2a86115e26974ec33d50b67e394fa5fb91",  ## 花钱 zhitian
-        # llm_base_url = "https://api.zhizengzeng.com/v1",  ## 花钱 zhitian
     )
 
-    # zhitian
-    # os.environ["GOOGLE_API_KEY"] = "AIzaSyAqNaFl2Ly-sBiLXcxA68ZLWwLF0Yc99V0"
-    # os.environ["GOOGLE_ENGINE_ID"] = "77bfce5ddc990489c"
-
     # wenwen
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyBv9Jd-l5MJcY4ZY3n1i2SB_H5px3c3_xs"
-    os.environ["GOOGLE_ENGINE_ID"] = "66ef6e0ccdfb44d77"
+    os.environ["GOOGLE_API_KEY"] = ""
+    os.environ["GOOGLE_ENGINE_ID"] = ""
 
-
-    # Google api key="AIzaSyBv9Jd-l5MJcY4ZY3n1i2SB_H5px3c3_xs"
-    # SEARCH_ENGINE_ID="66ef6e0ccdfb44d77"
     searchagent = SearchAgent(agentConfig)
 
     goal = "The best basketball player in China."
