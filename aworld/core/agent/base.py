@@ -152,6 +152,14 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         self.tools.extend(agents_desc)
         # MCP servers are tool
 
+    def desc_transform_agent(self):
+        """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
+
+        # Agents as tool
+        return agent_desc_transform(get_agent_desc(),
+                                    agents=self.handoffs if self.handoffs else [])
+        # MCP servers are tool
+
     def messages_transform(self,
                            content: str,
                            image_urls: List[str] = None,

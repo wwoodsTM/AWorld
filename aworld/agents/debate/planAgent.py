@@ -124,10 +124,9 @@ Please use your character's identity traits, skills, restrictions, and dialogue 
 """
 
 
-@AgentFactory.register(name="travel_plan_agent", desc="travel plan agent")
-class TravelPlanAgent(BaseAgent):
+class DebatePlanAgent(BaseAgent):
     def __init__(self, conf: AgentConfig, **kwargs):
-        super(TravelPlanAgent, self).__init__(conf, **kwargs)
+        super(DebatePlanAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
         self.settings = conf.model_dump()
         if conf.llm_provider == 'openai':
@@ -139,7 +138,7 @@ class TravelPlanAgent(BaseAgent):
         self._init = False
 
     def reset(self, options: Dict[str, Any]):
-        super(TravelPlanAgent, self).reset(options)
+        super(DebatePlanAgent, self).reset(options)
 
         # Reset trajectory
         self.trajectory = Trajectory()
@@ -148,17 +147,6 @@ class TravelPlanAgent(BaseAgent):
         # _estimate_tokens_for_messages method now directly uses functions from utils.py
 
         self._init = True
-
-    @property
-    def llm(self):
-        # lazy
-        if self._llm is None:
-            self._llm = ChatOpenAI(
-                model_name="gpt-4o",
-                openai_api_base="http://localhost:5000",
-                openai_api_key="dummy-key",
-            )
-        return self._llm
 
     def name(self) -> str:
         return "travel_plan_agent"
@@ -530,113 +518,3 @@ class TravelPlanAgent(BaseAgent):
             estimated_characters_per_token=self.settings.get('estimated_characters_per_token', 3)
         )
 
-
-if __name__ == '__main__':
-    agentConfig = AgentConfig(
-        llm_provider="chatopenai",
-        llm_model_name="gpt-4o",
-        llm_base_url="http://localhost:5000",
-        llm_api_key="dummy-key",
-        max_steps=100,
-    )
-
-    # wenwen
-    os.environ["GOOGLE_API_KEY"] = ""
-    os.environ["GOOGLE_ENGINE_ID"] = ""
-
-    travelPlanAgent = TravelPlanAgent(agentConfig)
-    search_agent = SearchAgent(agentConfig)
-    browser_agent = BrowserAgent(agentConfig)
-    # write_agent = WriteAgent(agentConfig)
-    browser_tool_config = BrowserToolConfig(window_w=800, window_h=1100, keep_browser_open=True)
-    browser_tool = ToolFactory(Tools.BROWSER.value, browser_tool_config)
-
-    ## step 1: 对方观点
-    topic = "Who is GOAT? Jordan or Lebron?"
-    opponent_claim = "Lebron is stronger, and the body is the most important factor in basketball."
-
-    ## step 2: 呼叫己方，布置搜索任务，并赋值到observation里面
-    messages = [{'role': 'system', 'content': user_assignment_system_prompt},
-                {'role': 'user',
-                 'content': user_assignment_prompt.format(topic = topic, opinion = "Jordan", claim=opponent_claim)}]
-
-    llm_result = search_agent.llm.invoke(
-        input=messages,
-    )
-
-    search_goal = llm_result.content
-    print("search goal:", search_goal)
-    observation = Observation(content=search_goal,
-                              action_result=[ActionResult(content='start', keep=True)])  # 拼接observation，作为plan task
-
-    step = 0
-    extract_memorys = []
-    search_materials = []
-
-    ## step 3: 依据布置的任务（observation），呼叫planAgent：由其决定调用哪个干活agent（search_agent），再由具体干活的agent调用更具体的tool，并不断collect搜索的资料
-    # while True:
-    for i in range(3):
-        plan_policy = travelPlanAgent.policy(observation=observation)
-        print("plan_policy:", i, plan_policy)
-
-        if plan_policy[0].agent_name == "search_agent":
-            goal = plan_policy[0].params['task']
-            observation = Observation(content=goal)
-            while True:
-                policy = search_agent.policy(observation=observation)
-                print("search_agent_policy:", policy)
-
-                if policy[0].tool_name == '[done]':
-                    # print(policy[0].policy_info)
-                    # observation = Observation(action_result=[ActionResult(content=policy[0].policy_info, keep=True)])
-                    observation = Observation(content=str(policy[0].policy_info),
-                                              action_result=[
-                                                  ActionResult(content=str(policy[0].policy_info), keep=True)])
-                    break
-
-                tool = ToolFactory(policy[0].tool_name, conf=load_config(f"{policy[0].tool_name}.yaml"))
-
-                observation, reward, terminated, _, info = tool.step(policy)
-
-                print("search_observation:", i, observation)
-                print("search_observation_details:", i, observation.content)
-                search_materials.append(observation.content)
-
-
-        elif "done" in plan_policy[0].agent_name:
-            print("now is done.")
-            logger.info(plan_policy[0].params['text'])
-            logger.info("task is done.")
-            break
-
-        else:
-            print("invalid agent name.")
-            observation = Observation(content="invalid agent name, please try again", action_result=[
-                ActionResult(content="invalid agent name, please try again.", keep=True)])
-            continue
-
-    ## 获得本次搜索返回的内容
-    print("search_materials:", search_materials)
-
-    # Save search_materials to a text file
-    output_file_path = "search_materials.txt"
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        for i, material in enumerate(search_materials):
-            f.write(f"Search Result #{i + 1}:\n")
-            f.write(str(material))
-            f.write("\n\n" + "=" * 50 + "\n\n")
-
-    ## step 4: 呼叫己方，布置搜索任务，并赋值到observation里面
-    opinion_1_fewshot = "Opponent: James is stronger and can knock Jordan away. You: Basketball is a combination of body, technique, and spirit, and Jordan is undoubtedly the epitome of this. If James likes bumping into people so much, why doesn't he go play wrestling?"
-    
-    messages = [{'role': 'system', 'content': user_debate_system_prompt},
-                {'role': 'user',
-                 'content': user_debate_prompt.format(topic = topic, claim=opponent_claim, opinion_1='Michael Jordan', opinion_2 = 'Lebron James', opinion_1_fewshot = opinion_1_fewshot,
-                                                      search_materials=search_materials)}]
-
-    llm_result = search_agent.llm.invoke(
-        input=messages,
-    )
-
-    user_response = llm_result.content
-    print("user_response:", user_response)

@@ -30,7 +30,6 @@ response_format = """1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON
 """
 
 # Step1
-@AgentFactory.register(name=Agents.SEARCH.value, desc="search agent")
 class SearchAgent(BaseAgent):
 
     def __init__(self, conf: AgentConfig, **kwargs):
@@ -38,7 +37,7 @@ class SearchAgent(BaseAgent):
         # Step 2
         # Also can add other agent as tools (optional, it can be ignored if the interacting agent is deterministic.),
         # we only use search api tool for example.
-        self.tool_desc = tool_desc_transform({Tools.SEARCH_API.value: get_tool_desc_by_name(Tools.SEARCH_API.value)})
+        self.tool_desc = tool_desc_transform({Tools.SEARCH_API.value: get_tool_desc_by_name(Tools.SEARCH_API.value)}, strategy=None)
 
     # Step3
     def name(self) -> str:
