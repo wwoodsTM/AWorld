@@ -186,7 +186,7 @@ class Task(object):
                         "success": False,
                         "total_time": time_cost}
 
-            answer = results[-1].get('response')
+            answer = results[-1].get('observation')
             return {"answer": answer,
                     "steps": step,
                     "success": True,
