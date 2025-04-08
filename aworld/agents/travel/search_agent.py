@@ -69,6 +69,8 @@ if __name__ == '__main__':
         llm_base_url="http://localhost:5000",
         llm_api_key="dummy-key",
     )
+    os.environ["GOOGLE_API_KEY"] = "AIzaSyAqNaFl2Ly-sBiLXcxA68ZLWwLF0Yc99V0"
+    os.environ["GOOGLE_ENGINE_ID"] = "77bfce5ddc990489c"
 
     searchagent = SearchAgent(agentConfig)
 
