@@ -17,6 +17,8 @@ if __name__ == '__main__':
         llm_provider="openai",
         llm_model_name="gpt-4o",
         llm_temperature=0.3,
+        llm_api_key="your own key",
+        llm_base_url="http://localhost:5080"  ## paste your own llm server address
     )
     browser_tool_config = BrowserToolConfig(width=1280,
                                             height=720,

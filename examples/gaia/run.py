@@ -53,7 +53,6 @@ def main():
     # Run task
     result = client.submit(task=[task])
 
-    print(f"Task completed: {result['success']}")
     print(f"Time cost: {result['time_cost']}")
     print(f"Task Answer: {result['task_0']['answer']}")
 
