@@ -632,6 +632,7 @@ class Wait(ExecutableAction):
         seconds = action.params.get("seconds")
         if not seconds:
             seconds = action.params.get("duration")
+        seconds = int(seconds)
         msg = f'Waiting for {seconds} seconds'
         logger.info(msg)
         time.sleep(seconds)

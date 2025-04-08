@@ -61,7 +61,8 @@ class Client(InheritanceSingleton):
     def _run_in_local(self, task: Task, res: Dict[str, Any], idx: int = 0, input: Any = None) -> None:
         try:
             # Execute the task
-            task.input = input
+            if input:
+                task.input = input
             result = task.start()
             res[f'task_{idx}'] = result
             return result
