@@ -20,6 +20,8 @@ class ArtifactType(Enum):
     CHART = "chart"
     DIAGRAM = "diagram"
     CUSTOM = "custom"
+    MCP_CALL = "mcp_call"
+    TOOL_CALL = "tool_call"
 
 
 
