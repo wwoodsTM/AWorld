@@ -1,7 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import re
-import os
 import time
 import traceback
 from typing import Dict, Any, Optional, List, Union
@@ -26,7 +25,6 @@ from aworld.agents.travel.write_agent import WriteAgent
 from aworld.core.envs.tool import ToolFactory
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.virtual_environments.conf import BrowserToolConfig
-
 
 PROMPT_TEMPLATE = """
 You are an AI agent designed to automate tasks. Your goal is to accomplish the ultimate task following the rules.
@@ -101,9 +99,6 @@ class TravelPlanAgent(BaseAgent):
                 openai_api_key="dummy-key",
             )
         return self._llm
-
-    def name(self) -> str:
-        return "travel_plan_agent"
 
     def _log_message_sequence(self, input_messages: List[BaseMessage]) -> None:
         """Log the sequence of messages for debugging purposes"""
@@ -181,7 +176,7 @@ class TravelPlanAgent(BaseAgent):
 
             if self.state.stopped or self.state.paused:
                 logger.info('Browser gent paused after getting state')
-                return [ActionModel(tool_name=None, action_name="stop")] ## tmp stop
+                return [ActionModel(tool_name=None, action_name="stop")]  ## tmp stop
 
             tool_action = llm_result.actions
 
@@ -272,8 +267,8 @@ class TravelPlanAgent(BaseAgent):
                     if action_name not in ("", "", "", ""):
                         logger.warning(f"Unsupported action: {action_name}")
                     action_model = ActionModel(
-                                               agent_name=action_name,
-                                               params=action.get('params', {}))
+                        agent_name=action_name,
+                        params=action.get('params', {}))
                     result.append(action_model)
                 else:
                     for k, v in action.items():
@@ -325,7 +320,7 @@ class TravelPlanAgent(BaseAgent):
         """
         messages = []
 
-        system_prompt = PROMPT_TEMPLATE + AGENT_CAN_USE
+        system_prompt = PROMPT_TEMPLATE
         # Add system message
         system_message = SystemMessage(content=system_prompt)
         if isinstance(system_message, tuple):
@@ -357,7 +352,7 @@ class TravelPlanAgent(BaseAgent):
                         'memory': 'search compeleted and gets url',
                         'next_goal': 'extract information from the related url',
                     },
-                    'action': [{'browser_agent': {"task":"goto xxx(url) to extract content about xxx."}}],
+                    'action': [{'browser_agent': {"task": "goto xxx(url) to extract content about xxx."}}],
                 },
                 'id': '1',
                 'type': 'tool_call',
@@ -508,7 +503,8 @@ if __name__ == '__main__':
                     # print(policy[0].policy_info)
                     # observation = Observation(action_result=[ActionResult(content=policy[0].policy_info, keep=True)])
                     observation = Observation(content=str(policy[0].policy_info),
-                                              action_result=[ActionResult(content=str(policy[0].policy_info), keep=True)])
+                                              action_result=[
+                                                  ActionResult(content=str(policy[0].policy_info), keep=True)])
                     break
 
                 tool = ToolFactory(policy[0].tool_name, conf=load_config(f"{policy[0].tool_name}.yaml"))
@@ -521,7 +517,7 @@ if __name__ == '__main__':
             task = policy[0].params['task']
             goal = policy
             observation, info = browser_tool.reset()
-            results=[]
+            results = []
             observation.content = task
             extract_flag = False
             browser_agent.reset({"task": observation.content})
@@ -530,7 +526,7 @@ if __name__ == '__main__':
                 print(policy)
                 if "done" in policy[0].action_name:
                     result = str(policy[0].policy_info) + "extract_result:" + str(results)
-                    observation = Observation(content = result, action_result=[ActionResult(content=result, keep=True)])
+                    observation = Observation(content=result, action_result=[ActionResult(content=result, keep=True)])
                     break
                 if "extract" in policy[0].action_name:
                     extract_flag = True
@@ -552,7 +548,8 @@ if __name__ == '__main__':
                 policy = write_agent.policy(observation=observation)
 
                 if policy[0].tool_name == '[done]':
-                    observation = Observation(content=str(policy[0].policy_info), action_result=[ActionResult(content=str(policy[0].policy_info), keep=True)])
+                    observation = Observation(content=str(policy[0].policy_info), action_result=[
+                        ActionResult(content=str(policy[0].policy_info), keep=True)])
                     break
                 # policy[0].params['information'] += str(extract_memorys)
                 tool = ToolFactory(policy[0].tool_name, conf=load_config)
@@ -565,6 +562,6 @@ if __name__ == '__main__':
             break
         else:
             print("invalid agent name.")
-            observation = Observation(content="invalid agent name, please try again", action_result=[ActionResult(content="invalid agent name, please try again.", keep=True)])
+            observation = Observation(content="invalid agent name, please try again", action_result=[
+                ActionResult(content="invalid agent name, please try again.", keep=True)])
             continue
-

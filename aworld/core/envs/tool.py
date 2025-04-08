@@ -13,7 +13,7 @@ from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
-from aworld.utils.name_transform import convert_to_snake
+from aworld.utils.common import convert_to_snake
 
 AgentInput = TypeVar("AgentInput")
 ToolInput = TypeVar("ToolInput")
