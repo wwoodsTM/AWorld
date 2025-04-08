@@ -115,6 +115,7 @@ class ToolConfig(BaseModel):
     working_dir: str = ""
     max_retry: int = 3
     llm_config: ModelConfig = None
+    reuse: bool = False
     ext: dict = {}
 
 

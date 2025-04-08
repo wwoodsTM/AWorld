@@ -31,6 +31,7 @@ class BrowserToolConfig(ToolConfig):
     sleep_after_init: float = 0
     max_retry: int = 3
     llm_config: ModelConfig = ModelConfig()
+    reuse: bool = True
 
 
 class AndroidToolConfig(ToolConfig):

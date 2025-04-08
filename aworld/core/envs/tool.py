@@ -142,6 +142,7 @@ class ToolsManager(Factory):
         super(ToolsManager, self).__init__(type_name)
         self._tool_with_action = {}
         self._tool_conf = {}
+        self._tool_instance = {}
 
     def __call__(self, name: str = None, *args, **kwargs):
         if name is None:
@@ -169,8 +170,13 @@ class ToolsManager(Factory):
         # must is a dict
         conf['name'] = name
         conf = ConfigDict(conf)
+
+        if kwargs.get("reuse", conf.reuse) is True and name in self._tool_instance:
+            return self._tool_instance[name]
+
         if name in self._cls:
             tool = self._cls[name](conf=conf, **kwargs)
+            self._tool_instance[name] = tool
         else:
             # default browser env tool
             logger.warning("Empty tool name, default use 'browser'")

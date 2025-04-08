@@ -54,9 +54,11 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
     def init(self) -> None:
         from playwright.sync_api import sync_playwright
 
+        if self.initialized:
+            return
+
         self.context_manager = sync_playwright()
         self.playwright = self.context_manager.start()
-
         self.browser = self._create_browser()
         self.context = self._create_browser_context()
 
@@ -222,6 +224,11 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, Dict[str, Any]]:
         super().reset(seed=seed, options=options)
+        if self.initialized:
+            observation = self._get_observation()
+            observation.action_result = [ActionResult(content='start', keep=True)]
+            self.cur_observation = observation
+            return observation, {}
 
         self.close()
         self.init()
