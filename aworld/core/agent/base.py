@@ -10,7 +10,6 @@ from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
 from openai import Stream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
-from openpyxl.styles.builtins import output
 
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc

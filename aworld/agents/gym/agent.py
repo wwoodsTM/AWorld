@@ -20,12 +20,14 @@ class GymDemoAgent(BaseAgent):
         List[ActionModel], None]:
         import numpy as np
 
-        env_id = info.get('env_id')
+        env_id = observation.info.get('env_id')
         if env_id != 'CartPole-v1':
             raise ValueError("Unsupported env")
 
         res = np.random.randint(2)
         action = [ActionModel(tool_name=Tools.GYM.value, action_name="play", params={"result": res})]
+        if observation.info.get("done"):
+            self._finished = True
         return action
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[

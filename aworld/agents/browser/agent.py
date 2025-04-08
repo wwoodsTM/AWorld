@@ -209,8 +209,6 @@ class BrowserAgent(BaseAgent):
                 self._make_history_item(llm_result, observation, observation.action_result, metadata)
             else:
                 logger.warning("no result to record!")
-            if self._finished:
-                self.save_process(self.save_file_path)
 
         return tool_action
 

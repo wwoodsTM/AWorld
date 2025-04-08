@@ -36,7 +36,7 @@ def main():
         llm_config=model_config
     )
     agent1 = PlanAgent(conf=agent1_config)
-    
+
     agent2_config = AgentConfig(
         name=Agents.EXECUTE.value,
         llm_config=model_config
