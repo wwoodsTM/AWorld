@@ -75,6 +75,7 @@ For example, you could talk to your assistant: Facing the statement "Lebron can 
 Now, you could output your assignment to your assistant.
 """
 
+
 user_debate_system_prompt = "You are an impressive debater."
 user_debate_prompt = """
 ## Role
@@ -534,15 +535,12 @@ if __name__ == '__main__':
     agentConfig = AgentConfig(
         llm_provider="chatopenai",
         llm_model_name="gpt-4o",
-        llm_base_url="http://localhost:5000",
-        llm_api_key="dummy-key",
+        llm_base_url="",
+        llm_api_key="",
         max_steps=100,
     )
 
-    # wenwen
-    os.environ["GOOGLE_API_KEY"] = ""
-    os.environ["GOOGLE_ENGINE_ID"] = ""
-
+    
     travelPlanAgent = TravelPlanAgent(agentConfig)
     search_agent = SearchAgent(agentConfig)
     browser_agent = BrowserAgent(agentConfig)
