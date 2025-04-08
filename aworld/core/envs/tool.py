@@ -171,7 +171,7 @@ class ToolsManager(Factory):
         conf['name'] = name
         conf = ConfigDict(conf)
 
-        if kwargs.get("reuse", conf.reuse) is True and name in self._tool_instance:
+        if kwargs.get("reuse", conf.get('reuse', False)) is True and name in self._tool_instance:
             return self._tool_instance[name]
 
         if name in self._cls:

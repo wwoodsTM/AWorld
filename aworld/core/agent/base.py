@@ -54,6 +54,13 @@ class AgentResult(BaseModel):
     is_call_tool: bool = True
 
 
+class MemoryModel(BaseModel):
+    # TODO: memory module
+    message: Dict = {}
+    tool_calls: Any = None
+    content: Any = None
+
+
 class Agent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
@@ -202,6 +209,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         histories = self.memory[-max_step:]
         if histories:
             for history in histories:
+                messages.append(history.message)
                 if history.tool_calls:
                     messages.append({'role': 'assistant', 'content': '', 'tool_calls': history.tool_calls})
                 else:
@@ -210,6 +218,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
             if histories[-1].tool_calls:
                 tool_id = histories[-1].tool_calls[0].id
                 if tool_id:
+                    cur_msg['role'] = 'tool'
                     cur_msg['tool_call_id'] = tool_id
 
         if image_urls:
@@ -393,10 +402,12 @@ class AgentExecutor(object):
                 raise e
             finally:
                 if llm_response:
-                    if llm_response.choices is None:
+                    if not llm_response.choices:
                         logger.info(f"llm result is None, info: {llm_response.model_extra}")
-                    ob = copy.deepcopy(observation)
-                    agent.memory.append((ob, llm_response))
+                    else:
+                        agent.memory.append(MemoryModel(message=messages[-1],
+                                                        tool_calls=llm_response.choices[0].message.tool_calls,
+                                                        content=llm_response.choices[0].message.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
