@@ -60,7 +60,6 @@ class GotoUrl(ExecutableAction):
             if items[0][0] != '/':
                 url = "file://" + os.path.join(os.getcwd(), url)
 
-        print(url)
         page.goto(url)
         page.wait_for_load_state()
         msg = f'Navigated to {url}'
