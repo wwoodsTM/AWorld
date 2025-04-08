@@ -363,6 +363,29 @@ class SearchGoogle(ExecutableAction):
         return ActionResult(content=msg, keep=True), page
 
 
+@ActionFactory.register(name=BrowserAction.NEW_TAB.value.name,
+                        desc=BrowserAction.NEW_TAB.value.desc,
+                        tool_name=Tools.BROWSER.value)
+class NewTab(ExecutableAction):
+    def act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
+        browser = get_browser(**kwargs)
+        url = action.params.get("url")
+        browser.create_new_tab(url)
+        msg = f'Opened new tab with {url}'
+        logger.debug(msg)
+        return ActionResult(content=msg, keep=True), get_page(**kwargs)
+
+    async def async_act(self, action: ActionModel, **kwargs) -> Tuple[ActionResult, Any]:
+        logger.info(f"exec {BrowserAction.NEW_TAB.value.name} action")
+        browser = get_browser(**kwargs)
+        url = action.params.get("url")
+        await browser.create_new_tab(url)
+        msg = f'Opened new tab with {url}'
+        logger.debug(msg)
+        return ActionResult(content=msg, keep=True), get_page(**kwargs)
+
+
 @ActionFactory.register(name=BrowserAction.GO_BACK.value.name,
                         desc=BrowserAction.GO_BACK.value.desc,
                         tool_name=Tools.BROWSER.value)
@@ -565,7 +588,7 @@ class SwitchTab(ExecutableAction):
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
-        page_id = action.params.get("page_id")
+        page_id = action.params.get("page_id", 0)
         pages = browser.pages
 
         if page_id >= len(pages):
@@ -585,7 +608,7 @@ class SwitchTab(ExecutableAction):
             logger.warning(f"{BrowserAction.SWITCH_TAB.name} browser context is none")
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
-        page_id = action.params.get("page_id")
+        page_id = action.params.get("page_id", 0)
         pages = browser.pages
 
         if page_id >= len(pages):
