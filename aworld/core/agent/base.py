@@ -392,6 +392,8 @@ class AgentExecutor(object):
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
             results = agent.response_parse(llm_response)
+            # one time execution
+            agent._finished = True
             return results.actions
         else:
             try:
