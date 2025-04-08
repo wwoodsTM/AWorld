@@ -14,7 +14,6 @@ class BrowserAgentConfig(AgentConfig):
     save_conversation_path_encoding: Optional[str] = 'utf-8'
     max_failures: int = 3
     retry_delay: int = 10
-    max_input_tokens: int = 128000
     validate_output: bool = False
     message_context: Optional[str] = None
     generate_gif: bool | str = False
