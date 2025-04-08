@@ -188,7 +188,10 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         screenshot_base64 = base64.b64encode(screenshot).decode('utf-8')
         return screenshot_base64
 
-    def _get_observation(self) -> Observation:
+    def _get_observation(self, fail_error: str = None) -> Observation:
+        if fail_error:
+            return Observation(observer=self.name(), info={"exception": fail_error})
+
         dom_tree = self._parse_dom_tree()
         image = self.screenshot()
         pixels_above, pixels_below = self._scroll_info()
@@ -246,7 +249,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
             self.browser.close()
         if hasattr(self, 'playwright') and self.playwright:
             self.playwright.stop()
-        
+
         if self.initialized:
             self.context_manager.__exit__()
 
@@ -310,7 +313,7 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
                     info)
         else:
             # normal observation
-            observation = self._get_observation()
+            observation = self._get_observation(fail_error)
             observation.ability = action[-1].action_name
             observation.action_result = action_result
             self.cur_observation = observation
