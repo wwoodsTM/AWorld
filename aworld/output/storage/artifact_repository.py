@@ -1,5 +1,6 @@
+import uuid
 from enum import Enum
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
 import hashlib
 import json
 import os
@@ -36,6 +37,7 @@ class ArtifactRepository:
 
     def store(self,
               artifact_id: str,
+              type: Literal['artifact', 'workspace'],
               data: Dict[str, Any],
               metadata: Optional[Dict[str, Any]] = None
               ) -> str:
@@ -62,6 +64,9 @@ class ArtifactRepository:
         Returns:
             Stored data, or None if it doesn't exist
         """
+        pass
+
+    def retrieve_latest_artifact(self, artifact_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     def get_versions(self, artifact_id: str) -> List[Dict[str, Any]]:
@@ -118,16 +123,16 @@ class LocalArtifactRepository(ArtifactRepository):
                 with open(self.index_path, 'r') as f:
                     return json.load(f)
             except json.JSONDecodeError:
-                return {"artifacts": {}, "versions": {}}
+                return {"artifacts": [], "versions": []}
         else:
-            index = {"artifacts": {}, "versions": {}}
+            index = {"artifacts": [], "versions": []}
             self._save_index(index)
             return index
 
     def _save_index(self, index: Dict[str, Any]) -> None:
         """Save index to file"""
         with open(self.index_path, 'w') as f:
-            json.dump(index, f, indent=2)
+            json.dump(index, f, indent=2, ensure_ascii=False)
 
     def _compute_content_hash(self, data: Any) -> str:
         """
@@ -144,6 +149,7 @@ class LocalArtifactRepository(ArtifactRepository):
 
     def store(self,
               artifact_id: str,
+              type: str,
               data: Dict[str, Any],
               metadata: Optional[Dict[str, Any]] = None
               ) -> str:
@@ -175,15 +181,22 @@ class LocalArtifactRepository(ArtifactRepository):
                 json.dump(data, f, indent=2, cls=EnumEncoder)
 
         # Update index
-        if artifact_id not in self.index["artifacts"]:
-            self.index["artifacts"][artifact_id] = []
+        if type == 'artifact':
+            if artifact_id not in self.index["artifacts"]:
+                self.index["artifacts"].append({
+                    'artifact_id': artifact_id,
+                    'type': type,
+                    'version': version
+                })
+        elif type == 'workspace':
+            version['version_id'] = str(uuid.uuid4())
 
-        version_id = f"{artifact_id}_{len(self.index['artifacts'][artifact_id])}"
-        self.index["artifacts"][artifact_id].append(version_id)
-        self.index["versions"][version_id] = version
-
+            self.index["versions"].append(
+                version
+            )
         self._save_index(self.index)
-        return version_id
+
+        return "success"
 
     def retrieve(self, version_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -195,18 +208,41 @@ class LocalArtifactRepository(ArtifactRepository):
         Returns:
             Stored data, or None if it doesn't exist
         """
-        if version_id not in self.index["versions"]:
-            return None
+        for version in self.index["versions"]:
+            if version_id != version['version_id']:
+                continue
+            content_hash = version["hash"]
+            content_path = self.storage_path / f"{content_hash}.json"
 
-        version = self.index["versions"][version_id]
-        content_hash = version["hash"]
-        content_path = self.storage_path / f"{content_hash}.json"
+            if not content_path.exists():
+                return None
 
-        if not content_path.exists():
-            return None
+            with open(content_path, 'r') as f:
+                return json.load(f)
+        return None
 
-        with open(content_path, 'r') as f:
-            return json.load(f)
+    def retrieve_latest_artifact(self, artifact_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve artifact based on version ID
+
+        Args:
+            version_id: Version identifier
+
+        Returns:
+            Stored data, or None if it doesn't exist
+        """
+        for artifact in self.index["artifacts"]:
+            if artifact['artifact_id'] != artifact_id:
+                continue
+            content_hash = artifact["version"]["hash"]
+            content_path = self.storage_path / f"{content_hash}.json"
+
+            if not content_path.exists():
+                return None
+
+            with open(content_path, 'r') as f:
+                return json.load(f)
+        return None
 
     def get_versions(self, artifact_id: str) -> List[Dict[str, Any]]:
         """
