@@ -9,7 +9,7 @@ from typing import Union, Dict, Any, List
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import BaseAgent, agent_executor
 from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
@@ -147,6 +147,8 @@ class Task(object):
         self.swarm.reset(self.tool_names)
         for agent in self.swarm.agents.values():
             agent.reset({"task": input})
+            # global tools
+            agent.tool_names = self.tool_names
 
         step = 0
         max_steps = self.conf.get("max_steps", 100)
@@ -216,7 +218,11 @@ class Task(object):
         max_steps = self.conf.get("max_steps", 100)
         self.swarm.cur_agent = self.swarm.communicate_agent
         # use entry agent every time
-        policy: List[ActionModel] = self.swarm.cur_agent.policy(observation, info)
+        policy: List[ActionModel] = agent_executor.execute_agent(observation,
+                                                                 agent=self.swarm.cur_agent,
+                                                                 conf=self.swarm.cur_agent.conf,
+                                                                 step=step)
+        # policy: List[ActionModel] = self.swarm.cur_agent.policy(observation, info)
         if not policy:
             logger.warning(f"current agent {self.swarm.cur_agent.name()} no policy to use.")
             return {"msg": f"current agent {self.swarm.cur_agent.name()} no policy to use.",
@@ -260,7 +266,11 @@ class Task(object):
                         logger.info(f"{cur_agent.name()} agent be be handed off, so finished state reset to False.")
 
                     observation = Observation(content=policy_for_agent.policy_info)
-                    agent_policy = cur_agent.policy(observation, info=info)
+                    agent_policy = agent_executor.execute_agent(observation,
+                                                                agent=cur_agent,
+                                                                conf=cur_agent.conf,
+                                                                step=step)
+                    # agent_policy = cur_agent.policy(observation, info=info)
                     if not agent_policy:
                         logger.warning(
                             f"{observation} can not get the valid policy in {policy_for_agent.agent_name}, exit task!")
@@ -327,7 +337,10 @@ class Task(object):
                 if observation:
                     if cur_agent is None:
                         cur_agent = self.swarm.cur_agent
-                    policy = cur_agent.policy(observation, info)
+                    policy = agent_executor.execute_agent(observation,
+                                                          agent=cur_agent,
+                                                          conf=cur_agent.conf,
+                                                          step=step)
 
             if policy:
                 response = policy[0].policy_info if policy[0].policy_info else policy[0].action_name
