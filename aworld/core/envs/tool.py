@@ -37,14 +37,14 @@ class Tool(Generic[AgentInput, ToolInput]):
             self.conf = ConfigDict(conf.model_dump())
         else:
             logger.warning(f"Unknown conf type: {type(conf)}")
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
         self._finished = False
 
-        self._name = self.conf.get("name", convert_to_snake(self.__class__.__name__))
+        self._name = kwargs.pop('name', self.conf.get("name", convert_to_snake(self.__class__.__name__)))
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def name(self):
         """Tool unique name."""

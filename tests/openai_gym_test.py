@@ -3,7 +3,8 @@
 
 import unittest
 
-from aworld.core.common import Tools, ActionModel
+from aworld.config.common import Tools
+from aworld.core.common import ActionModel
 
 from aworld.core.envs.tool import ToolFactory
 from aworld.logs.util import logger

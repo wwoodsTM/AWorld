@@ -140,7 +140,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         self.memory = []
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
-        self.output_prompt: str =  kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+        self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
 
     @property
     def llm(self):
@@ -150,6 +150,15 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
             self._llm = get_llm_model(conf)
         return self._llm
 
+    def handoffs_agent_as_tool(self):
+        """Description of agent as tool."""
+        return agent_desc_transform(get_agent_desc(),
+                                    agents=self.handoffs if self.handoffs else [])
+
+    def mcp_is_tool(self):
+        """Description of mcp servers are tools."""
+        return []
+
     def desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
@@ -157,10 +166,9 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         self.tools = tool_desc_transform(get_tool_desc(),
                                          tools=self.tool_names if self.tool_names else [])
         # Agents as tool
-        agents_desc = agent_desc_transform(get_agent_desc(),
-                                           agents=self.handoffs if self.handoffs else [])
-        self.tools.extend(agents_desc)
-        # MCP servers are tool
+        self.tools.extend(self.handoffs_agent_as_tool())
+        # MCP servers are tools
+        self.tools.extend(self.mcp_is_tool())
 
     def messages_transform(self,
                            content: str,

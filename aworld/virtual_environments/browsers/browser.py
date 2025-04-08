@@ -34,7 +34,7 @@ ASCII = "".join(chr(x) for x in range(32, 128))
                       conf_file_name=f'{Tools.BROWSER.value}_tool.yaml')
 class BrowserTool(Tool[Observation, List[ActionModel]]):
     def __init__(self, conf: Union[ConfigDict, BrowserToolConfig], **kwargs) -> None:
-        super(BrowserTool, self).__init__(conf)
+        super(BrowserTool, self).__init__(conf, **kwargs)
 
         self.initialized = False
         self._finish = False
