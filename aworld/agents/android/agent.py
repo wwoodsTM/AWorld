@@ -32,8 +32,9 @@ from aworld.logs.util import logger
 class AndroidAgent(BaseAgent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(AndroidAgent, self).__init__(conf, **kwargs)
-        if self.conf.llm_provider == 'openai':
-            self.conf.llm_provider = 'chatopenai'
+        provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
+        if provider == 'openai':
+            self.conf.llm_config.llm_provider = 'chatopenai'
         self._build_prompt()
         self.available_actions_desc = self._build_action_prompt()
         # Settings

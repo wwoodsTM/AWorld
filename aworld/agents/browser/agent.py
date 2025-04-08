@@ -42,8 +42,9 @@ class BrowserAgent(BaseAgent):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
         self.settings = self.conf
-        if conf.llm_provider == 'openai':
-            conf.llm_provider = 'chatopenai'
+        provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
+        if provider == 'openai':
+            self.conf.llm_config.llm_provider = 'chatopenai'
 
         # Note: Removed _message_manager initialization as it's no longer used
         # Initialize trajectory
