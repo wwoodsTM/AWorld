@@ -123,7 +123,6 @@ class BrowserAgent(BaseAgent):
     
     def save_process(self,file_path: str):
         self.trajectory.save_history(file_path)
-            
 
     def policy(self,
                observation: Observation,
@@ -150,7 +149,7 @@ class BrowserAgent(BaseAgent):
         tokens = self._estimate_tokens_for_messages(input_messages)
 
         llm_result = None
-        output_message =None
+        output_message = None
         try:
             # Log the message sequence
             self._log_message_sequence(input_messages)
@@ -198,9 +197,6 @@ class BrowserAgent(BaseAgent):
             raise RuntimeError("Browser agent encountered exception while making the policy.", e)
         finally:
             if llm_result:
-                # Remove duplicate trajectory addition, as it's already been added in the try block
-                # self.trajectory.add_step(observation, info, llm_result) - Already executed in try block
-
                 # Only keep the history_item creation part
                 metadata = PolicyMetadata(
                     number=self.state.n_steps,
@@ -240,7 +236,47 @@ class BrowserAgent(BaseAgent):
         if self.model_name == 'deepseek-reasoner':
             output_message.content = _remove_think_tags(output_message.content)
         try:
-            parsed_json = extract_json_from_model_output(output_message.content)
+            # Get max retries from config
+            max_retries = self.settings.get('max_llm_json_retries', 3)
+            retry_count = 0
+            json_parse_error = None
+            
+            while retry_count < max_retries:
+                try:
+                    parsed_json = extract_json_from_model_output(output_message.content)
+                    # If parsing succeeds, break out of the retry loop
+                    json_parse_error = None
+                    break
+                except ValueError as e:
+                    # Store the error and retry
+                    json_parse_error = e
+                    retry_count += 1
+                    logger.warning(f"[agent] Failed to parse JSON (attempt {retry_count}/{max_retries}): {str(e)}")
+                    
+                    if retry_count < max_retries:
+                        # Add a reminder message about JSON format with specific structure guidance
+                        format_reminder = HumanMessage(content="Your responses must be always JSON with the specified format. Make sure your response includes a 'current_state' object with 'evaluation_previous_goal', 'memory', and 'next_goal' fields, and an 'action' array with the actions to perform. Do not include any explanatory text, only return the raw JSON.")
+                        retry_messages = input_messages.copy()
+                        retry_messages.append(format_reminder)
+                        
+                        # Retry with the updated messages
+                        logger.info(f"[agent] Retrying LLM invocation ({retry_count}/{max_retries}) with format reminder")
+                        output_message = self.llm.invoke(retry_messages)
+                        
+                        # Check for empty response during retry
+                        if not output_message or not output_message.content:
+                            logger.warning(f"[agent] LLM returned empty response on retry attempt {retry_count}/{max_retries}")
+                            # Continue to next retry instead of immediately returning
+                            continue
+                            
+                        if self.model_name == 'deepseek-reasoner':
+                            output_message.content = _remove_think_tags(output_message.content)
+            
+            # If all retries failed, raise the last error
+            if json_parse_error:
+                logger.error(f"[agent] ❌ All {max_retries} attempts to parse JSON failed")
+                raise json_parse_error
+                
             logger.info((f"llm response: {parsed_json}"))
             agent_brain = AgentBrain(**parsed_json['current_state'])
             actions = parsed_json.get('action')
@@ -305,6 +341,24 @@ class BrowserAgent(BaseAgent):
 
         self.state.history.history.append(history_item)
 
+    def _process_action_result(self, action_result, messages, tool_call=None):
+        """Helper method to process an action result and add appropriate messages"""
+        if action_result.content is not None:
+            messages.append(HumanMessage(content='Action result: ' + action_result.content))
+        elif action_result.error is not None:
+            # Assemble error message when error information exists
+            messages.append(HumanMessage(content='Action result: ' + action_result.error))
+            if tool_call is not None:
+                logger.warning(f"Action {tool_call} failed: {action_result.error}")
+            else:
+                logger.warning(f"Action failed: {action_result.error}")
+            # If there is an error but success is true, log the error and terminate the program as the result is invalid
+            if action_result.success is True:
+                error_msg = f"Invalid result: success=True but error message exists: {action_result.error}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+        return action_result.error is not None
+    
     def build_messages_from_trajectory_and_observation(self, observation: Optional[Observation] = None) -> List[
         BaseMessage]:
         """
@@ -380,25 +434,31 @@ class BrowserAgent(BaseAgent):
             filepaths_msg = HumanMessage(
                 content=f'Here are file paths you can use: {self.settings.get("available_file_paths")}')
             messages.append(filepaths_msg)
-        last_tool_calls = []
+        previous_action_entries = []
         # Add messages from the history trajectory
-        for input_msgs, obs, info, output_msg, result in self.trajectory.get_history():
-            # 添加判断上一步的actionResult
-            last_action_result = obs.action_result
-            if last_action_result is not None:
-                for one_action_result in last_action_result:
-                    if one_action_result.content is not None:
-                        messages.append(HumanMessage(content='Action result: ' + one_action_result.content))
-                    elif one_action_result.error is not None:
-                        messages.append(HumanMessage(content='Action result: ' + one_action_result.error))
-                    elif one_action_result.success is False:
-                        logger.error(f"Action {last_tool_calls} failed: {one_action_result.error}")
+        for input_msgs, obs, info, output_msg, llm_result in self.trajectory.get_history():
+            # Check the previous step's actionResult
+            has_error = False
+            if obs.action_result is not None:
+                # The previous action entries should match with action results
+                if len(previous_action_entries) == 0:
+                    # 如果previous_action_entries为空，直接处理所有action_result，不做条数一致性检测
+                    logger.info(f"History item with action_result count ({len(obs.action_result)}) with empty previous actions - skipping count check")
+                elif len(previous_action_entries) == len(obs.action_result):
+                    for i, one_action_result in enumerate(obs.action_result):
+                        has_error = self._process_action_result(one_action_result, messages, previous_action_entries[i]) or has_error
+                else:
+                    # If sizes don't match, this is a critical error
+                    error_msg = f"Action results count ({len(obs.action_result)}) doesn't match action entries count ({len(previous_action_entries)})"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
 
             # Add agent response
-            if result:
+            if llm_result:
                 # Create AI message
-                output_data = result.model_dump(mode='json', exclude_unset=True)
-                output_data["action"] = [{action.action_name: action.params} for action in result.actions]
+                output_data = llm_result.model_dump(mode='json', exclude_unset=True)
+                action_entries = [{action.action_name: action.params} for action in llm_result.actions]
+                output_data["action"] = action_entries
                 if "actions" in output_data:
                     del output_data["actions"]
 
@@ -412,7 +472,7 @@ class BrowserAgent(BaseAgent):
                         'type': 'tool_call',
                     }
                 ]
-                last_tool_calls = tool_calls
+                previous_action_entries = action_entries
                 ai_message = AIMessage(
                     content='',
                     tool_calls=tool_calls,
@@ -424,17 +484,38 @@ class BrowserAgent(BaseAgent):
 
         # Add current observation - using the passed observation parameter instead of self.state.current_observation
         if observation:
-            step_info = AgentStepInfo(number=self.state.n_steps, max_steps=self.conf.max_steps)
-            if hasattr(observation, 'dom_tree') and observation.dom_tree:
-                state_message = AgentMessagePrompt(
-                    observation,
-                    self.state.last_result,
-                    include_attributes=self.settings.get('include_attributes'),
-                    step_info=step_info,
-                ).get_user_message(self.settings.get('use_vision'))
-                messages.append(state_message)
-            elif observation.content:
+            # Check if the current observation has an action_result with error
+            has_error = False
+            if hasattr(observation, 'action_result') and observation.action_result is not None:
+                # Match action results with previous actions
+                if len(previous_action_entries) == 0:
+                    # 如果previous_action_entries为空，直接处理所有action_result，不做条数一致性检测
+                    logger.info(f"Current observation with action_result count ({len(observation.action_result)}) with empty previous actions - skipping count check")
+                elif len(previous_action_entries) == len(observation.action_result):
+                    for i, one_action_result in enumerate(observation.action_result):
+                        has_error = self._process_action_result(one_action_result, messages, previous_action_entries[i]) or has_error
+                else:
+                    # If sizes don't match, this is a critical error
+                    error_msg = f"Action results count ({len(observation.action_result)}) doesn't match action entries count ({len(previous_action_entries)})"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+            
+            # If there's an error, append observation content outside the loop
+            if has_error and observation.content:
                 messages.append(HumanMessage(content=observation.content))
+            # If no error, process the observation normally
+            elif not has_error:
+                step_info = AgentStepInfo(number=self.state.n_steps, max_steps=self.conf.max_steps)
+                if hasattr(observation, 'dom_tree') and observation.dom_tree:
+                    state_message = AgentMessagePrompt(
+                        observation,
+                        self.state.last_result,
+                        include_attributes=self.settings.get('include_attributes'),
+                        step_info=step_info,
+                    ).get_user_message(self.settings.get('use_vision'))
+                    messages.append(state_message)
+                elif observation.content:
+                    messages.append(HumanMessage(content=observation.content))
 
         # Add special message for the last step
         # Note: Moved here from policy method to centralize all message building logic
