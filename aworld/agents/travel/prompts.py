@@ -48,6 +48,9 @@ Here are the question: {task}
 Here are the tool you can use: {tool_desc}
 
 pleas only use one action complete this task, at least results 6 pages.
+"""
+
+search_output_prompt = """
 1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON in this exact format:
 {"action":[{{"one_action_name": {{// action-specific parameter}}}}, // ... more actions in sequence]}
 """
@@ -64,6 +67,9 @@ Here is the reference information: {reference}
 Here are the tool you can use: {tool_desc}
 
 pleas only use one action complete this task.
+"""
+
+write_output_prompt = """
 1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON in this exact format:
 {"action":[{{"one_action_name": {{// action-specific parameter}}}}, // ... more actions in sequence]}
 """

@@ -52,6 +52,7 @@ class AgentStatus:
 class AgentResult(BaseModel):
     current_state: Any
     actions: List[ActionModel]
+    is_call_tool: bool = True
 
 
 class Agent(Generic[INPUT, OUTPUT]):
@@ -220,8 +221,10 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
             logger.warning("LLM no valid response!")
             return AgentResult(actions=[], current_state=None)
 
+        is_call_tool = False
         content = resp.choices[0].message.content
         if resp.choices[0].message.tool_calls:
+            is_call_tool = True
             for tool_call in resp.choices[0].message.tool_calls:
                 full_name: str = tool_call.function.name
                 if not full_name:
@@ -245,7 +248,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
                 content = content.replace("```json", "").replace("```", "")
             # no tool call, agent name is itself.
             results.append(ActionModel(agent_name=self.name(), policy_info=content))
-        return AgentResult(actions=results, current_state=None)
+        return AgentResult(actions=results, current_state=None, is_call_tool=is_call_tool)
 
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
@@ -391,10 +394,10 @@ class AgentExecutor(object):
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            results = agent.response_parse(llm_response)
-            # one time execution
-            agent._finished = True
-            return results.actions
+            agent_result = agent.response_parse(llm_response)
+            if not agent_result.is_call_tool:
+                agent._finished = True
+            return agent_result.actions
         else:
             try:
                 actions = agent.policy(observation, kwargs)

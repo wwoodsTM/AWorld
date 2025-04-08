@@ -9,7 +9,7 @@ from typing import Union, Dict, Any, List
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
-from aworld.core.agent.base import BaseAgent, agent_executor
+from aworld.core.agent.base import BaseAgent, agent_executor, is_agent_by_name
 from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
@@ -200,7 +200,7 @@ class Task(object):
                     "total_time": (time.time() - start)}
 
     def is_agent(self, policy: ActionModel):
-        return policy.tool_name is None and policy.action_name is None
+        return (policy.tool_name is None and policy.action_name is None) or is_agent_by_name(policy.tool_name)
 
     def _process(self, observation, info) -> Dict[str, Any]:
         """Multi-agent general process workflow.
