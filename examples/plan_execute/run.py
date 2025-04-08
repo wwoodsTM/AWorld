@@ -45,7 +45,7 @@ def main():
 
     # Create swarm for multi-agents
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
-    swarm = Swarm((agent1, agent2))
+    swarm = Swarm((agent1, agent2), sequence=False)
 
     # Define a task
     task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())
@@ -53,7 +53,6 @@ def main():
     # Run task
     result = client.submit(task=[task])
 
-    print(f"Task completed: {result['success']}")
     print(f"Time cost: {result['time_cost']}")
     print(f"Task Answer: {result['task_0']['answer']}")
 
