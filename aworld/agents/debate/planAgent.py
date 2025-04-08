@@ -26,43 +26,6 @@ from aworld.core.envs.tool import ToolFactory
 from aworld.config import ToolConfig, load_config, wipe_secret_info
 from aworld.virtual_environments.conf import BrowserToolConfig
 
-#
-# PROMPT_TEMPLATE = """
-# You are an AI agent designed to automate tasks. Your goal is to accomplish the ultimate task following the rules.
-#
-# # Input Format
-# Task
-# Previous steps
-#
-# # Response Rules
-# 1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON in this exact format:
-# {"current_state": {"evaluation_previous_goal": "Success|Failed|Unknown - Analyze and check if the previous goals/actions are successful like intended by the task. Mention if something unexpected happened. Shortly state why/why not",
-# "memory": "Description of what has been done and what you need to remember. Be very specific. Count here ALWAYS how many times you have done something and how many remain. E.g. 0 out of 10 subtask completed Continue with abc and xyz",
-# "next_goal": "What needs to be done with the next immediate action"},
-# "action":[{{"one_action_name": {{// action-specific parameter}}}}, // ... more actions in sequence]}
-#
-# 2. ACTIONS: You can specify one actions in the list to be executed in sequence.
-#
-# 3. REQUIREMENTS:
-# - If you want to extract some information, you can use search_agent gets related info and url, then you can use browser_agent extract info from specific url.
-# - If you want to search, you need use search_agent and give the specific task.
-# - If you want to extract, you need use browser_agent and give the task contains specific url. you can give two url once for browser agent, and tell browser agent only need extract from one url. if one url is invalid, use another url for replace.
-# - If you want to write, you need use write_agent and give the task and refer, the task needs be very detailed and contains all requirements.
-#
-# 4. Pipeline:
-# - If you have many information to search. you should excute search - extract loop many times.
-#
-# 5. TASK COMPLETION:
-# - Use the done action as the last action as soon as the ultimate task is complete
-# - Don't use "done" before you are done with everything the user asked you, except you reach the last step of max_steps.
-# - If you reach your last step, use the done action even if the task is not fully finished. Provide all the information you have gathered so far. If the ultimate task is completly finished set success to true. If not everything the user asked for is completed set success in done to false!
-# - If you have to do something repeatedly for example the task says for "each", or "for all", or "x times", count always inside "memory" how many times you have done it and how many remain. Don't stop until you have completed like the task asked you. Only call done after the last step.
-# - Don't hallucinate actions
-# - Make sure you include everything you found out for the ultimate task in the done text parameter. Do not just say you are done, but include the requested information of the task.
-#
-# """
-
-
 PROMPT_TEMPLATE = """
 You are an AI agent designed to automate tasks. Your goal is to accomplish the ultimate task following the rules.
 
@@ -92,24 +55,18 @@ Previous steps
 - If you have to do something repeatedly for example the task says for "each", or "for all", or "x times", count always inside "memory" how many times you have done it and how many remain. Don't stop until you have completed like the task asked you. Only call done after the last step.
 - Don't hallucinate actions
 - Make sure you include everything you found out for the ultimate task in the done text parameter. Do not just say you are done, but include the requested information of the task. 
-
 """
-#
-# AGENT_CAN_USE = """
-# there are actions you can use：
-# [{'type': 'function', 'function': {'name': 'search_agent', 'description': 'Search the abstract and url from search api for the specific task.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the search query input.', 'type': 'string'}}, 'required': ['query']}}}, {'type': 'function', 'function': {'name': 'browser_agent', 'description': 'use browser agent execute specific task like extract content from url.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the task you want browser agent to do, if extract, please give extract goal and complete url', 'type': 'string'}, 'required': ['task']}}}, {'type': 'function', 'function': {'name': 'write_agent', 'description': 'Use write agent to write file about specific tasks.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the specific writing task description.', 'type': 'string'}, 'refer': {'description': 'the related information write agent need refer.', 'type': 'string'}}, 'required': ['task', 'refer']}}}]
-# """
 
 AGENT_CAN_USE = """
 there are actions you can use：
 [{'type': 'function', 'function': {'name': 'search_agent', 'description': 'Search the abstract and url from search api for the specific task.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the search query input.', 'type': 'string'}}, 'required': ['query']}}}]
 """
 
-user_Jordan_assignment_system_prompt = "You are a helpful search agent."
-user_Jordan_assignment_prompt = """
-You are Michael Jordan's fun. While facing other's statement such as "XXX (not Jordan) is the best basketball player", you must oppose that opinion.
+user_assignment_system_prompt = "You are a helpful search agent."
+user_assignment_prompt = """
+You are {palyer}'s fun. While facing other's statement such as "XXX (not Jordan) is the best basketball player", you must oppose that opinion.
 
-You have an assistant that can help search the relative materials online to support your opinion "Jordan is the best and on one else can beat Jordan on basketball."
+You have an assistant that can help search the relative materials online to support your opinion "{palyer} is the best and on one else can beat Jordan on basketball."
 
 While facing your opponent's claim {claim}, you decide to fight back! Now you need to ask your assistant to do some online survey, according to that claim, to give you more insights to decide what to debate with your opponent.
 
@@ -118,8 +75,8 @@ For example, you could talk to your assistant: Facing the statement "Lebron can 
 Now, you could output your assignment to your assistant.
 """
 
-user_Jordan_debate_system_prompt = "You are an impressive debater."
-user_Jordan_deate_prompt = """
+user_debate_system_prompt = "You are an impressive debater."
+user_debate_prompt = """
 ## Role
 You are an outstanding debater, with a fiery and stubborn personality, sharp language, and a penchant for irony. Your responsibility is to respond to the content of the opposing debater's speech based on the current debate topic, your stance, your skills, and restrictions.
 
@@ -129,7 +86,7 @@ Who is the greatest basketball player in history, Michael Jordan or LeBron James
 
 
 ## Your Stance
-Michael Jordan is the greatest in history.
+{player} is the greatest in history.
 
 
 ## Opponent's Stance
@@ -583,8 +540,8 @@ if __name__ == '__main__':
     )
 
     # wenwen
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyBv9Jd-l5MJcY4ZY3n1i2SB_H5px3c3_xs"
-    os.environ["GOOGLE_ENGINE_ID"] = "66ef6e0ccdfb44d77"
+    os.environ["GOOGLE_API_KEY"] = ""
+    os.environ["GOOGLE_ENGINE_ID"] = ""
 
     travelPlanAgent = TravelPlanAgent(agentConfig)
     search_agent = SearchAgent(agentConfig)
@@ -597,9 +554,9 @@ if __name__ == '__main__':
     opponent_claim = "Lebron is stronger, and the body is the most important factor in basketball."
 
     ## step 2: 呼叫己方，布置搜索任务，并赋值到observation里面
-    messages = [{'role': 'system', 'content': user_Jordan_assignment_system_prompt},
+    messages = [{'role': 'system', 'content': user_assignment_system_prompt},
                 {'role': 'user',
-                 'content': user_Jordan_assignment_prompt.format(claim=opponent_claim)}]
+                 'content': user_assignment_prompt.format(claim=opponent_claim, player = 'Michael Jordan')}]
 
     llm_result = search_agent.llm.invoke(
         input=messages,
@@ -615,7 +572,6 @@ if __name__ == '__main__':
 
     ## step 3: 依据布置的任务（observation），呼叫planAgent：由其决定调用哪个干活agent（search_agent），再由具体干活的agent调用更具体的tool，并不断collect搜索的资料
     # while True:
-    # 调用工具
     for i in range(3):
         plan_policy = travelPlanAgent.policy(observation=observation)
         print("plan_policy:", i,  plan_policy)
@@ -720,11 +676,10 @@ if __name__ == '__main__':
             f.write("\n\n" + "="*50 + "\n\n")
     
     
-    ## step 4
-    ## step 2: 呼叫己方，布置搜索任务，并赋值到observation里面
-    messages = [{'role': 'system', 'content': user_Jordan_debate_system_prompt},
+    ## step 4: 呼叫己方，布置搜索任务，并赋值到observation里面
+    messages = [{'role': 'system', 'content': user_debate_system_prompt},
                 {'role': 'user',
-                 'content': user_Jordan_deate_prompt.format(claim=opponent_claim, search_materials = search_materials)}]
+                 'content': user_debate_prompt.format(claim=opponent_claim, player = 'Michael Jordan', search_materials = search_materials)}]
 
     llm_result = search_agent.llm.invoke(
         input=messages,
