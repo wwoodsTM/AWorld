@@ -445,13 +445,42 @@ class ExtractContent(ExecutableAction):
         llm_config=kwargs.get("llm_config")
         if llm_config:
             llm = get_llm_model(llm_config)
+        max_extract_content_output_tokens = kwargs.get("max_extract_content_output_tokens")
+        max_extract_content_input_tokens = kwargs.get("max_extract_content_input_tokens")
+        
         content = markdownify.markdownify(page.content())
+        
+        # Truncate content if it exceeds max input tokens
+        if max_extract_content_input_tokens and len(content) > max_extract_content_input_tokens:
+            logger.warning(f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
+            content = content[:max_extract_content_input_tokens]
 
         prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}'
+        prompt_with_outputlimit = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page} \n\n#The length of the returned result must be less than {max_extract_content_output_tokens} characters.'
         template = PromptTemplate(input_variables=['goal', 'page'], template=prompt)
+        
         try:
+            # extract content without length limit to maintain the original content
             output = llm.invoke(template.format(goal=goal, page=content))
-            msg = f'Extracted from page\n: {output.content}\n'
+            result_content = output.content
+            
+            # Check if output exceeds the token limit and retry with length-limited prompt if needed
+            if max_extract_content_output_tokens and len(result_content) > max_extract_content_output_tokens:
+                logger.warning(f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
+                template_with_limit = PromptTemplate(
+                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'], 
+                    template=prompt_with_outputlimit
+                )
+                # extract content with length limit
+                output = llm.invoke(template_with_limit.format(
+                    goal=goal, 
+                    page=content, 
+                    max_extract_content_output_tokens=max_extract_content_output_tokens,
+                    max_tokens=max_extract_content_output_tokens
+                ))
+                result_content = output.content
+                
+            msg = f'Extracted from page\n: {result_content}\n'
             logger.info(msg)
             return ActionResult(content=msg, keep=True), page
         except Exception as e:
@@ -472,12 +501,38 @@ class ExtractContent(ExecutableAction):
         goal = action.params.get("goal")
         llm = kwargs.get("llm")
         content = markdownify.markdownify(page.content())
+        max_extract_content_output_tokens = kwargs.get("max_extract_content_output_tokens")
+        max_extract_content_input_tokens = kwargs.get("max_extract_content_input_tokens")
+        
+        # Truncate content if it exceeds max input tokens
+        if max_extract_content_input_tokens and len(content) > max_extract_content_input_tokens:
+            logger.warning(f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
+            content = content[:max_extract_content_input_tokens]
 
         prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}'
+        prompt_with_outputlimit = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page} \n\n#The length of the returned result must be less than {max_extract_content_output_tokens} characters.'
         template = PromptTemplate(input_variables=['goal', 'page'], template=prompt)
+        
         try:
             output = llm.invoke(template.format(goal=goal, page=content))
-            msg = f'Extracted from page\n: {output.content}\n'
+            result_content = output.content
+            
+            # Check if output exceeds the token limit and retry with length-limited prompt if needed
+            if max_extract_content_output_tokens and len(result_content) > max_extract_content_output_tokens:
+                logger.info(f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
+                template_with_limit = PromptTemplate(
+                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'], 
+                    template=prompt_with_outputlimit
+                )
+                output = llm.invoke(template_with_limit.format(
+                    goal=goal, 
+                    page=content, 
+                    max_extract_content_output_tokens=max_extract_content_output_tokens,
+                    max_tokens=max_extract_content_output_tokens
+                ))
+                result_content = output.content
+                
+            msg = f'Extracted from page\n: {result_content}\n'
             logger.info(msg)
             return ActionResult(content=msg, keep=True), page
         except Exception as e:
