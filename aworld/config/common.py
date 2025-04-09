@@ -16,6 +16,7 @@ class Tools(Enum):
     IMAGE_ANALYSIS = "image_analysis"
     DOCUMENT_ANALYSIS = "document_analysis"
     HTML = "html"
+    MCP = "mcp"
 
 
 class Agents(Enum):

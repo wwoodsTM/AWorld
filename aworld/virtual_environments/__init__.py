@@ -11,6 +11,7 @@ from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenA
 from aworld.virtual_environments.interpreters.python_tool import PythonTool
 from aworld.virtual_environments.terminals.shell_tool import ShellTool
 from aworld.virtual_environments.travel.html import HtmlTool
+from aworld.virtual_environments.mcp.mcp_tool import McpTool
 
 from aworld.virtual_environments.android.action.actions import *
 from aworld.virtual_environments.apis.actions import *
