@@ -2,13 +2,13 @@ import os
 from typing import Dict, Any, Union, List, Optional
 
 from dotenv import load_dotenv
-from pydantic import Field
+from pydantic import Field, BaseModel
 
 from aworld.agents.debate.plan_agent import user_assignment_prompt, user_assignment_system_prompt, \
     user_debate_system_prompt, user_debate_prompt, DebatePlanAgent
 from aworld.agents.debate.search_agent import SearchAgent
 from aworld.config import load_config, AgentConfig, TaskConfig
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import BaseAgent, Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.core.client import Client
 from aworld.core.common import Observation, ActionModel, ActionResult
@@ -19,15 +19,28 @@ from aworld.output.artifact import ArtifactType
 from aworld.output.workspace import WorkSpace
 
 
-#
-# class DebateArena(BaseModel):
-#     propositions: list[BaseAgent]
-#     opposition: list[BaseAgent]
-#     moderator: Optional[BaseAgent]
-#     judges: Optional[BaseAgent]
-#     display_panel: str
-#
-#
+
+class DebateArena(BaseModel):
+    proposition: BaseAgent
+    opposition: BaseAgent
+    moderator: Optional[BaseAgent]
+    judges: Optional[BaseAgent]
+    display_panel: str
+
+
+    def start_debate(self, topic):
+        pass
+
+
+class SearchResult:
+    id: str
+    url: str
+    title: str
+    content: str
+
+def deepsearch(topic, option, other_option,history) -> list[SearchResult]:
+    pass
+
 
 
 class DebateAgent(BaseAgent):
@@ -52,14 +65,19 @@ class DebateAgent(BaseAgent):
         List[ActionModel], None]:
         ## step 1: 对方观点
         opponent_claim = observation.content
+        history = []
 
         ## DEEPSEARCH Tool  & 前几轮的对话
+
+        results = deepsearch()
+
+        parsed_result = ""
 
         ## step 4: 呼叫己方，布置搜索任务，并赋值到observation里面
         messages = [{'role': 'system', 'content': user_debate_system_prompt},
                     {'role': 'user',
                      'content': user_debate_prompt.format(claim=opponent_claim, player='Michael Jordan',
-                                                          search_materials=search_materials)}]
+                                                          search_materials=results)}]
 
         llm_result = self.llm.invoke(
             input=messages,
@@ -73,24 +91,7 @@ class DebateAgent(BaseAgent):
 if __name__ == '__main__':
     load_dotenv()
 
-    agentConfig = AgentConfig(
-        llm_provider="chatopenai",
-        llm_model_name="bailing_80b_function_call",
-        llm_base_url=os.environ['LLM_BASE_URL'],
-        llm_api_key=os.environ['LLM_API_KEY'],
-        max_steps=100,
-    )
+    DebateArena(
 
-    planner_agent = DebatePlanAgent(conf=agentConfig)
-    search_agent = SearchAgent(conf=agentConfig)
+    ).start_debate(topic="")
 
-    # agent1 = DebateAgent(name="agent1", topic="Who's GOAT? Jordan or Lebron", opinion="Jordan",
-    #                      planner_agent=planner_agent, search_agent=search_agent, conf=agentConfig)
-    # agent2 = DebateAgent(name="agent2", topic="Who's GOAT? Jordan or Lebron", opinion="Lebron",
-    #                      planner_agent=planner_agent, search_agent=search_agent, conf=agentConfig)
-
-    workspace = WorkSpace.from_local_storages("demo1")
-    agent1 = DebateAgent(name="agent1", topic="杭州适合年轻人生活吗", opinion="适合",
-                          conf=agentConfig, workspace = workspace)
-    input = Observation(content="杭州适合年轻人生活吗")
-    agent1.policy(input)
