@@ -9,16 +9,16 @@ if __name__ == '__main__':
     agent_config = AgentConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_api_key="",
-        llm_base_url=""
+        llm_api_key="YOUR_API_KEY",
+        llm_base_url="http://localhost:5080"
     )
 
     search_sys_prompt = "You are a helpful agent."
     search = Agent(
         conf=agent_config,
-        name="",
+        name="search_agent",
         system_prompt=search_sys_prompt,
-        mcp_servers=["amap-amap-sse"]
+        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
     )
 
     # Define a task

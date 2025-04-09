@@ -8,9 +8,7 @@
 
 > **Build, evaluate and run General Multi-Agent Assistance with ease**
 
-Through AWorld (short for Agent World), you can quickly build real-world scenarios or task automation into agentic prototypes, then extend them into a generic agent or a team of agents to assist your real needs, like Manus.
-
-Hope AWorld would bridge the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
+AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
 ![AWorld Framework](readme_assets/framework.png)
 
@@ -27,16 +25,38 @@ With Python>=3.11:
 python setup.py install
 ```
 
-## Environment Configuration
-```bash
-# Choose your preferred AI model(s) and set the corresponding API key(s)
-# OpenAI (Required for GPT-3.5, GPT-4)
-export OPENAI_API_KEY=sk-abcd1234wxyz5678...
-# Anthropic Claude (Required for Claude 2, Claude 3)
-export CLAUDE_API_KEY=sk-ant-api03xyz...
-```
-
 ## Usage
+### Quick Start
+```python
+from aworld.config.conf import AgentConfig, TaskConfig
+from aworld.core.agent.base import Agent
+from aworld.core.task import Task
+
+if __name__ == '__main__':
+    agent_config = AgentConfig(
+        llm_provider="openai",
+        llm_model_name="gpt-4o",
+
+        # Set via environment variable or direct configuration
+        llm_api_key="YOUR_API_KEY", 
+        llm_base_url="http://localhost:5080"
+    )
+
+    search_sys_prompt = "You are a helpful agent."
+    search = Agent(
+        conf=agent_config,
+        name="search_agent",
+        system_prompt=search_sys_prompt,
+        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
+    )
+
+    # Define a task
+    task = Task(input="杭州西湖最近1公里的酒店", agent=search, conf=TaskConfig())
+    task.run()
+```
+Configure MCP servers by updating the configuration file: [`aworld/config/mcp.json`](aworld/config/mcp.json)
+
+
 ### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
 Below are demonstration videos showcasing AWorld's capabilities across different agent configurations and environments.
 
@@ -160,8 +180,7 @@ AWorld uses a client-server architecture with three main components:
     - Provides a unified interaction protocol for all agent-environment interactions
 
 2. **Agent/Actor**: 
-   - Encapsulates system prompts, tools, and models with the capability to hand off execution to other agents
-   - Agent fields and properties:
+   - Encapsulates system prompts, tools, mcp servers, and models with the capability to hand off execution to other agents
 
     | Field        | Type      | Description                                                           |
     |--------------|-----------|-----------------------------------------------------------------------|
@@ -170,18 +189,20 @@ AWorld uses a client-server architecture with three main components:
     | `model_name` | string    | LLM model name of the agent                                           |
     | `_llm`       | object    | LLM model instance based on model_name (e.g., "gpt-4", "claude-3")    |
     | `conf`       | BaseModel | Configuration inheriting from pydantic BaseModel                      |
-    | `dict_conf`  | dict      | Dictionary-structured configuration for safe key access               |
     | `trajectory`     | object    | Memory for maintaining context across interactions                   |
     | `tool_names` | list      | List of tools the agent can use                                       |
-    | `handoffs`   | list      | List of other agents this agent can delegate tasks to                 |
+    | `mcp_servers` | list      | List of mcp servers the agent can use                                       |
+    | `handoffs`   | list      | Agent as tool; list of other agents the agent can delegate tasks to                 |
     | `finished`   | bool      | Flag indicating whether the agent has completed its task              |
 
 3. **Environment/World Model**: Various tools and models in the environment
+   - MCP servers
    - Computer interfaces (browser, shell, functions, etc.)
    - World Model
 
    | Tools | Description |
    |-------|-------------|
+   | `mcp Servers` | AWorld seamlessly integrates a rich collection of MCP servers as agent tools|
    | `browser` | Controls web browsers for navigation, form filling, and interaction with web pages |
    | `android` | Manages Android device simulation for mobile app testing and automation |
    | `shell` | Executes shell commands for file operations and system interactions |
@@ -195,25 +216,22 @@ AWorld uses a client-server architecture with three main components:
 AWorld serves two complementary purposes:
 
 ### Agent Evaluation
-Standardized benchmarking of agent capabilities under a unified protocol:
 - Unified task definitions to run both customized and public benchmarks
 - Efficient and stable execution environment
-- Detailed test reports measuring efficiency (steps to completion), completion rates, and token costs
+- Detailed test reports measuring efficiency (steps to completion), completion rates, token costs, ect.
 
-### Model Training
-Continuous improvement through a collaborative competition cycle:
-- Agent models improve to overcome challenges 
+### Agent Training
+- Agent models improve to overcome challenges from env
 - World models (environments) evolve to present new, more complex scenarios
 
-## Key Features
+## 🔧 Key Features
 
+- ✨ **MCP Servers as Tools** - Powerful integration of MCP servers providing robust tooling capabilities
 - 🌐 **Environment Multi-Tool Support**: 
-  - [x] Browsers (Chrome, Firefox)
+  - [x] Default computer-use tools; (browser, shell, code, APIs, file system, etc.)
   - [x] Android device simulation
-  - [x] Shell, code (Python), and apis (e.g., google_search)
-  - [x] File system (writing, managing on going)
   - [ ] Cloud sandbox for quick and stable deployment
-  - [ ] Env as reward model
+  - [ ] Reward model as env simulation
 
 - 🤖 **AI-Powered Agents**:
   - [x] Agent initialization
@@ -221,12 +239,6 @@ Continuous improvement through a collaborative competition cycle:
   - [ ] Asynchronous delegation
   - [ ] Human delegation (e.g., for password entry)
   - [ ] Pre-deployed open source LLMs powered by state-of-the-art [inference frameworks](https://github.com/alipay/PainlessInferenceAcceleration)
-
-
-- 🔄 **Standardized Protocol**:
-  - [ ] Client-server protocol compatible with Model Contest Protocol (MCP)
-  - [x] Environment interfaces following [gymnasium](https://gymnasium.farama.org/api/env/#gymnasium.Env.step) standards
-  - [x] Custom agent-environment protocol
 
 - 🎛️ **Web Interface**:
   - [ ] UI for execution visualization
