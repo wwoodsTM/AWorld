@@ -6,6 +6,7 @@ from pydantic import Field, BaseModel
 
 from aworld.agents.debate.plan_agent import user_assignment_prompt, user_assignment_system_prompt, \
     user_debate_system_prompt, user_debate_prompt, DebatePlanAgent
+from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 from aworld.agents.debate.search_agent import SearchAgent
 from aworld.config import load_config, AgentConfig, TaskConfig
 from aworld.core.agent.base import BaseAgent, Agent
@@ -39,6 +40,8 @@ class SearchResult:
     content: str
 
 def deepsearch(topic, option, other_option,history) -> list[SearchResult]:
+    search_engine = TavilySearchEngine()
+    results = search_engine.async_batch_search(queries=["杭州天气怎么样", "xxx"], max_results=5)
     pass
 
 
