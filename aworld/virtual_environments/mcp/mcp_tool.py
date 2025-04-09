@@ -76,6 +76,7 @@ class McpTool(Tool[Observation, List[ActionModel]]):
         fail_error = ""
         observation = build_observation(observer=self.name(),
                                         ability="")
+        terminated = kwargs.get("terminated", False)
         try:
             if not actions:
                 return (observation, reward,
@@ -85,22 +86,22 @@ class McpTool(Tool[Observation, List[ActionModel]]):
                         })
             mcp_actions = []
             for action in actions:
-                action_name = action.action_name
-                if Tools.MCP.value != action_name:
+                tool_name = action.tool_name
+                if Tools.MCP.value != tool_name:
+                    logger.warning(f"Unsupported tool: {tool_name}")
                     continue
-                full_tool_name = action.tool_name
+                full_tool_name = action.action_name
                 names = full_tool_name.split("__")
                 if len(names) < 2:
                     continue
-                action.action_name= names[0]
-                action.tool_name = names[1]
+                action.action_name= names[1]
+                action.tool_name = names[0]
                 mcp_actions.append(action)
             if not mcp_actions:
                 return (observation, reward,
-                        kwargs.get("terminated",
-                                   False), kwargs.get("truncated", False), {
-                            "exception": "actions is empty"
-                        })
+                        terminated,
+                        kwargs.get("truncated", False),
+                        {"exception": "actions is empty"})
             mcp_executor = MCPToolExecutor()
             # Initialize the MCPToolExecutor before calling step
             mcp_executor._load_mcp_config()
@@ -115,6 +116,6 @@ class McpTool(Tool[Observation, List[ActionModel]]):
         info.update(kwargs)
         return (observation,
                 reward,
-                kwargs.get("terminated", False),
+                terminated,
                 kwargs.get("truncated", False),
                 info)
