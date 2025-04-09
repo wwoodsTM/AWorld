@@ -20,6 +20,13 @@ if __name__ == '__main__':
         llm_api_key="your own key",
         llm_base_url="http://localhost:5080"  ## paste your own llm server address
     )
+    llm_config = ModelConfig(
+        llm_provider="deepseek",
+        llm_model_name="deepseek-chat",
+        llm_temperature=1,
+        llm_api_key="sk-f0d545469d7e4d8eba968dc54c33bef7",
+        llm_base_url="https://api.deepseek.com"
+    )
     browser_tool_config = BrowserToolConfig(width=1280,
                                             height=720,
                                             headless=False,
