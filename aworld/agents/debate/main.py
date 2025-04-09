@@ -35,25 +35,18 @@ class DebateSpeech(BaseModel):
 
 
 class DebateAgent(BaseAgent):
-    topic: str = Field(default=None, description="The topic of the debate")
-
-    opinion: str = Field(default=None, description="The opinion of the agent")
 
     workspace: WorkSpace
 
-    def __init__(self, name: str, topic: str, opinion: str,
-                 conf: AgentConfig):
+    def __init__(self, name: str, conf: AgentConfig):
         conf.name = name
         super().__init__(conf)
-        self.topic = topic
-        self.opinion = opinion
         self.steps = 0
         self.workspace = None
 
     def speech(self, topic: str, opinion: str, round: int, speech_history: list[DebateSpeech]) -> DebateSpeech:
         self.policy()
         pass
-
 
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
@@ -85,9 +78,7 @@ class DebateAgent(BaseAgent):
         print("user_response:", user_response)
 
 
-
 class DebateArena(BaseModel):
-
     affirmative_speaker: DebateAgent
     negative_speaker: DebateAgent
 
@@ -97,22 +88,17 @@ class DebateArena(BaseModel):
     def __init__(self,
                  affirmative_speaker: DebateAgent,
                  negative_speaker: DebateAgent,
-                 moderator: Optional[BaseAgent],
-                 judges: Optional[BaseAgent],
                  **kwargs
                  ):
         super().__init__()
         self.affirmative_speaker = affirmative_speaker
         self.negative_speaker = negative_speaker
-        self.moderator = moderator
-        self.judges = judges
 
     speeches: list[DebateSpeech]
 
     display_panel: str
 
     def start_debate(self, topic, affirmative_option, negative_option, rounds):
-
         for i in range(rounds):
             logging.info(f"round#{i} start")
 
@@ -132,7 +118,7 @@ class DebateArena(BaseModel):
 
         logging.info(affirmative_speaker.name() + ": " + "start")
 
-        observation = Observation(content=affirmative_speaker.opinion, info = {
+        observation = Observation(content=affirmative_speaker.opinion, info={
             "speeches": self.speeches
         })
         policy = affirmative_speaker.policy(observation)
@@ -167,16 +153,10 @@ if __name__ == '__main__':
         max_steps=100,
     )
 
-    agent1 = DebateAgent(name="agent1", topic="Who's GOAT? Jordan or Lebron", opinion="Jordan",
-                         conf=agentConfig)
-    agent1.llm.invoke()
+    agent1 = DebateAgent(name="Zhitian", conf=agentConfig)
+    agent2 = DebateAgent(name="Daowen", conf=agentConfig)
 
-    # agent2 = DebateAgent(name="agent2", topic="Who's GOAT? Jordan or Lebron", opinion="Lebron",
-    #                       conf=agentConfig)
-    #
-    #
-    #
-    # agent = DebateArena()
-    #
-    #
-    # DebateArena().start_debate(topic="", round)
+    debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2)
+
+    debateArena.start_debate(topic="Who's GOAT? Jordan or Lebron", affirmative_option="Jordan",
+                             negative_option="Lebron", rounds=3)
