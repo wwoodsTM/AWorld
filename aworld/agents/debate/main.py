@@ -1,77 +1,19 @@
+import asyncio
 import logging
 import os
-from abc import ABC
-from typing import Dict, Any, Union, List, Optional, Literal
+import uuid
+from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
 
 from aworld.agents.debate.base import DebateSpeech
-from aworld.agents.debate.deepsearch import deepsearch
+from aworld.agents.debate.debate_agent import DebateAgent
 from aworld.config import AgentConfig
-from aworld.core.agent.base import BaseAgent, Agent
-from aworld.core.common import Observation, ActionModel
+from aworld.core.agent.base import BaseAgent
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.output.workspace import WorkSpace
 
-
-
-class DebateAgent(Agent, ABC):
-
-    workspace: WorkSpace
-
-    stance: Literal["affirmative", "negative"]
-
-    def __init__(self, name: str, stance: Literal["affirmative", "negative"], conf: AgentConfig):
-        conf.name = name
-        super().__init__(conf)
-        self.steps = 0
-        self.stance = stance
-        self.workspace = None
-
-    def speech(self, topic: str, opinion: str,oppose_opinion: str, round: int, speech_history: list[DebateSpeech]) -> DebateSpeech:
-        observation = Observation(content=self.get_latest_speech(speech_history).content if self.get_latest_speech(speech_history) else "")
-        info = {
-            "topic": topic,
-            "round": round,
-            "opinion": opinion,
-            "oppose_opinion": oppose_opinion,
-            "history": speech_history
-        }
-        return self.policy(observation, info)[0].policy_info
-
-    def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
-        List[ActionModel], None]:
-        ## step 1: 对方观点
-        opponent_claim = observation.content
-        round = info["round"]
-        opinion = info["opinion"]
-        oppose_opinion = info["oppose_opinion"]
-        topic = info["topic"]
-        history: list[DebateSpeech] = info["history"]
-
-        ## step2
-        results = deepsearch(self.llm, topic, opinion, oppose_opinion, opponent_claim, history)
-
-        ## step3
-        user_response = f"topic: {topic}: Round {round}\n"
-        user_response += f"user: {self.name()}\n"
-        user_response += f"result: mock result\n"
-
-        action = ActionModel(
-            policy_info=DebateSpeech(name=self.name(), type="speech", content=user_response, round=round)
-        )
-
-        return [action]
-
-    def get_latest_speech(self, history: list[DebateSpeech]):
-        """
-        get the latest speech from history
-        """
-        if len(history) == 0:
-            return None
-        return history[-1]
 
 class DebateArena:
     """
@@ -92,6 +34,7 @@ class DebateArena:
     def __init__(self,
                  affirmative_speaker: DebateAgent,
                  negative_speaker: DebateAgent,
+                 workspace: WorkSpace,
                  **kwargs
                  ):
         super().__init__()
@@ -101,9 +44,11 @@ class DebateArena:
             "memory_store": "inmemory"
         })
         self.speeches=[]
+        self.workspace = workspace
+        self.affirmative_speaker.set_workspace(workspace)
+        self.negative_speaker.set_workspace(workspace)
 
-
-    def start_debate(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int) -> list[DebateSpeech]:
+    async def start_debate(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int) -> list[DebateSpeech]:
         """
         Start the debate
         1. debate will start from round 0
@@ -123,17 +68,17 @@ class DebateArena:
             logging.info(f"✈️==================================== round#{i} start =============================================")
 
             # affirmative_speech
-            speech = self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
+            speech = await self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
             self.speeches.append(speech)
 
             # negative_speech
-            speech = self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
+            speech = await self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
             self.speeches.append(speech)
 
             logging.info(f"🛬==================================== round#{i} end =============================================")
         return self.speeches
 
-    def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
+    async def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
         affirmative_speaker will start speech
         """
@@ -142,12 +87,13 @@ class DebateArena:
 
         logging.info(affirmative_speaker.name() + ": " + "start")
 
-        speech = affirmative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
+        speech = await affirmative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
         self.store_speech(speech)
 
         logging.info(affirmative_speaker.name() + ":  result: " + speech.content)
+        return speech
 
-    def negative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
+    async def negative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
         after affirmative_speaker finished speech, negative_speaker will start speech
         """
@@ -156,11 +102,13 @@ class DebateArena:
 
         logging.info(negative_speaker.name() + ": " + "start")
 
-        speech = negative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
+        speech = await negative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
         
         self.store_speech(speech)
 
         logging.info(negative_speaker.name() + ":  result: " + speech.content)
+        return speech
+
 
     def get_affirmative_speaker(self) -> DebateAgent:
         """
@@ -201,7 +149,8 @@ if __name__ == '__main__':
     agent1 = DebateAgent(name="affirmativeSpeaker", stance="affirmative", conf=agentConfig)
     agent2 = DebateAgent(name="negativeSpeaker", stance="negative", conf=agentConfig)
 
-    debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2)
+    debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2,
+                              workspace=WorkSpace.from_local_storages(str(uuid.uuid4())))
 
-    debateArena.start_debate(topic="Who's GOAT? Jordan or Lebron", affirmative_opinion="Jordan",
-                             negative_opinion="Lebron", rounds=3)
+    asyncio.run(debateArena.start_debate(topic="Who's GOAT? Jordan or Lebron", affirmative_opinion="Jordan",
+                             negative_opinion="Lebron", rounds=3))
