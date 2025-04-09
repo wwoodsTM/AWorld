@@ -1,0 +1,18 @@
+from aworld.agents.debate.main import DebateSpeech
+from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
+
+
+class SearchResult:
+    id: str
+    url: str
+    title: str
+    content: str
+
+
+async def deepsearch(llm, topic, opinion, oppose_opinion, last_oppose_speech_content: str,
+                     history: list[DebateSpeech]) -> list[SearchResult]:
+    search_engine = TavilySearchEngine()
+
+    results = search_engine.async_batch_search(queries=["杭州天气怎么样", "xxx"], max_results=5)
+
+    pass

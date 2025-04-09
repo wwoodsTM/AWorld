@@ -1,3 +1,6 @@
+import datetime
+import hashlib
+import uuid
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -13,6 +16,38 @@ class MemoryItem(BaseModel):
     metadata: dict = Field(description = "metadata, use to store additional information, such as user_id, agent_id, run_id, task_id, etc.")
     tags: list[str] = Field(description = "tags")
     version: int = Field(description = "version")
+
+    def __init__(self, **data):
+        # Set default values for optional fields
+        if "id" not in data:
+            data["id"] = str(uuid.uuid4())
+        if "hash" not in data:
+            data["hash"] = hashlib.md5(data.get("content", "").encode()).hexdigest()
+        if "created_at" not in data:
+            data["created_at"] = datetime.datetime.now().isoformat()
+        if "updated_at" not in data:
+            data["updated_at"] = data["created_at"]
+        if "metadata" not in data:
+            data["metadata"] = {}
+        if "tags" not in data:
+            data["tags"] = []
+        if "version" not in data:
+            data["version"] = 1
+
+        super().__init__(**data)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "MemoryItem":
+        """
+        Create a MemoryItem instance from a dictionary.
+
+        Args:
+            data (dict): A dictionary containing the memory item data.
+
+        Returns:
+            MemoryItem: An instance of MemoryItem.
+        """
+        return cls(**data)
 
 class MemoryStore(ABC):
 
