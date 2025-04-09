@@ -20,26 +20,23 @@ from aworld.models.anthropic_provider import AnthropicProvider
 from aworld.models.model_response import ModelResponse
 
 # Predefined model names for common providers
-model_names = {
+MODEL_NAMES = {
     "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229"],
     "openai": ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini"],
     "deepseek": ["deepseek-chat", "deepseek-reasoner"],
-    "ollama": ["qwen2.5:7b", "qwen2.5:14b", "qwen2.5:32b", "qwen2.5-coder:14b", "qwen2.5-coder:32b", "llama2:7b",
-               "deepseek-r1:14b", "deepseek-r1:32b"],
     "azure_openai": ["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-35-turbo"],
 }
 
 # Endpoint patterns for identifying providers
-endpoint_patterns = {
+ENDPOINT_PATTERNS = {
     "openai": ["api.openai.com"],
     "anthropic": ["api.anthropic.com", "claude-api"],
     "azure_openai": ["openai.azure.com"],
-    "deepseek": ["api.deepseek.com", "deepseek-api"],
-    "ollama": ["localhost:11434", "ollama.local"]
+    "deepseek": ["api.deepseek.com", "deepseek-api"]
 }
 
 # Provider class mapping
-provider_classes = {
+PROVIDER_CLASSES = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "azure_openai": AzureOpenAIProvider,
@@ -112,21 +109,27 @@ class LLMModel:
             str: Identified provider
         """
         # Default provider
-        identified_provider = provider or "openai"
+        identified_provider = "openai"
 
         # Identify provider based on base_url
         if base_url:
-            for p, patterns in endpoint_patterns.items():
+            for p, patterns in ENDPOINT_PATTERNS.items():
                 if any(pattern in base_url for pattern in patterns):
                     identified_provider = p
-                    break
+                    logger.info(f"Identified provider: {identified_provider} based on base_url: {base_url}")
+                    return identified_provider
 
         # Identify provider based on model_name
-        if model_name and not base_url:  # base_url has higher priority
-            for p, models in model_names.items():
+        if model_name and not base_url:
+            for p, models in MODEL_NAMES.items():
                 if model_name in models or any(model_name.startswith(model) for model in models):
                     identified_provider = p
+                    logger.info(f"Identified provider: {identified_provider} based on model_name: {model_name}")
                     break
+        
+        if identified_provider and provider and identified_provider != provider:
+            logger.warning(f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider")
+            identified_provider = provider
 
         return identified_provider
 
@@ -146,20 +149,7 @@ class LLMModel:
         Returns:
             Any: Corresponding provider instance
         """
-        if kwargs.get("provider") == "chatopenai" or self.provider_name == "chatopenai":
-            if not kwargs.get("base_url", ""):
-                base_url = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
-            else:
-                base_url = kwargs.get("base_url")
-
-            return ChatOpenAI(
-                model=kwargs.get("model_name", "gpt-4o"),
-                temperature=kwargs.get("temperature", 0.0),
-                base_url=base_url,
-                api_key=kwargs.get("api_key") or kwargs.get("llm_api_key") or secrets.openai_api_key,
-            )
-
-        self.provider = provider_classes[self.provider_name](**kwargs)
+        self.provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
     def update_provider(self, base_url: str = None, api_key: str = None, **kwargs):
         """
@@ -177,7 +167,7 @@ class LLMModel:
 
         if kwargs:
             kwargs["model_name"] = kwargs.get("model_name", self.provider.model_name)
-            self.provider = provider_classes[self.provider_name](**kwargs)
+            self.provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
     async def acompletion(self,
                           messages: List[Dict[str, str]],
@@ -208,7 +198,7 @@ class LLMModel:
         # Only create new provider temporarily if new parameters are provided
         temp_provider = None
         if base_url or api_key:
-            temp_provider = provider_classes[self.provider_name](**kwargs)
+            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
         # Use temporary provider or default provider
         provider = temp_provider or self.provider
@@ -251,7 +241,7 @@ class LLMModel:
         # Only create new provider temporarily if new parameters are provided
         temp_provider = None
         if base_url or api_key:
-            temp_provider = provider_classes[self.provider_name](**kwargs)
+            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
         # Use temporary provider or default provider
         provider = temp_provider or self.provider
@@ -294,7 +284,7 @@ class LLMModel:
         # Only create new provider temporarily if new parameters are provided
         temp_provider = None
         if base_url or api_key:
-            temp_provider = provider_classes[self.provider_name](**kwargs)
+            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
         # Use temporary provider or default provider
         provider = temp_provider or self.provider
@@ -337,7 +327,7 @@ class LLMModel:
         # Only create new provider temporarily if new parameters are provided
         temp_provider = None
         if base_url or api_key:
-            temp_provider = provider_classes[self.provider_name](**kwargs)
+            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
         # Use temporary provider or default provider
         provider = temp_provider or self.provider
@@ -369,10 +359,10 @@ def register_llm_provider(provider: str, provider_class: type):
     """
     if not issubclass(provider_class, LLMProviderBase):
         raise TypeError("provider_class must be a subclass of LLMProviderBase")
-    provider_classes[provider] = provider_class
+    PROVIDER_CLASSES[provider] = provider_class
 
 
-def get_llm_model(conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs) -> LLMModel:
+def get_llm_model(conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs) -> Union[LLMModel, ChatOpenAI]:
     """
     Get large model provider instance, returns LLMModel instance
 
@@ -391,6 +381,19 @@ def get_llm_model(conf: AgentConfig = None, custom_provider: LLMProviderBase = N
         LLMModel: Unified large model interface instance
     """
     # Create and return LLMModel instance directly
+    llm_provider = conf.llm_provider if conf else None
+    if (llm_provider == "chatopenai"):
+        base_url = kwargs.get("base_url") or (conf.llm_base_url if conf else None)
+        model_name = kwargs.get("model_name") or (conf.llm_model_name if conf else None)
+        api_key = kwargs.get("api_key") or (conf.llm_api_key if conf else None)
+
+        return ChatOpenAI(
+            model=kwargs.get("model_name", "gpt-4o"),
+            temperature=kwargs.get("temperature", 0.0),
+            base_url=base_url,
+            api_key=api_key,
+        )
+
     return LLMModel(conf=conf, custom_provider=custom_provider, **kwargs)
 
 

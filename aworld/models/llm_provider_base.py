@@ -151,8 +151,7 @@ class LLMProviderBase:
                            max_tokens: int = None, 
                            stop: List[str] = None, 
                            **kwargs) -> AsyncGenerator[ModelResponse, None]:
-        """
-        Asynchronously call model to generate streaming response
+        """Asynchronously call model to generate streaming response.
         
         Args:
             messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]

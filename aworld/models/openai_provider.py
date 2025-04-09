@@ -9,6 +9,7 @@ from langchain_openai import AzureChatOpenAI
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.model_response import ModelResponse
 from aworld.env_secrets import secrets
+from aworld.logs.util import logger
 
 
 class OpenAIProvider(LLMProviderBase):
@@ -148,11 +149,10 @@ class OpenAIProvider(LLMProviderBase):
         
         try:
             response = self.provider.chat.completions.create(**openai_params)
-            print(f"Completion response: {response}\n")
-            
+
             if hasattr(response, 'code') and response.code != 0:
                 error_msg = getattr(response, 'msg', 'Unknown error')
-                print(f"API Error: {error_msg}")
+                logger.warn(f"API Error: {error_msg}")
                 return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
                 
             if not response:
@@ -160,7 +160,6 @@ class OpenAIProvider(LLMProviderBase):
                 
             return self.postprocess_response(response)
         except Exception as e:
-            print(f"Error in completion: {e}")
             return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
 
     def stream_completion(self, 
@@ -212,7 +211,7 @@ class OpenAIProvider(LLMProviderBase):
                 yield self.postprocess_stream_response(chunk)
                 
         except Exception as e:
-            print(f"Error in stream_completion: {e}")
+            logger.warn(f"Error in stream_completion: {e}")
             yield ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
             
     async def astream_completion(self, 
@@ -266,7 +265,7 @@ class OpenAIProvider(LLMProviderBase):
                 yield self.postprocess_stream_response(chunk)
                 
         except Exception as e:
-            print(f"Error in astream_completion: {e}")
+            logger.warn(f"Error in astream_completion: {e}")
             yield ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
             
     async def acompletion(self, 
@@ -314,7 +313,7 @@ class OpenAIProvider(LLMProviderBase):
             
             if hasattr(response, 'code') and response.code != 0:
                 error_msg = getattr(response, 'msg', 'Unknown error')
-                print(f"API Error: {error_msg}")
+                logger.warn(f"API Error: {error_msg}")
                 return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
                 
             if not response:
@@ -322,7 +321,7 @@ class OpenAIProvider(LLMProviderBase):
                 
             return self.postprocess_response(response)
         except Exception as e:
-            print(f"Error in acompletion: {e}")
+            logger.warn(f"Error in acompletion: {e}")
             return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
 
 

@@ -5,15 +5,14 @@ import asyncio
 from typing import Any, Dict, List, Generator, AsyncGenerator
 from anthropic import Anthropic, AsyncAnthropic
 
+from aworld.logs.util import logger
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.model_response import ModelResponse
 from aworld.env_secrets import secrets
-from langchain_anthropic import ChatAnthropic
 
 
 class AnthropicProvider(LLMProviderBase):
-    """
-    Anthropic provider implementation
+    """Anthropic provider implementation.
     """
     
     def _init_provider(self):
@@ -171,7 +170,7 @@ class AnthropicProvider(LLMProviderBase):
 
             return self.postprocess_response(response)
         except Exception as e:
-            print(f"Error in Anthropic completion: {e}")
+            logger.warn(f"Error in Anthropic completion: {e}")
             return ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
@@ -245,7 +244,7 @@ class AnthropicProvider(LLMProviderBase):
                 yield self.postprocess_stream_response(chunk)
                 
         except Exception as e:
-            print(f"Error in Anthropic stream_completion: {e}")
+            logger.warn(f"Error in Anthropic stream_completion: {e}")
             yield ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
@@ -320,7 +319,7 @@ class AnthropicProvider(LLMProviderBase):
                 yield self.postprocess_stream_response(chunk)
                 
         except Exception as e:
-            print(f"Error in Anthropic astream_completion: {e}")
+            logger.warn(f"Error in Anthropic astream_completion: {e}")
             yield ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
@@ -389,7 +388,7 @@ class AnthropicProvider(LLMProviderBase):
 
             return self.postprocess_response(response)
         except Exception as e:
-            print(f"Error in Anthropic acompletion: {e}")
+            logger.warn(f"Error in Anthropic acompletion: {e}")
             return ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")

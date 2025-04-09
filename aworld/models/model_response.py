@@ -1,5 +1,120 @@
 from typing import Any, Dict, List, Optional
 import json
+from pydantic import BaseModel
+from dataclasses import dataclass
+
+class ToolCall:
+    """
+    Represents a tool call made by a model
+    """
+
+    def __init__(
+        self,
+        id: str,
+        type: str = "function",
+        name: str = None,
+        arguments: str = None
+    ):
+        """
+        Initialize ToolCall object
+
+        Args:
+            id: Tool call ID
+            type: Tool call type (usually "function")
+            name: Function name
+            arguments: Function arguments (JSON string)
+        """
+        self.id = id
+        self.type = type
+        self.name = name
+        self.arguments = arguments
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ToolCall':
+        """
+        Create ToolCall from dictionary representation
+        
+        Args:
+            data: Dictionary containing tool call data
+            
+        Returns:
+            ToolCall object
+        """
+        if not data:
+            return None
+
+        tool_id = data.get('id', f"call_{hash(str(data)) & 0xffffffff:08x}")
+        tool_type = data.get('type', 'function')
+        
+        function_data = data.get('function', {})
+        name = function_data.get('name')
+        
+        arguments = function_data.get('arguments')
+        # Ensure arguments is a string
+        if arguments and not isinstance(arguments, str):
+            arguments = json.dumps(arguments)
+            
+        return cls(
+            id=tool_id,
+            type=tool_type,
+            name=name,
+            arguments=arguments,
+        )
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert ToolCall to dictionary representation
+        
+        Returns:
+            Dictionary representation
+        """
+        return {
+            "id": self.id,
+            "type": self.type,
+            "function": {
+                "name": self.name,
+                "arguments": self.arguments
+            }
+        }
+    
+    def __json__(self):
+        """
+        Make ToolCall JSON serializable
+        """
+        return self.to_dict()
+        
+    def __repr__(self):
+        return json.dumps(self.to_dict())
+        
+    def toJSON(self):
+        """
+        Convert to JSON serializable format
+        """
+        return self.to_dict()
+        
+    def __iter__(self):
+        """
+        Make ToolCall dict-like for JSON serialization
+        """
+        yield from self.to_dict().items()
+        
+    def __getstate__(self):
+        """
+        Return state for pickle serialization (also used by json serialization)
+        """
+        return self.to_dict()
+        
+    def to_json(self):
+        """
+        Convert to JSON string
+        """
+        return json.dumps(self.to_dict())
+        
+    def default(self):
+        """
+        Support for json.dumps default parameter
+        """
+        return self.to_dict()
 
 
 class ModelResponse:
@@ -12,8 +127,7 @@ class ModelResponse:
         id: str,
         model: str,
         content: str = None,
-        tool_calls: List[Dict[str, Any]] = None,
-        function_call: Dict[str, Any] = None,
+        tool_calls: List[ToolCall] = None,
         usage: Dict[str, int] = None,
         error: str = None,
         raw_response: Any = None,
@@ -27,7 +141,6 @@ class ModelResponse:
             model: Model name used
             content: Generated text content
             tool_calls: List of tool calls
-            function_call: Function call information (compatible with legacy API)
             usage: Usage statistics (token counts, etc.)
             error: Error message (if any)
             raw_response: Original response object
@@ -36,8 +149,7 @@ class ModelResponse:
         self.id = id
         self.model = model
         self.content = content
-        self.tool_calls = tool_calls or []
-        self.function_call = function_call
+        self.tool_calls = tool_calls
         self.usage = usage or {
             "completion_tokens": 0,
             "prompt_tokens": 0,
@@ -54,10 +166,7 @@ class ModelResponse:
             }
             
             if tool_calls:
-                self.message["tool_calls"] = tool_calls
-                
-            if function_call:
-                self.message["function_call"] = function_call
+                self.message["tool_calls"] = [tool_call.to_dict() for tool_call in tool_calls]
         else:
             self.message = message
         
@@ -88,7 +197,7 @@ class ModelResponse:
             message = response.choices[0].message
         elif isinstance(response, dict) and response.get('choices'):
             message = response['choices'][0].get('message', {})
-        
+
         if not message:
             return cls(
                 id=response.id if hasattr(response, 'id') else response.get('id', 'unknown'),
@@ -107,7 +216,7 @@ class ModelResponse:
             }
         elif isinstance(response, dict) and response.get('usage'):
             usage = response['usage']
-            
+
         # Build message object
         message_dict = {}
         if hasattr(message, '__dict__'):
@@ -123,16 +232,36 @@ class ModelResponse:
                 "role": "assistant",
                 "content": message.content if hasattr(message, 'content') else None,
                 "tool_calls": message.tool_calls if hasattr(message, 'tool_calls') else None,
-                "function_call": message.function_call if hasattr(message, 'function_call') else None
             }
-            
+
+        # Process tool calls
+        processed_tool_calls = []
+        raw_tool_calls = message.tool_calls if hasattr(message, 'tool_calls') else message_dict.get('tool_calls')
+        if raw_tool_calls:
+            for tool_call in raw_tool_calls:
+                if isinstance(tool_call, dict):
+                    processed_tool_calls.append(ToolCall.from_dict(tool_call))
+                else:
+                    # Handle OpenAI object
+                    tool_call_dict = {
+                        "id": tool_call.id if hasattr(tool_call, 'id') else f"call_{hash(str(tool_call)) & 0xffffffff:08x}",
+                        "type": tool_call.type if hasattr(tool_call, 'type') else "function"
+                    }
+
+                    if hasattr(tool_call, 'function'):
+                        function = tool_call.function
+                        tool_call_dict["function"] = {
+                            "name": function.name if hasattr(function, 'name') else None,
+                            "arguments": function.arguments if hasattr(function, 'arguments') else None
+                        }
+                    processed_tool_calls.append(ToolCall.from_dict(tool_call_dict))
+
         # Create and return ModelResponse
         return cls(
             id=response.id if hasattr(response, 'id') else response.get('id', 'unknown'),
             model=response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
             content=message.content if hasattr(message, 'content') else message.get('content'),
-            tool_calls=message.tool_calls if hasattr(message, 'tool_calls') else message.get('tool_calls'),
-            function_call=message.function_call if hasattr(message, 'function_call') else message.get('function_call'),
+            tool_calls=processed_tool_calls or None,
             usage=usage,
             raw_response=response,
             message=message_dict
@@ -173,28 +302,45 @@ class ModelResponse:
         message = None
         content = None
         tool_calls = None
-        function_call = None
-        
+        processed_tool_calls = []
+
         if hasattr(chunk, 'choices') and chunk.choices:
             delta = chunk.choices[0].delta
             if hasattr(delta, 'content') and delta.content:
                 content = delta.content
             if hasattr(delta, 'tool_calls') and delta.tool_calls:
-                tool_calls = delta.tool_calls
-            if hasattr(delta, 'function_call') and delta.function_call:
-                function_call = delta.function_call
+                raw_tool_calls = delta.tool_calls
+                for tool_call in raw_tool_calls:
+                    if isinstance(tool_call, dict):
+                        processed_tool_calls.append(ToolCall.from_dict(tool_call))
+                    else:
+                        # Handle OpenAI object
+                        tool_call_dict = {
+                            "id": tool_call.id if hasattr(tool_call, 'id') else f"call_{hash(str(tool_call)) & 0xffffffff:08x}",
+                            "type": tool_call.type if hasattr(tool_call, 'type') else "function"
+                        }
+                        
+                        if hasattr(tool_call, 'function'):
+                            function = tool_call.function
+                            tool_call_dict["function"] = {
+                                "name": function.name if hasattr(function, 'name') else None,
+                                "arguments": function.arguments if hasattr(function, 'arguments') else None
+                            }
+                        
+                        processed_tool_calls.append(ToolCall.from_dict(tool_call_dict))
         elif isinstance(chunk, dict) and chunk.get('choices'):
             delta = chunk['choices'][0].get('delta', {})
             content = delta.get('content')
-            tool_calls = delta.get('tool_calls')
-            function_call = delta.get('function_call')
-            
+            raw_tool_calls = delta.get('tool_calls')
+            if raw_tool_calls:
+                for tool_call in raw_tool_calls:
+                    processed_tool_calls.append(ToolCall.from_dict(tool_call))
+
         # Create message object
         message = {
             "role": "assistant",
             "content": content,
-            "tool_calls": tool_calls,
-            "function_call": function_call,
+            "tool_calls": [tool_call.to_dict() for tool_call in processed_tool_calls] if processed_tool_calls else None,
             "is_chunk": True
         }
         
@@ -203,8 +349,7 @@ class ModelResponse:
             id=chunk.id if hasattr(chunk, 'id') else chunk.get('id', 'unknown'),
             model=chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'),
             content=content,
-            tool_calls=tool_calls,
-            function_call=function_call,
+            tool_calls=processed_tool_calls or None,
             raw_response=chunk,
             message=message
         )
@@ -238,15 +383,14 @@ class ModelResponse:
                 
             # Handle delta content
             content = None
-            tool_calls = None
-            function_call = None
-            
+            processed_tool_calls = []
+
             if hasattr(chunk, 'delta') and chunk.delta:
                 delta = chunk.delta
                 if hasattr(delta, 'text') and delta.text:
                     content = delta.text
                 elif hasattr(delta, 'tool_use') and delta.tool_use:
-                    tool_call = {
+                    tool_call_dict = {
                         "id": f"call_{delta.tool_use.id}",
                         "type": "function",
                         "function": {
@@ -254,18 +398,13 @@ class ModelResponse:
                             "arguments": delta.tool_use.input if isinstance(delta.tool_use.input, str) else json.dumps(delta.tool_use.input)
                         }
                     }
-                    tool_calls = [tool_call]
-                    function_call = {
-                        "name": delta.tool_use.name,
-                        "arguments": delta.tool_use.input if isinstance(delta.tool_use.input, str) else json.dumps(delta.tool_use.input)
-                    }
+                    processed_tool_calls.append(ToolCall.from_dict(tool_call_dict))
                     
             # Create message object
             message = {
                 "role": "assistant",
                 "content": content,
-                "tool_calls": tool_calls,
-                "function_call": function_call,
+                "tool_calls": [tool_call.to_dict() for tool_call in processed_tool_calls] if processed_tool_calls else None,
                 "is_chunk": True
             }
             
@@ -274,8 +413,7 @@ class ModelResponse:
                 id=chunk.id if hasattr(chunk, 'id') else 'unknown',
                 model=chunk.model if hasattr(chunk, 'model') else 'claude',
                 content=content,
-                tool_calls=tool_calls,
-                function_call=function_call,
+                tool_calls=processed_tool_calls or None,
                 raw_response=chunk,
                 message=message
             )
@@ -305,18 +443,16 @@ class ModelResponse:
                 "content": None,
                 "role": "assistant",
                 "tool_calls": None,
-                "function_call": None
             }
+            
+            processed_tool_calls = []
 
             if hasattr(response, 'content') and response.content:
                 for content_block in response.content:
                     if content_block.type == "text":
                         message["content"] = content_block.text
                     elif content_block.type == "tool_use":
-                        if message["tool_calls"] is None:
-                            message["tool_calls"] = []
-
-                        tool_call = {
+                        tool_call_dict = {
                             "id": f"call_{content_block.id}",
                             "type": "function",
                             "function": {
@@ -324,15 +460,12 @@ class ModelResponse:
                                 "arguments": content_block.input if isinstance(content_block.input, str) else json.dumps(content_block.input)
                             }
                         }
-                        message["tool_calls"].append(tool_call)
-
-                        if len(message["tool_calls"]) == 1:
-                            message["function_call"] = {
-                                "name": content_block.name,
-                                "arguments": content_block.input if isinstance(content_block.input, str) else json.dumps(content_block.input)
-                            }
+                        processed_tool_calls.append(ToolCall.from_dict(tool_call_dict))
             else:
                 message["content"] = ""
+                
+            if processed_tool_calls:
+                message["tool_calls"] = [tool_call.to_dict() for tool_call in processed_tool_calls]
                 
             # Extract usage information
             usage = {
@@ -354,8 +487,7 @@ class ModelResponse:
                 id=response.id if hasattr(response, 'id') else f"chatcmpl-anthropic-{hash(str(response)) & 0xffffffff:08x}",
                 model=response.model if hasattr(response, 'model') else "claude",
                 content=message["content"],
-                tool_calls=message["tool_calls"],
-                function_call=message["function_call"],
+                tool_calls=processed_tool_calls or None,
                 usage=usage,
                 raw_response=response,
                 message=message
@@ -389,18 +521,21 @@ class ModelResponse:
         Returns:
             Dictionary representation
         """
+        tool_calls_dict = None
+        if self.tool_calls:
+            tool_calls_dict = [tool_call.to_dict() for tool_call in self.tool_calls]
+            
         return {
             "id": self.id,
             "model": self.model,
             "content": self.content,
-            "tool_calls": self.tool_calls,
-            "function_call": self.function_call,
+            "tool_calls": tool_calls_dict,
             "usage": self.usage,
             "error": self.error,
             "message": self.message
         }
         
-    def to_message(self) -> Dict[str, Any]:
+    def get_message(self) -> Dict[str, Any]:
         """
         Return message object that can be directly used for subsequent API calls
         
@@ -409,7 +544,7 @@ class ModelResponse:
         """
         return self.message
         
-    def tool_calls_dump_json(self) -> List[Dict[str, Any]]:
+    def _serialize_tool_calls(self) -> List[Dict[str, Any]]:
         """
         Convert tool call objects to JSON format, handling OpenAI object types
         
@@ -421,51 +556,12 @@ class ModelResponse:
             
         result = []
         for tool_call in self.tool_calls:
-            # If already in dictionary format, use directly
-            if isinstance(tool_call, dict):
+            if hasattr(tool_call, 'to_dict'):
+                result.append(tool_call.to_dict())
+            elif isinstance(tool_call, dict):
                 result.append(tool_call)
-                continue
-                
-            # Handle OpenAI object types
-            tool_call_dict = {}
-            
-            # Extract id
-            if hasattr(tool_call, 'id'):
-                tool_call_dict['id'] = tool_call.id
-            elif hasattr(tool_call, 'index'):
-                tool_call_dict['id'] = f"call_{tool_call.index}"
-                
-            # Extract type
-            if hasattr(tool_call, 'type'):
-                tool_call_dict['type'] = tool_call.type
             else:
-                tool_call_dict['type'] = 'function'
-                
-            # Extract function information
-            if hasattr(tool_call, 'function'):
-                function = tool_call.function
-                function_dict = {}
-                
-                if hasattr(function, 'name'):
-                    function_dict['name'] = function.name
-                
-                if hasattr(function, 'arguments'):
-                    # Ensure arguments is a JSON string
-                    if isinstance(function.arguments, str):
-                        try:
-                            # Try to parse JSON
-                            json.loads(function.arguments)
-                            function_dict['arguments'] = function.arguments
-                        except:
-                            # If not a valid JSON, convert to JSON string
-                            function_dict['arguments'] = json.dumps(function.arguments)
-                    else:
-                        function_dict['arguments'] = json.dumps(function.arguments)
-                        
-                tool_call_dict['function'] = function_dict
-                
-            result.append(tool_call_dict)
-            
+                result.append(str(tool_call))
         return result
         
     def to_json(self) -> str:
@@ -479,49 +575,13 @@ class ModelResponse:
             "id": self.id,
             "model": self.model,
             "content": self.content,
-            "tool_calls": self.tool_calls_dump_json(),
-            "function_call": self._serialize_function_call(),
+            "tool_calls": self._serialize_tool_calls(),
             "usage": self.usage,
             "error": self.error,
             "message": self._serialize_message()
         }
         
-        return json.dumps(json_dict, ensure_ascii=False, indent=None)
-        
-    def _serialize_function_call(self) -> Dict[str, Any]:
-        """
-        Serialize function_call object
-        
-        Returns:
-            Dict[str, Any]: Serialized function_call dictionary
-        """
-        if not self.function_call:
-            return None
-            
-        # If already a dictionary, return directly
-        if isinstance(self.function_call, dict):
-            return self.function_call
-            
-        # Handle object types
-        result = {}
-        
-        if hasattr(self.function_call, 'name'):
-            result['name'] = self.function_call.name
-            
-        if hasattr(self.function_call, 'arguments'):
-            # Ensure arguments is a JSON string
-            if isinstance(self.function_call.arguments, str):
-                try:
-                    # Try to parse JSON to validate
-                    json.loads(self.function_call.arguments)
-                    result['arguments'] = self.function_call.arguments
-                except:
-                    # If not a valid JSON, convert to JSON string
-                    result['arguments'] = json.dumps(self.function_call.arguments)
-            else:
-                result['arguments'] = json.dumps(self.function_call.arguments)
-                
-        return result
+        return json.dumps(json_dict, ensure_ascii=False, indent=None, default=lambda obj: obj.to_dict() if hasattr(obj, 'to_dict') else str(obj))
         
     def _serialize_message(self) -> Dict[str, Any]:
         """
@@ -539,10 +599,7 @@ class ModelResponse:
         for key, value in self.message.items():
             if key == 'tool_calls':
                 # Handle tool_calls
-                result[key] = self.tool_calls_dump_json()
-            elif key == 'function_call':
-                # Handle function_call
-                result[key] = self._serialize_function_call()
+                result[key] = self._serialize_tool_calls()
             else:
                 result[key] = value
                 
