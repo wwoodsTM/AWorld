@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 from aworld.agents.debate.deepsearch import deepsearch
-from aworld.agents.debate.old.plan_agent import user_debate_system_prompt, user_debate_prompt
-from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 from aworld.config import AgentConfig
 from aworld.core.agent.base import BaseAgent
 from aworld.core.common import Observation, ActionModel
