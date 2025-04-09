@@ -14,7 +14,7 @@ def get_agent_desc_by_name(name: str) -> Dict[str, Any]:
     return get_agent_desc().get(name, None)
 
 
-def agent_handoffs_desc(agent: 'BaseAgent', use_all: bool = False) -> Dict[str, dict]:
+def agent_handoffs_desc(agent: 'Agent', use_all: bool = False) -> Dict[str, dict]:
     if not agent:
         if use_all:
             # use all agent description

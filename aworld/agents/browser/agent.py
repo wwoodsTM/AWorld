@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMe
 from pydantic import ValidationError
 
 from aworld.config.common import Agents, Tools
-from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
+from aworld.core.agent.base import AgentFactory, Agent, AgentResult
 from aworld.agents.browser.prompts import SystemPrompt
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
@@ -50,14 +50,13 @@ class Trajectory:
 
 
 @AgentFactory.register(name=Agents.BROWSER.value, desc="browser agent")
-class BrowserAgent(BaseAgent):
+class BrowserAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(BrowserAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()
         self.settings = self.conf
         provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
-        if provider == 'openai':
-            self.conf.llm_config.llm_provider = 'chatopenai'
+        self.conf.llm_config.llm_provider = "chat" + provider
 
         self.save_file_path = self.conf.save_file_path
         self.available_actions = self._build_action_prompt()

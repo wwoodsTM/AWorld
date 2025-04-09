@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import time
+import traceback
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List, Union
@@ -194,13 +195,28 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
         if fail_error:
             return Observation(observer=self.name(), info={"exception": fail_error})
 
-        dom_tree = self._parse_dom_tree()
-        image = self.screenshot()
-        pixels_above, pixels_below = self._scroll_info()
-        info = {"pixels_above": pixels_above,
-                "pixels_below": pixels_below,
-                "url": self.page.url}
-        return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+        try:
+            dom_tree = self._parse_dom_tree()
+            image = self.screenshot()
+            pixels_above, pixels_below = self._scroll_info()
+            info = {"pixels_above": pixels_above,
+                    "pixels_below": pixels_below,
+                    "url": self.page.url}
+            return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+        except Exception as e:
+            try:
+                self.page.go_back()
+                dom_tree = self._parse_dom_tree()
+                image = self.screenshot()
+                pixels_above, pixels_below = self._scroll_info()
+                info = {"pixels_above": pixels_above,
+                        "pixels_below": pixels_below,
+                        "url": self.page.url}
+                return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+            except:
+                logger.warning(f"build observation fail, {traceback.format_exc()}")
+                fail_error = str(e)
+                return Observation(observer=self.name(), info={"exception": fail_error})
 
     def _parse_dom_tree(self) -> DomTree:
         args = {

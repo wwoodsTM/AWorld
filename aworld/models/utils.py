@@ -25,7 +25,7 @@ def agent_desc_transform(agent_dict: Dict[str, Any],
     if provider and 'openai' in provider:
         for agent_name, agent_info in agent_dict.items():
             if agents and agent_name not in agents:
-                logger.info(f"{agent_name} can not supported in {agents}, you can set `tools` params to support it.")
+                logger.debug(f"{agent_name} can not supported in {agents}, you can set `tools` params to support it.")
                 continue
 
             for action in agent_info["abilities"]:
@@ -77,7 +77,7 @@ def tool_desc_transform(tool_dict: Dict[str, Any],
     if provider and 'openai' in provider:
         for tool_name, tool_info in tool_dict.items():
             if tools and tool_name not in tools:
-                logger.info(f"{tool_name} can not supported in {tools}, you can set `tools` params to support it.")
+                logger.debug(f"{tool_name} can not supported in {tools}, you can set `tools` params to support it.")
                 continue
 
             for action in tool_info["actions"]:
