@@ -97,6 +97,7 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
     async def connect(self):
         """Connect to the server."""
         try:
+            self.exit_stack = AsyncExitStack()
             transport = await self.exit_stack.enter_async_context(self.create_streams())
             read, write = transport
             session = await self.exit_stack.enter_async_context(ClientSession(read, write))
@@ -134,6 +135,7 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
         """Cleanup the server."""
         async with self._cleanup_lock:
             try:
+                await asyncio.sleep(0.1)
                 await self.exit_stack.aclose()
                 self.session = None
             except Exception as e:

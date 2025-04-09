@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Tuple
 from mcp.types import TextContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
-from aworld.core.mcp.server import MCPServer, MCPServerSse
+from aworld.mcp.server import MCPServer, MCPServerSse
+
 
 class MCPToolExecutor:
     """A tool executor that uses MCP server to execute actions."""
@@ -80,8 +81,8 @@ class MCPToolExecutor:
         results = []
         for action in actions:
             # Check if this is an MCP action
-            if not action.is_mcp:
-                raise ValueError(f"Action {action.action_name} is not an MCP action")
+            # if not action.is_mcp:
+            #     raise ValueError(f"Action {action.action_name} is not an MCP action")
                 
             # Get the server name from tool_name
             server_name = action.tool_name
@@ -146,12 +147,8 @@ class MCPToolExecutor:
             raise RuntimeError("Call init first before calling step.")
 
         # Create the event loop or get the existing one
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # If no event loop is available, create a new one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         reward = 0
         fail_error = ""
@@ -163,6 +160,9 @@ class MCPToolExecutor:
             reward = 1
         except (ValueError, IOError, RuntimeError) as e:
             fail_error = str(e)
+        finally:
+            loop.close()
+
 
         terminated = kwargs.get("terminated", False)
         if action_results:

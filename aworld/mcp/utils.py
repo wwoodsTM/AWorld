@@ -9,10 +9,10 @@ from aworld.mcp.server import MCPServer, MCPServerSse
 
 
 async def run(mcp_servers: list[MCPServer]) -> List[Dict[str, Any]]:
+    openai_tools = []
     for i, server in enumerate(mcp_servers):
         try:
             tools = await server.list_tools()
-            openai_tools = []
             for tool in tools:
                 required = []
                 properties = {}
@@ -39,15 +39,15 @@ async def run(mcp_servers: list[MCPServer]) -> List[Dict[str, Any]]:
                 openai_tools.append({
                     "type": "function",
                     "function": openai_function_schema,
-                    "is_mcp": "true"
+                    #"is_mcp": "true"
                 })
             logging.info(f"✅ server #{i + 1} ({server.name}) connected success，tools: {len(tools)}")
-            return openai_tools
-
 
         except Exception as e:
             logging.error(f"❌ server #{i+1} ({server.name}) connect fail: {e}")
             return []
+
+    return openai_tools
 
 async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of tool description."""

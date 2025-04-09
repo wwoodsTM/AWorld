@@ -2,6 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
+import asyncio
 import copy
 import json
 import traceback
@@ -14,6 +15,7 @@ from openai.types.chat import ChatCompletion, ChatCompletionChunk
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
+from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.models.llm import get_llm_model
 from pydantic import BaseModel
 
@@ -170,6 +172,11 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
 
     def mcp_is_tool(self):
         """Description of mcp servers are tools."""
+        try:
+            return asyncio.run(mcp_tool_desc_transform(self.mcp_servers))
+        except Exception as e:
+            logger.error(f"mcp_is_tool error: {e}")
+
         return []
 
     def desc_transform(self):
@@ -260,7 +267,6 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
                 if not full_name:
                     logger.warning("tool call response no tool name.")
                     continue
-
                 params = json.loads(tool_call.function.arguments)
                 # format in framework
                 names = full_name.split("__")
@@ -268,7 +274,7 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
                 if is_agent_by_name(tool_name):
                     results.append(ActionModel(agent_name=tool_name, params=params, policy_info=content))
                 else:
-                    action_name = names[1] if len(names) > 1 else None
+                    action_name = '__'.join(names[1:]) if len(names) > 1 else None
                     results.append(ActionModel(tool_name=tool_name,
                                                action_name=action_name,
                                                params=params,
