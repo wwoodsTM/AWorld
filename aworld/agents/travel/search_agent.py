@@ -5,13 +5,13 @@ from aworld.agents.travel.prompts import search_prompt, search_sys_prompt, searc
 from aworld.agents.travel.utils import parse_result
 from aworld.config.common import Agents, Tools
 from aworld.config.conf import AgentConfig
-from aworld.core.agent.base import AgentFactory, BaseAgent
+from aworld.core.agent.base import AgentFactory, Agent
 from aworld.core.common import Observation, ActionModel
 
 
 # Step1
 @AgentFactory.register(name=Agents.SEARCH.value, desc="search agent")
-class SearchAgent(BaseAgent):
+class SearchAgent(Agent):
 
     def __init__(self, conf: AgentConfig, **kwargs):
         super(SearchAgent, self).__init__(conf, **kwargs)

@@ -45,7 +45,7 @@ def main():
 
     # Create swarm for multi-agents
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
-    swarm = Swarm((agent1, agent2))
+    swarm = Swarm((agent1, agent2), sequence=False)
 
     # Define a task
     task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())

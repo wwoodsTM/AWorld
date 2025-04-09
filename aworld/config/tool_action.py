@@ -57,6 +57,17 @@ class SearchAction(ToolAction):
                                                                         desc="google search query input.",
                                                                         default_value=5)},
                             desc="Use Google search engine to search information for the given query.")
+    BAIDU = ToolActionInfo(name="baidu",
+                           input_params={"query": ParamInfo(name="query",
+                                                            type="str",
+                                                            required=True,
+                                                            desc="baidu search query input."),
+                                         "num_results": ParamInfo(name="num_results",
+                                                                       type="str",
+                                                                       required=False,
+                                                                       desc="baidu search number of results.",
+                                                                       default_value=5)},
+                           desc="Use Baidu search engine to search information for the given query.")
 
 
 class GymAction(ToolAction):
@@ -214,9 +225,9 @@ class AndroidAction(ToolAction):
                                 desc="Long press the element")
     INPUT_TEXT = ToolActionInfo(name="input_text",
                                 input_params={"text": ParamInfo(name="text",
-                                                                      type="str",
-                                                                      required=True,
-                                                                      desc="Input text into a input interactive element.")},
+                                                                type="str",
+                                                                required=True,
+                                                                desc="Input text into a input interactive element.")},
                                 desc="Input text into a input interactive element")
     DONE = ToolActionInfo(name="done",
                           input_params={"type": ParamInfo(name="type",
@@ -291,14 +302,14 @@ class PythonToolAction(ToolAction):
 class WriteAction(ToolAction):
     """Info Write actions."""
     WRITE_HTML = ToolActionInfo(name="write_html",
-                          input_params={"goal": ParamInfo(name="goal",
-                                                           type="str",
-                                                           required=True,
-                                                           desc="the write goal, about theme, requirements for writing html file."),
-                                        "information": ParamInfo(name="information",
-                                                                 type="str",
-                                                                 required=True,
-                                                                 desc="the related information for writing html file. lengths should less than 6000 words."
-                                            )
-                                        },
-                          desc="write the html file about `goal` based on `information`.")
+                                input_params={"goal": ParamInfo(name="goal",
+                                                                type="str",
+                                                                required=True,
+                                                                desc="the write goal, about theme, requirements for writing html file."),
+                                              "information": ParamInfo(name="information",
+                                                                       type="str",
+                                                                       required=True,
+                                                                       desc="the related information for writing html file. lengths should less than 6000 words."
+                                                                       )
+                                              },
+                                desc="write the html file about `goal` based on `information`.")

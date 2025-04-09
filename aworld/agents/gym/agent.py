@@ -4,13 +4,13 @@
 from typing import Any, Dict, Union, List
 
 from aworld.config.common import Agents, Tools
-from aworld.core.agent.base import BaseAgent, AgentFactory
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.common import Observation, ActionModel
 
 
 @AgentFactory.register(name=Agents.GYM.value, desc="gym agent")
-class GymDemoAgent(BaseAgent):
+class GymDemoAgent(Agent):
     """Example agent"""
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
