@@ -4,8 +4,9 @@
 from typing import Dict, Any, Tuple, SupportsFloat, List, Union
 
 from aworld.config import ConfigDict, ToolConfig
-from aworld.core.envs.tool_action import GymAction
-from aworld.core.common import Tools, Observation, ActionModel
+from aworld.config.common import Tools
+from aworld.config.tool_action import GymAction
+from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.utils import import_package
 from aworld.virtual_environments.utils import build_observation
@@ -44,12 +45,14 @@ class OpenAIGym(Tool[Observation, List[ActionModel]]):
         action = OpenAIGym.transform_action(action=action)
         state, reward, terminal, truncate, info = self.env.step(action)
         info.update(kwargs)
-        info['env_id'] = self.env_id
         self._finished = terminal
 
         return (build_observation(observer=self.name(),
                                   ability=GymAction.PLAY.value.name,
-                                  content=OpenAIGym.transform_state(state=state)),
+                                  content=OpenAIGym.transform_state(state=state),
+                                  env_id=self.env_id,
+                                  done=terminal,
+                                  **kwargs),
                 reward,
                 terminal,
                 truncate,
@@ -65,9 +68,11 @@ class OpenAIGym(Tool[Observation, List[ActionModel]]):
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[Any, Dict[str, Any]]:
         state = self.env.reset()
-        return Observation(observer=self.name(),
-                           ability=GymAction.PLAY.value.name,
-                           content=OpenAIGym.transform_state(state=state)), {"env_id": self.env_id}
+        return build_observation(observer=self.name(),
+                                 ability=GymAction.PLAY.value.name,
+                                 content=OpenAIGym.transform_state(state=state),
+                                 env_id=self.env_id,
+                                 done=False), {}
 
     def _action_dim(self):
         from gymnasium import spaces

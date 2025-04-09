@@ -9,8 +9,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from aworld.core.envs.tool_action import BrowserAction
-from aworld.core.common import Observation, ActionModel, ActionResult, Tools
+from aworld.config.common import Tools
+from aworld.config.tool_action import BrowserAction
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.core.envs.tool import action_executor, ToolFactory, AsyncTool
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
@@ -219,6 +220,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
 
         observation = await self._get_observation()
         observation.action_result = [ActionResult(content='start', keep=True)]
+        observation.ability = ''
         self.cur_observation = observation
         return observation, {}
 
@@ -264,6 +266,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         try:
             action_result, self.page = await self.action_executor.async_execute_action(action,
                                                                                        observation=self.cur_observation,
+                                                                                       llm_config=self.conf.llm_config
                                                                                        **kwargs)
             reward = 1
         except Exception as e:
@@ -299,8 +302,8 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         else:
             # normal observation
             observation = await self._get_observation()
-            observation.ability = action[-1].action_name
             observation.action_result = action_result
+            observation.ability = action[-1].action_name
             self.cur_observation = observation
             return (observation,
                     reward,

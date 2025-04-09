@@ -30,7 +30,7 @@ def load_config(file_name: str, dir_name: str = None) -> Dict[str, Any]:
         current_dir = Path(__file__).parent.absolute()
         file_path = os.path.join(current_dir, file_name)
     if not os.path.exists(file_path):
-        logger.warning(f"{file_path} not exists, please check it.")
+        logger.debug(f"{file_path} not exists, please check it.")
 
     configs = dict()
     try:
@@ -38,7 +38,7 @@ def load_config(file_name: str, dir_name: str = None) -> Dict[str, Any]:
             yaml_data = yaml.safe_load(file)
         configs.update(yaml_data)
     except FileNotFoundError:
-        logger.warning(f"Can not find the file: {file_path}")
+        logger.debug(f"Can not find the file: {file_path}")
     except Exception as e:
         logger.warning(f"{file_name} read fail.\n", traceback.format_exc())
     return configs
@@ -81,6 +81,7 @@ class ModelConfig(BaseModel):
 
 class AgentConfig(BaseModel):
     name: str = None
+    desc: str = None
     llm_config: ModelConfig = ModelConfig()
     # for compatibility
     llm_provider: str = None
@@ -93,6 +94,8 @@ class AgentConfig(BaseModel):
     max_input_tokens: int = 128000
     max_actions_per_step: int = 10
     system_prompt: Optional[str] = None
+    agent_prompt: Optional[str] = None
+    output_prompt: Optional[str] = None
     working_dir: Optional[str] = None
     enable_recording: bool = False
     ext: dict = {}
@@ -113,6 +116,7 @@ class ToolConfig(BaseModel):
     working_dir: str = ""
     max_retry: int = 3
     llm_config: ModelConfig = None
+    reuse: bool = False
     ext: dict = {}
 
 

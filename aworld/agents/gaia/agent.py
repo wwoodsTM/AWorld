@@ -6,10 +6,11 @@ import time
 import traceback
 from typing import Dict, Any, List, Union
 
-from aworld.core.agent.base import BaseAgent, AgentFactory
+from aworld.config.common import Agents
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.models.utils import tool_desc_transform
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.core.common import Observation, ActionModel, Agents
+from aworld.core.common import Observation, ActionModel
 from aworld.logs.util import logger
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.agents.gaia.prompts import *
@@ -17,7 +18,7 @@ from aworld.agents.gaia.utils import extract_pattern
 
 
 @AgentFactory.register(name=Agents.EXECUTE.value, desc="execute agent")
-class ExecuteAgent(BaseAgent):
+class ExecuteAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
         self.has_summary = False
@@ -119,7 +120,7 @@ class ExecuteAgent(BaseAgent):
 
 
 @AgentFactory.register(name=Agents.PLAN.value, desc="plan agent")
-class PlanAgent(BaseAgent):
+class PlanAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(PlanAgent, self).__init__(conf, **kwargs)
 
