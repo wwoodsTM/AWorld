@@ -22,5 +22,5 @@ if __name__ == '__main__':
     )
 
     # Define a task
-    task = Task(input="杭州西湖最近1公里的酒店", agent=search, conf=TaskConfig())
+    task = Task(input="Hotels within 1 kilometer of West Lake in Hangzhou", agent=search, conf=TaskConfig())
     task.run()
