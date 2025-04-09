@@ -22,18 +22,19 @@ from aworld.agents.android.utils import (
 from aworld.agents.browser.common import AgentStepInfo
 from aworld.config.common import Agents, Tools
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
+from aworld.core.agent.base import AgentFactory, Agent, AgentResult
 from aworld.core.common import Observation, ActionModel, ToolActionInfo
 from aworld.config.tool_action import AndroidAction
 from aworld.logs.util import logger
 
 
 @AgentFactory.register(name=Agents.ANDROID.value, desc="android agent")
-class AndroidAgent(BaseAgent):
+class AndroidAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(AndroidAgent, self).__init__(conf, **kwargs)
-        if self.conf.llm_provider == 'openai':
-            self.conf.llm_provider = 'chatopenai'
+        provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
+        if provider == 'openai':
+            self.conf.llm_config.llm_provider = 'chatopenai'
         self._build_prompt()
         self.available_actions_desc = self._build_action_prompt()
         # Settings

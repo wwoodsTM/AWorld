@@ -15,8 +15,8 @@ current_dir = Path(__file__).parent
 root_dir = current_dir.parent
 sys.path.insert(0, str(root_dir))
 
-from aworld.workspace.artifact import ArtifactType
-from aworld.workspace.workspace import WorkSpace
+from aworld.output.artifact import ArtifactType
+from aworld.output.workspace import WorkSpace
 
 
 def main():

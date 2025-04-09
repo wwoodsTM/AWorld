@@ -13,7 +13,7 @@ from aworld.core.envs.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
-from aworld.utils.name_transform import convert_to_snake
+from aworld.utils.common import convert_to_snake
 
 AgentInput = TypeVar("AgentInput")
 ToolInput = TypeVar("ToolInput")
@@ -37,14 +37,14 @@ class Tool(Generic[AgentInput, ToolInput]):
             self.conf = ConfigDict(conf.model_dump())
         else:
             logger.warning(f"Unknown conf type: {type(conf)}")
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
         self._finished = False
 
-        self._name = self.conf.get("name", convert_to_snake(self.__class__.__name__))
+        self._name = kwargs.pop('name', self.conf.get("name", convert_to_snake(self.__class__.__name__)))
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def name(self):
         """Tool unique name."""
@@ -142,6 +142,7 @@ class ToolsManager(Factory):
         super(ToolsManager, self).__init__(type_name)
         self._tool_with_action = {}
         self._tool_conf = {}
+        self._tool_instance = {}
 
     def __call__(self, name: str = None, *args, **kwargs):
         if name is None:
@@ -169,8 +170,13 @@ class ToolsManager(Factory):
         # must is a dict
         conf['name'] = name
         conf = ConfigDict(conf)
+
+        if kwargs.get("reuse", conf.get('reuse', False)) is True and name in self._tool_instance:
+            return self._tool_instance[name]
+
         if name in self._cls:
             tool = self._cls[name](conf=conf, **kwargs)
+            self._tool_instance[name] = tool
         else:
             # default browser env tool
             logger.warning("Empty tool name, default use 'browser'")

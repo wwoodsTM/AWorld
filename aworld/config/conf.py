@@ -81,6 +81,7 @@ class ModelConfig(BaseModel):
 
 class AgentConfig(BaseModel):
     name: str = None
+    desc: str = None
     llm_config: ModelConfig = ModelConfig()
     # for compatibility
     llm_provider: str = None
@@ -93,6 +94,8 @@ class AgentConfig(BaseModel):
     max_input_tokens: int = 128000
     max_actions_per_step: int = 10
     system_prompt: Optional[str] = None
+    agent_prompt: Optional[str] = None
+    output_prompt: Optional[str] = None
     working_dir: Optional[str] = None
     enable_recording: bool = False
     ext: dict = {}
@@ -113,6 +116,7 @@ class ToolConfig(BaseModel):
     working_dir: str = ""
     max_retry: int = 3
     llm_config: ModelConfig = None
+    reuse: bool = False
     ext: dict = {}
 
 

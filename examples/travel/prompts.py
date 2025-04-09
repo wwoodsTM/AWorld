@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-PROMPT_TEMPLATE = """
+plan_sys_prompt = """
 You are an AI agent designed to automate tasks. Your goal is to accomplish the ultimate task following the rules.
 
 # Input Format
@@ -37,6 +37,8 @@ Previous steps
 there are actions you can use：
 [{'type': 'function', 'function': {'name': 'search_agent', 'description': 'Search the abstract and url from search api for the specific task.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the search query input.', 'type': 'string'}}, 'required': ['query']}}}, {'type': 'function', 'function': {'name': 'browser_agent', 'description': 'use browser agent execute specific task like extract content from url.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the task you want browser agent to do, if extract, please give extract goal and complete url', 'type': 'string'}, 'required': ['task']}}}, {'type': 'function', 'function': {'name': 'write_agent', 'description': 'Use write agent to write file about specific tasks.', 'parameters': {'type': 'object', 'properties': {'task': {'description': 'the specific writing task description.', 'type': 'string'}, 'refer': {'description': 'the related information write agent need refer.', 'type': 'string'}}, 'required': ['task', 'refer']}}}]
 """
+
+plan_prompt = """Your ultimate task is: {task}. If you achieved your ultimate task, stop everything and use the done action in the next step to complete the task. If not, continue as usual."""
 
 search_sys_prompt = "You are a helpful search agent."
 
