@@ -70,7 +70,7 @@ class ActionModel(BaseModel):
 
 
 class AgentPolicy(BaseModel):
-    """The unified model of BaseAgent response can be provided to the agent, or tool actions in environmental."""
+    """The unified model of Agent response can be provided to the agent, or tool actions in environmental."""
 
     # decision to agent policy
     actions: List[ActionModel]

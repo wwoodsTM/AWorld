@@ -9,7 +9,7 @@ from typing import Union, Dict, Any, List
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
-from aworld.core.agent.base import BaseAgent, agent_executor, is_agent_by_name
+from aworld.core.agent.base import Agent, agent_executor, is_agent_by_name
 from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
@@ -24,13 +24,13 @@ class TaskModel:
     tools: List[Tool] = field(default_factory=list)
     tool_names: List[str] = field(default_factory=list)
     swarm: Swarm = None
-    agent: BaseAgent = None
+    agent: Agent = None
 
 
 class Task(object):
     def __init__(self,
                  task: TaskModel = None,
-                 agent: BaseAgent = None,
+                 agent: Agent = None,
                  swarm: Swarm = None,
                  name: str = uuid.uuid1().hex,
                  input: Any = None,
@@ -183,7 +183,7 @@ class Task(object):
                 if self.is_agent(policy[0]):
                     # only one agent, and get agent from policy
                     policy_for_agent = policy[0]
-                    cur_agent: BaseAgent = self.swarm.agents.get(policy_for_agent.agent_name)
+                    cur_agent: Agent = self.swarm.agents.get(policy_for_agent.agent_name)
                     if not cur_agent:
                         raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
                     if cur_agent.name() == agent.name():
@@ -356,7 +356,7 @@ class Task(object):
                 if self.is_agent(policy[0]):
                     # only one agent, and get agent from policy
                     policy_for_agent = policy[0]
-                    cur_agent: BaseAgent = self.swarm.agents.get(policy_for_agent.agent_name)
+                    cur_agent: Agent = self.swarm.agents.get(policy_for_agent.agent_name)
                     if not cur_agent:
                         raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
                     if cur_agent.name() == self.swarm.communicate_agent.name():
@@ -426,7 +426,7 @@ class Task(object):
                         break
                     elif policy[0].agent_name:
                         policy_for_agent = policy[0]
-                        cur_agent: BaseAgent = self.swarm.agents.get(policy_for_agent.agent_name)
+                        cur_agent: Agent = self.swarm.agents.get(policy_for_agent.agent_name)
                         if not cur_agent:
                             raise RuntimeError(f"Can not find {policy_for_agent.agent_name} agent in swarm.")
                         if self.swarm.cur_agent.handoffs and policy_for_agent.agent_name not in self.swarm.cur_agent.handoffs:

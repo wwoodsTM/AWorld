@@ -2,7 +2,7 @@
 
 from aworld.agents.travel.prompts import write_prompt, write_sys_prompt, write_output_prompt
 from aworld.config.conf import AgentConfig, ModelConfig
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import Agent
 
 model_config = ModelConfig(
     llm_provider="openai",
@@ -15,7 +15,7 @@ agent_config = AgentConfig(
     llm_config=model_config,
 )
 
-search = BaseAgent(
+search = Agent(
     conf=agent_config,
     name="search_agent",
     system_prompt=write_sys_prompt,
