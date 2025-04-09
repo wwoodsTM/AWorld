@@ -1,3 +1,4 @@
+import re
 import time
 import asyncio
 from typing import Callable
@@ -78,45 +79,58 @@ class MetricContext:
         metric.record(value, labels)
     
 
-def track_api_metrics():
+class ApiMetricTracker:
     """
     Decorator to track API metrics.
     """
+    def __init__(self, api_name: str = None, func: Callable = None):
+        self.start_time = None
+        self.status = "success"
+        self.func = func
+        self.api_name = api_name
+        if self.api_name is None and self.func is not None:
+            self.api_name = self.func.__name__
 
-    def _record_metrics(func: Callable, start_time: float, status: str) -> None:
+    def _new_tracker(self, func: Callable):
+        return self.__class__(func=func)
+
+    def __enter__(self):
+        self.start_time = time.time() * 1000
+
+    def __exit__(self, exc_type, value, traceback):
+        if exc_type is None:
+            self.status = "success"
+        else:
+            self.status = "failure"
+        self._record_metrics(self.api_name, self.start_time, self.status)
+
+    def __call__(self, func: Callable = None) -> Callable:
+        if func is None:
+            return self
+        return self.decorator(func)
+
+    def _record_metrics(self, api_name: str, start_time: float, status: str) -> None:
         """
         Record metrics for the API.
         """
-        method = func.__name__
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.time() * 1000 - start_time
         MetricContext.count(MetricTemplates.REQUEST_COUNT, 1, 
-                      labels={"method": method, "status": status})
+                      labels={"method": api_name, "status": status})
         MetricContext.histogram_record(MetricTemplates.REQUEST_LATENCY, elapsed_time,
-                                 labels={"method": method, "status": status})
+                                 labels={"method": api_name, "status": status})
 
-    def decorator(func):
+    def decorator(self, func):
+        """
+        Decorator to track API metrics.
+        """
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            start_time = time.time()
-            try:
-                result = await func(*args, **kwargs)
-                _record_metrics(func, start_time, "success")
-                return result
-            except Exception as e:
-                _record_metrics(func, start_time, "failure")
-                raise e       
+            with self._new_tracker(func):
+                return await func(*args, **kwargs) 
         
         @wraps(func)
         def wrapper(*args, **kwargs):
-            start_time = time.time()
-            try:
-                result = func(*args, **kwargs)
-                _record_metrics(func, start_time, "success")
-                return result
-            except Exception as e:
-                _record_metrics(func, start_time, "failure")
-                raise e
+            with self._new_tracker(func):
+                return func(*args, **kwargs)
     
         return async_wrapper if asyncio.iscoroutinefunction(func) else wrapper
-
-    return decorator

@@ -293,6 +293,7 @@ class PrometheusConsoleMetricExporter(BaseMetricExporter):
         self.out_interval_secs = out_interval_secs
         # Bug修复: 调用当前类的方法时需要加上 `self.`
         self.metrics_thread = threading.Thread(target=self._output_metrics_to_console)
+        self.metrics_thread.daemon = True
         self.metrics_thread.start()
 
     def _output_metrics_to_console(self):
