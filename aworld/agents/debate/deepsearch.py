@@ -1,4 +1,4 @@
-from aworld.agents.debate.main import DebateSpeech
+from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 
 

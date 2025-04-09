@@ -5,22 +5,18 @@ from typing import Dict, Any, Union, List, Optional, Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.deepsearch import deepsearch
 from aworld.config import AgentConfig
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import BaseAgent, Agent
 from aworld.core.common import Observation, ActionModel
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.output.workspace import WorkSpace
 
-class DebateSpeech(BaseModel):
-    name: str
-    type: str
-    content: str
-    round: int
 
 
-class DebateAgent(BaseAgent):
+class DebateAgent(Agent):
 
     workspace: WorkSpace
 
@@ -122,21 +118,21 @@ class DebateArena:
         Returns: list[DebateSpeech]
 
         """
-        for i in range(rounds):
+        for i in range(1, rounds+1):
             logging.info(f"round#{i} start")
 
             # affirmative_speech
-            speech = self.affirmative_speech(i, topic, affirmative_opinion)
+            speech = self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
             self.speeches.append(speech)
 
             # negative_speech
-            speech = self.negative_speech(i, topic, negative_opinion)
+            speech = self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
             self.speeches.append(speech)
 
             logging.info(f"round#{i} end")
         return self.speeches
 
-    def affirmative_speech(self, round: int, topic: str, opinion: str) -> DebateSpeech:
+    def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
         affirmative_speaker will start speech
         """
@@ -145,12 +141,12 @@ class DebateArena:
 
         logging.info(affirmative_speaker.name() + ": " + "start")
 
-        speech = affirmative_speaker.speech(topic, opinion, round, self.speeches)
+        speech = affirmative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
         self.store_speech(speech)
 
         logging.info(affirmative_speaker.name() + ":  result: " + speech.content)
 
-    def negative_speech(self, round: int, topic: str, opinion: str) -> DebateSpeech:
+    def negative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
         after affirmative_speaker finished speech, negative_speaker will start speech
         """
@@ -159,7 +155,7 @@ class DebateArena:
 
         logging.info(negative_speaker.name() + ": " + "start")
 
-        speech = negative_speaker.speech(topic, opinion, round, self.speeches)
+        speech = negative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
         
         self.store_speech(speech)
 
