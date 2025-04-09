@@ -1,5 +1,6 @@
 import logging
 import os
+from abc import ABC
 from typing import Dict, Any, Union, List, Optional, Literal
 
 from dotenv import load_dotenv
@@ -16,7 +17,7 @@ from aworld.output.workspace import WorkSpace
 
 
 
-class DebateAgent(Agent):
+class DebateAgent(Agent, ABC):
 
     workspace: WorkSpace
 
@@ -119,7 +120,7 @@ class DebateArena:
 
         """
         for i in range(1, rounds+1):
-            logging.info(f"round#{i} start")
+            logging.info(f"✈️==================================== round#{i} start =============================================")
 
             # affirmative_speech
             speech = self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
@@ -129,7 +130,7 @@ class DebateArena:
             speech = self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
             self.speeches.append(speech)
 
-            logging.info(f"round#{i} end")
+            logging.info(f"🛬==================================== round#{i} end =============================================")
         return self.speeches
 
     def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
