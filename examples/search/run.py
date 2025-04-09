@@ -59,8 +59,11 @@ if __name__ == "__main__":
     # default is sequence swarm mode
     swarm = Swarm(search, summary)
 
+    prefix = ""
+    # can special search google, wiki, duck go, or baidu. such as:
+    # prefix = "search wiki: "
     res = Task(
-        input="""search baidu: Best places in Japan for kendo, tea ceremony, and Zen meditation near Kyoto, Nara, or Kobe""",
+        input=prefix + """What is an agent.""",
         swarm=swarm,
     ).run()
     print(res['answer'])

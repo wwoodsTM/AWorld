@@ -180,7 +180,7 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
                                          tools=self.tool_names if self.tool_names else [])
         # Agents as tool
         self.tools.extend(self.handoffs_agent_as_tool())
-                                                                                                                                                                                                                                                                            # MCP servers are tools
+        # MCP servers are tools
         self.tools.extend(self.mcp_is_tool())
 
     def messages_transform(self,
