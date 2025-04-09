@@ -1,6 +1,5 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-import collections
 from typing import Dict, Any, List
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
@@ -12,13 +11,14 @@ from aworld.logs.util import logger
 class Swarm(object):
     """Simple implementation of interactive collaboration between multi-agent and supported env tools."""
 
-    def __init__(self, *args, root_agent: BaseAgent = None, **kwargs):
+    def __init__(self, *args, root_agent: BaseAgent = None, sequence: bool=True, **kwargs):
         self.communicate_agent = root_agent
         if root_agent and root_agent not in args:
             self._topology = [root_agent] + list(args)
         else:
             self._topology = args
         self._ext_params = kwargs
+        self.sequence = sequence
         self.initialized = False
 
     def _init(self, **kwargs):
@@ -48,10 +48,16 @@ class Swarm(object):
         if self.communicate_agent is None:
             self.communicate_agent: Agent = valid_agent_pair[0][0]
         # agents in swarm.
-        self.agents: Dict[str, BaseAgent] = collections.OrderedDict()
+        self.agents: Dict[str, BaseAgent] = dict()
+        self.ordered_agents: List[BaseAgent] = []
 
         # agent handoffs build.
         for pair in valid_agent_pair:
+            if self.sequence:
+                self.ordered_agents.append(pair[0])
+                if len(pair) == 2:
+                    self.ordered_agents.append(pair[1])
+
             if pair[0] not in self.agents:
                 self.agents[pair[0].name()] = pair[0]
                 pair[0].tool_names.extend(self.tools)
@@ -65,6 +71,9 @@ class Swarm(object):
             if self.topology_type == 'social':
                 # need to explicitly set handoffs in the agent
                 pair[0].handoffs.append(pair[1].name())
+
+        if self.sequence:
+            self.topology_type = 'sequence'
 
     def reset(self, tools: List[str] = []):
         """Resets the initial internal state, and init supported tools in agent in swarm.

@@ -124,6 +124,7 @@ class Agent(Generic[INPUT, OUTPUT]):
         self.task = options.get("task")
         self.tool_names = options.get("tool_names", [])
         self.handoffs = options.get("agent_names", [])
+        self.mcp_servers = options.get("mcp_servers", [])
         self.trajectory = []
         self._finished = False
 
@@ -145,9 +146,11 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
         self.memory = []
+        self.desc = kwargs.pop("desc") if kwargs.get("desc") else conf.desc
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+        agent_executor.register(self.name(), self)
 
     @property
     def llm(self):
@@ -394,7 +397,8 @@ class AgentExecutor(object):
                 llm_response = agent.llm.chat.completions.create(
                     messages=messages,
                     model=agent.model_name,
-                    **{'temperature': 0, 'tools': agent.tools},
+                    temperature=agent.conf.llm_config.llm_temperature,
+                    tools=agent.tools if agent.tools else None
                 )
                 logger.info(f"Execute response: {llm_response.choices[0].message}")
             except Exception as e:

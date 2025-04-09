@@ -138,9 +138,12 @@ class Task(object):
 
         self.swarm.reset(self.tool_names)
         for agent in self.swarm.agents.values():
-            agent.reset({"task": observation.content})
+            agent.reset({"task": observation.content,
+                         "tool_names": agent.tool_names,
+                         "agent_names": agent.handoffs,
+                         "mcp_servers": agent.mcp_servers})
             # global tools
-            agent.tool_names = self.tool_names
+            agent.tool_names.extend(self.tool_names)
 
         if self.swarm.topology_type == 'social':
             return self._social_process(observation, info)
@@ -156,7 +159,7 @@ class Task(object):
         max_steps = self.conf.get("max_steps", 100)
         msg = None
 
-        for _, agent in self.swarm.agents.items():
+        for agent in self.swarm.ordered_agents:
             observations = [observation]
             policy = None
             while step < max_steps:
@@ -206,9 +209,9 @@ class Task(object):
                     else:
                         observation = Observation(content=policy_for_agent.policy_info)
                     policy = agent_executor.execute_agent(observation,
-                                                                agent=cur_agent,
-                                                                conf=cur_agent.conf,
-                                                                step=step)
+                                                          agent=cur_agent,
+                                                          conf=cur_agent.conf,
+                                                          step=step)
 
                     if not policy:
                         logger.warning(
@@ -254,8 +257,8 @@ class Task(object):
                 "success": True if not msg else False}
 
     def _social_process(self,
-                           observation: Observation,
-                           info: Dict[str, Any]) -> Dict[str, Any]:
+                        observation: Observation,
+                        info: Dict[str, Any]) -> Dict[str, Any]:
         start = time.time()
 
         step = 0

@@ -55,9 +55,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # We use it as a showcase to demonstrate the framework's scalability.
     main()
 
-    # We can run the task use utility method, as follows:
+    # Can run the task use utility method, as follows:
     # async run gym
     # agym_tool = ToolFactory("async_"+Tools.GYM.value)
     # agent = GymAgent(AgentConfig())
