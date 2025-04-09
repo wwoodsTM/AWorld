@@ -61,7 +61,7 @@ class MemoryModel(BaseModel):
     content: Any = None
 
 
-class Agent(Generic[INPUT, OUTPUT]):
+class BaseAgent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
@@ -77,6 +77,8 @@ class Agent(Generic[INPUT, OUTPUT]):
             logger.warning(f"Unknown conf type: {type(conf)}")
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
+        self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get("name",
+                                                                                 ' '.join(self._name.split('_')))
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -96,8 +98,10 @@ class Agent(Generic[INPUT, OUTPUT]):
             setattr(self, k, v)
 
     def name(self) -> str:
-        """Agent name that must be implemented in subclasses"""
         return self._name
+
+    def desc(self) -> str:
+        return self._desc
 
     @abc.abstractmethod
     def policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
@@ -138,15 +142,14 @@ class Agent(Generic[INPUT, OUTPUT]):
         return self._finished
 
 
-class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
+class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
     """Basic agent for unified protocol within the framework."""
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
-        super(BaseAgent, self).__init__(conf, **kwargs)
+        super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
         self.memory = []
-        self.desc = kwargs.pop("desc") if kwargs.get("desc") else conf.desc
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
@@ -177,7 +180,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
                                          tools=self.tool_names if self.tool_names else [])
         # Agents as tool
         self.tools.extend(self.handoffs_agent_as_tool())
-        # MCP servers are tools
+                                                                                                                                                                                                                                                                            # MCP servers are tools
         self.tools.extend(self.mcp_is_tool())
 
     def messages_transform(self,
@@ -355,11 +358,11 @@ AgentFactory = AgentManager("agent_type")
 class AgentExecutor(object):
     """The default executor for agent execution can be used for sequential execution by the user."""
 
-    def __init__(self, agent: BaseAgent = None):
+    def __init__(self, agent: Agent = None):
         self.agent = agent
-        self.agents: Dict[str, BaseAgent] = {}
+        self.agents: Dict[str, Agent] = {}
 
-    def register(self, name: str, agent: BaseAgent):
+    def register(self, name: str, agent: Agent):
         self.agents[name] = agent
 
     def execute(self, observation: Observation, **kwargs) -> List[ActionModel]:
@@ -372,7 +375,7 @@ class AgentExecutor(object):
 
     def execute_agent(self,
                       observation: Observation,
-                      agent: BaseAgent,
+                      agent: Agent,
                       **kwargs) -> List[ActionModel]:
         """The synchronous execution process of the agent with some hooks.
 
@@ -430,7 +433,7 @@ class AgentExecutor(object):
 
     async def async_execute_agent(self,
                                   observation: Observation,
-                                  agent: BaseAgent,
+                                  agent: Agent,
                                   **kwargs) -> List[ActionModel]:
         """The asynchronous execution process of the agent.
 
@@ -450,7 +453,7 @@ class AgentExecutor(object):
                 logger.warning(traceback.format_exc())
                 return [ActionModel(agent_name=agent.name())]
 
-    def _get_or_create_agent(self, name: str, agent: BaseAgent = None, conf=None):
+    def _get_or_create_agent(self, name: str, agent: Agent = None, conf=None):
         if agent is None:
             agent = self.agents.get(name)
             if agent is None:

@@ -31,7 +31,8 @@ if __name__ == '__main__':
         llm_config=llm_config,
         max_actions_per_step=10,
         max_input_tokens=128000,
-        working_dir="."
+        working_dir=".",
+        use_vision=False
     )
 
     task_config = {

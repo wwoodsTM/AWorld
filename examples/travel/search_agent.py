@@ -4,7 +4,7 @@ import os
 
 from aworld.config.common import Tools
 from aworld.config.conf import ModelConfig, AgentConfig
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import Agent
 from examples.travel.prompts import search_sys_prompt, search_prompt, search_output_prompt
 
 # set key and id
@@ -22,7 +22,7 @@ agent_config = AgentConfig(
     llm_config=model_config,
 )
 
-search = BaseAgent(
+search = Agent(
     conf=agent_config,
     name="search_agent",
     system_prompt=search_sys_prompt,

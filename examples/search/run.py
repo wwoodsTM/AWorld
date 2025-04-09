@@ -5,7 +5,7 @@ import os
 from aworld.config.conf import AgentConfig, ModelConfig
 
 from aworld.config.common import Tools
-from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.base import Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 
@@ -28,23 +28,21 @@ Here are the content:
 {task}
 """
 
+# search and summary
 if __name__ == "__main__":
     # need to set GOOGLE_API_KEY and GOOGLE_ENGINE_ID to use Google search.
-    os.environ['GOOGLE_API_KEY'] = ""
-    os.environ['GOOGLE_ENGINE_ID'] = ""
+    # os.environ['GOOGLE_API_KEY'] = ""
+    # os.environ['GOOGLE_ENGINE_ID'] = ""
 
-    model_config = ModelConfig(
+    agent_config = AgentConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
         llm_temperature=1,
         # need to set llm_api_key for use LLM
         llm_api_key=""
     )
-    agent_config = AgentConfig(
-        llm_config=model_config,
-    )
 
-    search = BaseAgent(
+    search = Agent(
         conf=agent_config,
         name="search_agent",
         system_prompt=search_sys_prompt,
@@ -52,13 +50,13 @@ if __name__ == "__main__":
         tool_names=[Tools.SEARCH_API.value]
     )
 
-    summary = BaseAgent(
+    summary = Agent(
         conf=agent_config,
         name="summary_agent",
         system_prompt=summary_sys_prompt,
         agent_prompt=summary_prompt
     )
-    # sequence swarm mode
+    # default is sequence swarm mode
     swarm = Swarm(search, summary)
 
     res = Task(
