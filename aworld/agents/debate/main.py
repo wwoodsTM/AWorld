@@ -5,7 +5,6 @@ from typing import Dict, Any, Union, List, Optional
 from dotenv import load_dotenv
 from pydantic import Field, BaseModel
 
-<<<<<<< HEAD
 from aworld.agents.debate.old.plan_agent import user_assignment_prompt, user_assignment_system_prompt, \
     user_debate_system_prompt, user_debate_prompt, DebatePlanAgent
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
@@ -18,18 +17,10 @@ from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.envs.tool import ToolFactory
 from aworld.core.task import Task
 from aworld.logs.util import logger
-=======
-from aworld.agents.debate.plan_agent import user_debate_system_prompt, user_debate_prompt
-from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
-from aworld.config import AgentConfig
-from aworld.core.agent.base import BaseAgent
-from aworld.core.common import Observation, ActionModel
->>>>>>> origin/agent_debate_mcp
 from aworld.output.artifact import ArtifactType
 from aworld.output.workspace import WorkSpace
 
 
-<<<<<<< HEAD
 
 # class DebateArena(BaseModel):
 #     proposition: BaseAgent
@@ -43,15 +34,12 @@ from aworld.output.workspace import WorkSpace
 #         pass
 
 
-=======
->>>>>>> origin/agent_debate_mcp
 class SearchResult:
     id: str
     url: str
     title: str
     content: str
 
-<<<<<<< HEAD
 def deepsearch(topic, opinion, oppose_opinion, opponent_claim, history) -> list[SearchResult]:
     messages = [{'role': 'system', 'content': user_debate_system_prompt},
                     {'role': 'user',
@@ -69,10 +57,6 @@ def deepsearch(topic, opinion, oppose_opinion, opponent_claim, history) -> list[
 
     query_lst = []
 
-=======
-
-def deepsearch(topic, option, other_option, history) -> list[SearchResult]:
->>>>>>> origin/agent_debate_mcp
     search_engine = TavilySearchEngine()
     results = search_engine.async_batch_search(queries=query_lst, max_results=5)
     pass
@@ -92,23 +76,15 @@ class DebateAgent(BaseAgent):
 
     workspace: WorkSpace
 
-<<<<<<< HEAD
     def __init__(self, name: str, topic: str, opinion: str, oppose_opinion: str,
                  conf: AgentConfig, workspace: WorkSpace):
-=======
-    def __init__(self, name: str, topic: str, opinion: str,
-                 conf: AgentConfig):
->>>>>>> origin/agent_debate_mcp
         conf.name = name
         super().__init__(conf)
         self.topic = topic
         self.opinion = opinion
-<<<<<<< HEAD
         self.oppose_opinion = oppose_opinion
         # self.planner_agent = planner_agent
         # self.search_agent = search_agent
-=======
->>>>>>> origin/agent_debate_mcp
         self.steps = 0
         self.workspace = None
 
@@ -216,10 +192,6 @@ class DebateArena(BaseModel):
         # hook
         return self.affirmative_speaker
 
-    def get_affirmative_speaker(self):
-        # hook
-        return self.affirmative_speaker
-
     def negative_speech(self) -> DebateSpeech:
         logging.info(self.affirmative_speaker.name() + ": " + "start")
         self.proposition.policy()
@@ -239,7 +211,6 @@ if __name__ == '__main__':
     )
 
     agent1 = DebateAgent(name="agent1", topic="Who's GOAT? Jordan or Lebron", opinion="Jordan",
-<<<<<<< HEAD
                         conf=agentConfig)
     agent1.llm.invoke()
 
@@ -261,10 +232,6 @@ if __name__ == '__main__':
     user_response = llm_result.content
 
     print("user_response:", user_response)
-=======
-                         conf=agentConfig)
-    agent1.llm.invoke()
->>>>>>> origin/agent_debate_mcp
 
     # agent2 = DebateAgent(name="agent2", topic="Who's GOAT? Jordan or Lebron", opinion="Lebron",
     #                       conf=agentConfig)
