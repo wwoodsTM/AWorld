@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.debate_agent import DebateAgent
+from aworld.agents.debate.search.ant_search_engine import AntSearchEngine
 from aworld.config import AgentConfig
 from aworld.core.agent.base import BaseAgent
 from aworld.memory.base import MemoryItem
@@ -51,7 +52,7 @@ class DebateArena:
     async def start_debate(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int) -> list[DebateSpeech]:
         """
         Start the debate
-        1. debate will start from round 0
+        1. debate will start from round 1
         2. each round will have two speeches, one from affirmative_speaker and one from negative_speaker
         3. after all rounds finished, the debate will end
 
@@ -133,7 +134,8 @@ class DebateArena:
         }))
         self.speeches.append(speech)
 
-
+    def gen_closing_statement(self):
+        pass
 
 
 if __name__ == '__main__':
