@@ -198,8 +198,8 @@ if __name__ == '__main__':
         llm_api_key=os.environ['LLM_API_KEY'],
     )
 
-    agent1 = DebateAgent(name="Zhitian", stance="affirmative", conf=agentConfig)
-    agent2 = DebateAgent(name="Daowen", stance="negative", conf=agentConfig)
+    agent1 = DebateAgent(name="affirmativeSpeaker", stance="affirmative", conf=agentConfig)
+    agent2 = DebateAgent(name="negativeSpeaker", stance="negative", conf=agentConfig)
 
     debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2)
 
