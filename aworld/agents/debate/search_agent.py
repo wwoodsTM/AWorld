@@ -86,36 +86,3 @@ class SearchAgent(BaseAgent):
                                        params=params))
         print("parsed_results:", parsed_results)
         return parsed_results
-
-if __name__ == '__main__':
-    agentConfig = AgentConfig(
-        llm_provider="chatopenai",
-        llm_model_name="gpt-4o",
-        llm_base_url="http://localhost:5000",
-        llm_api_key="dummy-key",
-    )
-
-    # wenwen
-    os.environ["GOOGLE_API_KEY"] = ""
-    os.environ["GOOGLE_ENGINE_ID"] = ""
-
-    searchagent = SearchAgent(agentConfig)
-
-    goal = "The best basketball player in China."
-    observation = Observation(content=goal)
-    while True:
-        policy = searchagent.policy(observation=observation)
-        # policy =  [ActionModel(tool_name='search_api', agent_name=None, action_name='wiki', params={'query': 'best basketball player in China', 'num_result_pages': '6'}, policy_info=None)]
-
-        print("policy:", policy)
-
-        if policy[0].tool_name == '[done]':
-            break
-
-        tool = ToolFactory(policy[0].tool_name, conf = load_config(f"{policy[0].tool_name}.yaml"))
-
-        observation, reward, terminated, _, info = tool.step(policy)
-
-        print("observation:", observation)
-
-    print(policy[0].policy_info)

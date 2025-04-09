@@ -1,7 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import re
-import os
 import time
 import traceback
 from typing import Dict, Any, Optional, List, Union
@@ -9,23 +8,16 @@ from typing import Dict, Any, Optional, List, Union
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage, SystemMessage
 from pydantic import ValidationError
 
-from aworld.config.common import Agents, Tools
-from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
-from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
+from aworld.agents.browser.agent import Trajectory
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
+from aworld.agents.browser.prompts import AgentMessagePrompt
+from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, \
+    estimate_messages_tokens, _convert_messages_for_non_function_calling_models, _merge_successive_messages
+from aworld.config.common import Tools
 from aworld.config.conf import AgentConfig
+from aworld.core.agent.base import BaseAgent, AgentResult
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
-from aworld.agents.browser.prompts import AgentMessagePrompt
-from langchain_openai import ChatOpenAI
-from aworld.agents.browser.agent import Trajectory
-
-from aworld.agents.travel.search_agent import SearchAgent
-from aworld.agents.browser.agent import BrowserAgent
-from aworld.agents.travel.write_agent import WriteAgent
-from aworld.core.envs.tool import ToolFactory
-from aworld.config import ToolConfig, load_config, wipe_secret_info
-from aworld.virtual_environments.conf import BrowserToolConfig
 
 PROMPT_TEMPLATE = """
 You are an AI agent designed to automate tasks. Your goal is to accomplish the ultimate task following the rules.
@@ -149,7 +141,7 @@ class DebatePlanAgent(BaseAgent):
         self._init = True
 
     def name(self) -> str:
-        return "travel_plan_agent"
+        return "debate_plan_agent"
 
     def _log_message_sequence(self, input_messages: List[BaseMessage]) -> None:
         """Log the sequence of messages for debugging purposes"""
@@ -282,23 +274,32 @@ class DebatePlanAgent(BaseAgent):
         input_messages = self._convert_input_messages(input_messages)
         output_message = None
         try:
-            # print(input_messages)
+            print(input_messages)
             output_message = self.llm.invoke(input_messages)
             # print(output_message)
             if not output_message or not output_message.content:
                 logger.warning("[agent] LLM returned empty response")
-                # return AgentResult(current_state=AgentBrain(evaluation_previous_goal="", memory="", next_goal=""),
-                #                    actions=[ActionModel(tool_name=Tools.BROWSER.value, action_name="stop")])
                 return AgentResult(current_state=AgentBrain(evaluation_previous_goal="", memory="", next_goal=""),
                                    actions=[ActionModel(tool_name=None, action_name="stop")])
-        except:
+        except Exception as e:
             logger.error(f"[agent] Response content: {output_message}")
+            traceback.print_exc()
+            return AgentResult(
+                current_state=AgentBrain(
+                    evaluation_previous_goal="Failed due to error",
+                    memory=f"Error occurred: {str(e)}",
+                    next_goal="Recover from error"
+                ),
+                actions=[]  # Empty actions list
+            )
 
         if self.model_name == 'deepseek-reasoner':
             output_message.content = _remove_think_tags(output_message.content)
         try:
             parsed_json = extract_json_from_model_output(output_message.content)
             logger.info((f"llm response: {parsed_json}"))
+            if isinstance(parsed_json, list):
+                parsed_json = parsed_json.get("args")
             agent_brain = AgentBrain(**parsed_json['current_state'])
             actions = parsed_json.get('action')
             result = []
@@ -313,8 +314,6 @@ class DebatePlanAgent(BaseAgent):
             for action in actions:
                 if "action_name" in action:
                     action_name = action['action_name']
-                    # browser_action = BrowserAction.get_value_by_name(action_name)
-                    # if not browser_action:
                     if action_name not in ("", "", "", ""):
                         logger.warning(f"Unsupported action: {action_name}")
                     action_model = ActionModel(
@@ -323,11 +322,7 @@ class DebatePlanAgent(BaseAgent):
                     result.append(action_model)
                 else:
                     for k, v in action.items():
-                        # browser_action = BrowserAction.get_value_by_name(k)
-                        # if not browser_action:
-                        #     logger.warning(f"Unsupported action: {k}")
                         action_model = ActionModel(agent_name=k, params=v)
-                        # action_model = ActionModel(tool_name=Tools.BROWSER.value, action_name=k, params=v)
                         result.append(action_model)
             return AgentResult(current_state=agent_brain, actions=result)
         except (ValueError, ValidationError) as e:
@@ -336,10 +331,18 @@ class DebatePlanAgent(BaseAgent):
 
     def _convert_input_messages(self, input_messages: list[BaseMessage]) -> list[BaseMessage]:
         """Convert input messages to the correct format"""
-        if self.model_name == 'deepseek-reasoner' or self.model_name.startswith('deepseek-r1'):
-            return convert_input_messages(input_messages, self.model_name)
-        else:
+        if self.model_name is None:
             return input_messages
+        if self.model_name == 'deepseek-reasoner' or self.model_name.startswith(
+                'deepseek-r1') or self.model_name.startswith('bailing_80b_function_call'):
+            converted_input_messages = _convert_messages_for_non_function_calling_models(input_messages)
+            merged_input_messages = _merge_successive_messages(converted_input_messages, HumanMessage)
+            merged_input_messages = _merge_successive_messages(merged_input_messages, AIMessage)
+            return merged_input_messages
+        return input_messages
+
+    def convert_input_messages(input_messages: list[BaseMessage], model_name: Optional[str]) -> list[BaseMessage]:
+        """Convert input messages to a format that is compatible with the planner model"""
 
     def _make_history_item(self,
                            model_output: AgentResult | None,
@@ -517,4 +520,3 @@ class DebatePlanAgent(BaseAgent):
             image_tokens=self.settings.get('image_tokens', 800),
             estimated_characters_per_token=self.settings.get('estimated_characters_per_token', 3)
         )
-

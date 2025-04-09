@@ -22,6 +22,7 @@ class ArtifactType(Enum):
     CUSTOM = "custom"
     MCP_CALL = "mcp_call"
     TOOL_CALL = "tool_call"
+    LLM_OUTPUT = "llm_output"
 
 
 

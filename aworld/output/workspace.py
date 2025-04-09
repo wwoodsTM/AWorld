@@ -353,7 +353,7 @@ class WorkSpace(AgentOutput):
                     "type": str(a.artifact_type),
                     "metadata": a.metadata,
                     "render_type": a.render_type,
-                    "version": a.current_version
+                    # "version": a.current_version
                 } for a in self.artifacts
             ]
         }

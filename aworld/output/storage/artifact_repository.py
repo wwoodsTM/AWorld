@@ -178,7 +178,7 @@ class LocalArtifactRepository(ArtifactRepository):
         content_path = self.storage_path / f"{content_hash}.json"
         if not content_path.exists():
             with open(content_path, 'w') as f:
-                json.dump(data, f, indent=2, cls=EnumEncoder)
+                json.dump(data, f, indent=2, ensure_ascii=False, cls=EnumEncoder)
 
         # Update index
         if type == 'artifact':
