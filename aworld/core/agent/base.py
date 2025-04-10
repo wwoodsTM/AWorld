@@ -13,6 +13,7 @@ from openai import Stream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
 from aworld.core.agent.agent_desc import get_agent_desc
+from aworld.core.async_func import async_func
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
@@ -79,8 +80,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             logger.warning(f"Unknown conf type: {type(conf)}")
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
-        self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get("name",
-                                                                                 ' '.join(self._name.split('_')))
+        self._desc = kwargs.pop("desc") if kwargs.get("desc") else ' '.join(self._name.split('_'))
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -165,6 +165,11 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
             self._llm = get_llm_model(conf)
         return self._llm
 
+    def env_tool(self):
+        """Description of agent as tool."""
+        return tool_desc_transform(get_tool_desc(),
+                                   tools=self.tool_names if self.tool_names else [])
+
     def handoffs_agent_as_tool(self):
         """Description of agent as tool."""
         return agent_desc_transform(get_agent_desc(),
@@ -176,8 +181,7 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
             return asyncio.run(mcp_tool_desc_transform(self.mcp_servers))
         except Exception as e:
             logger.error(f"mcp_is_tool error: {e}")
-
-        return []
+            return []
 
     def desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
@@ -190,13 +194,16 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         # MCP servers are tools
         self.tools.extend(self.mcp_is_tool())
 
-    def desc_transform_agent(self):
+    async def async_desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
+        # Stateless tool
+        self.tools = tool_desc_transform(get_tool_desc(),
+                                         tools=self.tool_names if self.tool_names else [])
         # Agents as tool
-        return agent_desc_transform(get_agent_desc(),
-                                    agents=self.handoffs if self.handoffs else [])
-        # MCP servers are tool
+        self.tools.extend(self.handoffs_agent_as_tool())
+        # MCP servers are tools
+        self.tools.extend(self.mcp_is_tool())
 
     def messages_transform(self,
                            content: str,
@@ -458,7 +465,44 @@ class AgentExecutor(object):
         agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
 
         if is_abstract_method(agent, 'async_policy'):
-            return [ActionModel(tool_name="", action_name="")]
+            await agent.async_desc_transform()
+            images = observation.images
+            if not images and observation.image:
+                images = [observation.image]
+            messages = agent.messages_transform(content=observation.content,
+                                                image_urls=images,
+                                                sys_prompt=agent.system_prompt,
+                                                agent_prompt=agent.agent_prompt,
+                                                output_prompt=agent.output_prompt)
+            llm_response = None
+            try:
+                # TODO: models interface update
+                llm_response = agent.llm.chat.completions.create(
+                    messages=messages,
+                    model=agent.model_name,
+                    temperature=agent.conf.llm_config.llm_temperature,
+                    tools=agent.tools if agent.tools else None
+                )
+                logger.info(f"Execute response: {llm_response.choices[0].message}")
+            except Exception as e:
+                logger.warn(traceback.format_exc())
+                raise e
+            finally:
+                if llm_response:
+                    if not llm_response.choices:
+                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    else:
+                        agent.memory.append(MemoryModel(message=messages[-1],
+                                                        tool_calls=llm_response.choices[0].message.tool_calls,
+                                                        content=llm_response.choices[0].message.content))
+                else:
+                    logger.error(f"{agent.name()} failed to get LLM response")
+                    raise RuntimeError(f"{agent.name()} failed to get LLM response")
+
+            agent_result = agent.response_parse(llm_response)
+            if not agent_result.is_call_tool:
+                agent._finished = True
+            return agent_result.actions
         else:
             try:
                 actions = await agent.async_policy(observation, kwargs)

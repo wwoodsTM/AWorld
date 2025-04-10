@@ -15,9 +15,9 @@ agent_config = AgentConfig(
     llm_config=model_config,
 )
 
-search = Agent(
+write = Agent(
     conf=agent_config,
-    name="search_agent",
+    name="write_agent",
     system_prompt=write_sys_prompt,
     agent_prompt=write_prompt,
     output_prompt=write_output_prompt,
