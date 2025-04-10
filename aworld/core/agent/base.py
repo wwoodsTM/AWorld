@@ -24,7 +24,7 @@ from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
-from aworld.utils.common import convert_to_snake, is_abstract_method, loop
+from aworld.utils.common import convert_to_snake, is_abstract_method
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -80,8 +80,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             logger.warning(f"Unknown conf type: {type(conf)}")
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
-        self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get("name",
-                                                                                 ' '.join(self._name.split('_')))
+        self._desc = kwargs.pop("desc") if kwargs.get("desc") else ' '.join(self._name.split('_'))
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -166,20 +165,20 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
             self._llm = get_llm_model(conf)
         return self._llm
 
-    async def env_tool(self):
+    def env_tool(self):
         """Description of agent as tool."""
-        return await async_func(tool_desc_transform)(get_tool_desc(),
-                                                     tools=self.tool_names if self.tool_names else [])
+        return tool_desc_transform(get_tool_desc(),
+                                   tools=self.tool_names if self.tool_names else [])
 
-    async def handoffs_agent_as_tool(self):
+    def handoffs_agent_as_tool(self):
         """Description of agent as tool."""
-        return await async_func(agent_desc_transform)(get_agent_desc(),
-                                                      agents=self.handoffs if self.handoffs else [])
+        return agent_desc_transform(get_agent_desc(),
+                                    agents=self.handoffs if self.handoffs else [])
 
-    async def mcp_is_tool(self):
+    def mcp_is_tool(self):
         """Description of mcp servers are tools."""
         try:
-            return await mcp_tool_desc_transform(self.mcp_servers)
+            return asyncio.run(mcp_tool_desc_transform(self.mcp_servers))
         except Exception as e:
             logger.error(f"mcp_is_tool error: {e}")
             return []
@@ -191,9 +190,9 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         self.tools = tool_desc_transform(get_tool_desc(),
                                          tools=self.tool_names if self.tool_names else [])
         # Agents as tool
-        self.tools.extend(loop().run_until_complete(self.handoffs_agent_as_tool()))
+        self.tools.extend(self.handoffs_agent_as_tool())
         # MCP servers are tools
-        self.tools.extend(loop().run_until_complete(self.mcp_is_tool()))
+        self.tools.extend(self.mcp_is_tool())
 
     async def async_desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
@@ -202,9 +201,9 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         self.tools = tool_desc_transform(get_tool_desc(),
                                          tools=self.tool_names if self.tool_names else [])
         # Agents as tool
-        self.tools.extend(await self.handoffs_agent_as_tool())
+        self.tools.extend(self.handoffs_agent_as_tool())
         # MCP servers are tools
-        self.tools.extend(await self.mcp_is_tool())
+        self.tools.extend(self.mcp_is_tool())
 
     def messages_transform(self,
                            content: str,

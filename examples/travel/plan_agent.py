@@ -16,7 +16,7 @@ agent_config = AgentConfig(
     llm_config=model_config,
 )
 
-plan_agent = Agent(
+plan = Agent(
     conf=agent_config,
     name="plan_agent",
     system_prompt=plan_sys_prompt,

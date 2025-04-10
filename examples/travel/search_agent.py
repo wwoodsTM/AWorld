@@ -8,8 +8,8 @@ from aworld.core.agent.base import Agent
 from examples.travel.prompts import search_sys_prompt, search_prompt, search_output_prompt
 
 # set key and id
-os.environ['GOOGLE_API_KEY'] = ""
-os.environ['GOOGLE_ENGINE_ID'] = ""
+# os.environ['GOOGLE_API_KEY'] = ""
+# os.environ['GOOGLE_ENGINE_ID'] = ""
 
 model_config = ModelConfig(
     llm_provider="openai",
