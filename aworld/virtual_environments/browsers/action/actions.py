@@ -512,7 +512,9 @@ class ExtractContent(ExecutableAction):
             return ActionResult(content="extract content no page", keep=True), page
 
         goal = action.params.get("goal")
-        llm = kwargs.get("llm")
+        llm_config = kwargs.get("llm_config")
+        if llm_config:
+            llm = get_llm_model(llm_config)
         content = markdownify.markdownify(page.content())
         max_extract_content_output_tokens = kwargs.get("max_extract_content_output_tokens")
         max_extract_content_input_tokens = kwargs.get("max_extract_content_input_tokens")

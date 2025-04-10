@@ -11,7 +11,7 @@ from aworld.logs.util import logger
 class Swarm(object):
     """Simple implementation of interactive collaboration between multi-agent and supported env tools."""
 
-    def __init__(self, *args, root_agent: Agent = None, sequence: bool=True, **kwargs):
+    def __init__(self, *args, root_agent: Agent = None, sequence: bool=True, max_steps: int = 1, **kwargs):
         self.communicate_agent = root_agent
         if root_agent and root_agent not in args:
             self._topology = [root_agent] + list(args)
@@ -19,6 +19,7 @@ class Swarm(object):
             self._topology = args
         self._ext_params = kwargs
         self.sequence = sequence
+        self.max_steps = max_steps
         self.initialized = False
 
     def _init(self, **kwargs):
