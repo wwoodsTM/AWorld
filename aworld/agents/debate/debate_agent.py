@@ -1,4 +1,5 @@
 import logging
+import re
 from abc import ABC
 from typing import Dict, Any, Union, List, Literal, Optional
 from datetime import datetime
@@ -13,6 +14,7 @@ from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 from aworld.config import AgentConfig
 from aworld.core.agent.base import Agent
 from aworld.core.common import Observation, ActionModel
+from aworld.output import SearchOutput, SearchItem
 from aworld.output.artifact import ArtifactType
 
 
@@ -61,12 +63,17 @@ class DebateAgent(Agent, ABC):
         #Event.emit("xxx")
         ## step2: gen keywords
         keywords = await self.gen_keywords(topic, opinion, oppose_opinion, opponent_claim, history)
+        logging.info(f"gen keywords = {keywords}")
 
         ## step3：search_webpages
         search_results = await self.search_webpages(keywords, max_results=5)
-        logging.info(f"query keywords = {keywords}, result size = {len(search_results)}")
-        for result in  search_results:
-            self.workspace.create_artifact(ArtifactType.WEB_PAGE, result)
+        for search_result in search_results:
+            logging.info(f"keyword#{search_result['query']}-> result size is {len(search_result['results'])}")
+            search_item = {
+                "query": search_result.get("query", ""),
+                "results": [SearchItem(title=result["title"],url=result["url"], metadata={}) for result in search_result["results"]]
+            }
+            self.workspace.create_artifact(ArtifactType.WEB_PAGES, content=SearchOutput.from_dict(search_item))
 
         ## step4 gen result
         user_response = await self.gen_statement(topic, opinion, oppose_opinion, opponent_claim, history, search_results)
@@ -95,8 +102,35 @@ class DebateAgent(Agent, ABC):
             HumanMessage(content=human_prompt)
         ]
 
+        result = await self.async_call_llm(messages)
+
+        return result.split(",")
+
+    async def async_call_llm(self, messages):
+        def _resolve_think(content):
+            import re
+            start_tag = 'think'
+            end_tag = '/think'
+            # 使用正则表达式提取标签内的内容
+            llm_think = ""
+            match = re.search(
+                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
+                content,
+                flags=re.DOTALL,
+            )
+            if match:
+                llm_think = match.group(0).replace("<think>", "").replace("</think>", "")
+            llm_result = re.sub(
+                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
+                "",
+                content,
+                flags=re.DOTALL,
+            )
+            return llm_think, llm_result
+
         result = await self.llm.ainvoke(input=messages)
-        return result.content.split(",")
+        llm_think, llm_result = _resolve_think(result.content)
+        return llm_result
 
     async def search_webpages(self, keywords, max_results):
         return await self.search_engine.async_batch_search(queries=keywords, max_results=max_results)
@@ -158,8 +192,8 @@ class DebateAgent(Agent, ABC):
             HumanMessage(content=human_prompt)
         ]
         
-        result = await self.llm.ainvoke(input=messages)
-        return result.content
+        result = await self.async_call_llm(messages)
+        return result
 
     def get_latest_speech(self, history: list[DebateSpeech]):
         """

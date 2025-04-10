@@ -27,6 +27,7 @@ class WorkSpace(Output):
             use_default_observer: bool = True,
             clear_existing: bool = False
     ):
+        super().__init__()
         self.workspace_id = workspace_id or str(uuid.uuid4())
         self.name = name or f"Workspace-{self.workspace_id[:8]}"
         self.created_at = datetime.now().isoformat()

@@ -1,27 +1,33 @@
 import abc
-from typing import Any, Dict, Generator, AsyncGenerator, Union, Optional
+import json
+from typing import Any, Dict, Generator, AsyncGenerator, Union, Optional, TypedDict
 
-from pydantic import Field
+from pydantic import Field, BaseModel
 
 
 # The agent's output type
 class Output:
-    pass
+    metadata: Optional[Dict[str, Any]] = Field(default={}, description="metadata")
+
+
 
 class Event(Output):
     pass
 
-
-class MessageOutput(Output):
-    reasoning: Union[str, Generator[str, None, None], AsyncGenerator[str, None]] = Field(description="llm think")
-    response: Union[str, Generator[str, None, None], AsyncGenerator[str, None]] = Field(description="llm response")
-    metadata: Optional[Dict[str, Any]] = Field(description="metadata, such as usage")
-
-
-
 class ToolOutput(Output):
     result: Any | None = Field(description="tool result")
 
+class SearchItem(BaseModel):
+    title: str
+    url: str
+    metadata: Optional[Dict[str, Any]] = Field(default={}, description="metadata")
 
-class SearchOutput(Output):
-    result: Any | None = Field(description="tool result")
+class SearchOutput(Output, BaseModel):
+    query: str
+    results: list[SearchItem]
+
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SearchOutput":
+        return cls(query=data.get("query"), results=data.get("results"))
+

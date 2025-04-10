@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Literal
 
+from pydantic import BaseModel
+
 
 class ArtifactRepository:
     def __init__(self):
@@ -82,10 +84,12 @@ class ArtifactRepository:
 
 
 
-class EnumEncoder(json.JSONEncoder):
+class CommonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Enum):
             return {"__enum__": True, "__enum_type__": obj.__class__.__name__, "__enum_value__": obj.name}
+        if isinstance(obj, BaseModel):
+            return obj.model_dump()
         return json.JSONEncoder.default(self, obj)
 
 class EnumDecoder(json.JSONDecoder):
@@ -131,7 +135,7 @@ class LocalArtifactRepository(ArtifactRepository):
     def _save_index(self, index: Dict[str, Any]) -> None:
         """Save index to file"""
         with open(self.index_path, 'w') as f:
-            json.dump(index, f, indent=2, ensure_ascii=False)
+            json.dump(index, f, indent=2, ensure_ascii=False, cls=CommonEncoder)
 
     def _compute_content_hash(self, data: Any) -> str:
         """
@@ -143,7 +147,7 @@ class LocalArtifactRepository(ArtifactRepository):
         Returns:
             SHA-256 hash value of the content
         """
-        content = json.dumps(data, sort_keys=True, cls=EnumEncoder).encode('utf-8')
+        content = json.dumps(data, sort_keys=True, cls=CommonEncoder).encode('utf-8')
         return hashlib.sha256(content).hexdigest()
 
     def store(self,
@@ -174,10 +178,10 @@ class LocalArtifactRepository(ArtifactRepository):
         }
 
         # Store content
-        content_path = self.storage_path / f"{content_hash}.json"
+        content_path = self.storage_path / f"{type}_{content_hash}.json"
         if not content_path.exists():
             with open(content_path, 'w') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False, cls=EnumEncoder)
+                json.dump(data, f, indent=2, ensure_ascii=False, cls=CommonEncoder)
 
         # Update index
         if type == 'artifact':

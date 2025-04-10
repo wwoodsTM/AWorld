@@ -23,7 +23,7 @@ class ArtifactType(Enum):
     MCP_CALL = "mcp_call"
     TOOL_CALL = "tool_call"
     LLM_OUTPUT = "llm_output"
-    WEB_PAGE = "web_page"
+    WEB_PAGES = "web_pages"
 
 
 
