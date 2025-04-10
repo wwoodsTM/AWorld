@@ -71,12 +71,10 @@ class ExecuteAgent(BaseAgent):
             llm_result = call_llm_model(self.llm, input_content, model=self.model_name,
                                         tools=self.tools, temperature=0)
             logger.info(f"Execute response: {llm_result.message}")
-            print(f"Execute response: {llm_result.message}")
             content = llm_result.content
             tool_calls = llm_result.tool_calls
         except Exception as e:
             logger.warn(traceback.format_exc())
-            print(traceback.format_exc())
             raise e
         finally:
             if llm_result:
@@ -85,7 +83,6 @@ class ExecuteAgent(BaseAgent):
                 self.trajectory.append((ob, info, llm_result))
             else:
                 logger.warn("no result to record!")
-                print("no result to record!")
 
         res = []
         if tool_calls:
@@ -115,7 +112,6 @@ class ExecuteAgent(BaseAgent):
                 self.has_summary = True
 
         logger.info(f">>> execute result: {res}")
-        print(f">>> execute result: {res}")
         return res
 
 
@@ -160,10 +156,8 @@ class PlanAgent(BaseAgent):
         try:
             llm_result = call_llm_model(self.llm, messages=input_content, model=self.model_name)
             logger.info(f"Plan response: {llm_result.message}")
-            print(f"Plan response: {llm_result.message}")
         except Exception as e:
             logger.warn(traceback.format_exc())
-            print(traceback.format_exc())
             raise e
         finally:
             if llm_result:
@@ -172,7 +166,6 @@ class PlanAgent(BaseAgent):
                 self.trajectory.append((ob, info, llm_result))
             else:
                 logger.warn("no result to record!")
-                print("no result to record!")
         content = llm_result.content
         if "TASK_DONE" not in content:
             content += self.done_prompt
@@ -184,6 +177,5 @@ class PlanAgent(BaseAgent):
 
         self.first = False
         logger.info(f">>> plan result: {content}")
-        print(f">>> plan result: {content}")
         return [ActionModel(agent_name=Agents.EXECUTE.value,
                             policy_info=content)]
