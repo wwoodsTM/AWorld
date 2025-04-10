@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from tkinter import NO
 from typing import Optional, Sequence
 
 class MetricType:
@@ -7,11 +6,11 @@ class MetricType:
     MetricType is a class for defining the type of a metric.
     """
     COUNTER = "counter"
-    UnDownCounter = "undowncounter"
+    UPDOWNCOUNTER = "updowncounter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
 
-class BaseMetricProvider(ABC):
+class MetricProvider(ABC):
     """
     MeterProvider is the entry point of the API. 
     """
@@ -33,7 +32,7 @@ class BaseMetricProvider(ABC):
         self._exporters.append(exporter)
 
     @abstractmethod
-    def create_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "BaseCounter":
+    def create_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "Counter":
         """
         Create a counter.
 
@@ -45,7 +44,7 @@ class BaseMetricProvider(ABC):
         """
 
     @abstractmethod
-    def create_un_down_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "BaseUnDownCounter":
+    def create_un_down_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "UnDownCounter":
         """
         Create a un-down counter.
         Args:
@@ -56,7 +55,7 @@ class BaseMetricProvider(ABC):
         """ 
 
     @abstractmethod  
-    def create_gauge(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "BaseGauge":
+    def create_gauge(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> "Gauge":
         """
         Create a gauge.
         Args:
@@ -72,7 +71,7 @@ class BaseMetricProvider(ABC):
                          description: str, 
                          unit: str, 
                          buckets: Optional[Sequence[float]] = None,
-                         labelnames: Optional[Sequence[str]] = None) -> "BaseHistogram":
+                         labelnames: Optional[Sequence[str]] = None) -> "Histogram":
         """
         Create a histogram.
         Args:
@@ -96,7 +95,7 @@ class BaseMetric(ABC):
                  name: str, 
                  description: str, 
                  unit: str, 
-                 provider: BaseMetricProvider, 
+                 provider: MetricProvider, 
                  labelnames: Optional[Sequence[str]] = None):
         self._name = name
         self._description = description
@@ -105,16 +104,16 @@ class BaseMetric(ABC):
         self._labelnames = labelnames
         self._type = None
 
-class BaseCounter(BaseMetric):
+class Counter(BaseMetric):
     """
-    BaseCounter is a subclass of BaseMetric, representing a counter metric.
+    Counter is a subclass of BaseMetric, representing a counter metric.
     A counter is a cumulative metric that represents a single numerical value that only ever goes up.
     """
     def __init__(self,
                  name: str, 
                  description: str, 
                  unit: str, 
-                 provider: BaseMetricProvider, 
+                 provider: MetricProvider, 
                  labelnames: Optional[Sequence[str]] = None):
         """
         Initialize the Counter.
@@ -136,16 +135,16 @@ class BaseCounter(BaseMetric):
             labels: The labels to associate with the value.
         """
 
-class BaseUpDownCounter(BaseMetric):
+class UpDownCounter(BaseMetric):
     """
-    BaseUnDownCounter is a subclass of BaseMetric, representing an un-down counter metric.
+    UpDownCounter is a subclass of BaseMetric, representing an un-down counter metric.
     An un-down counter is a cumulative metric that represents a single numerical value that only ever goes up.
     """
     def __init__(self,
                  name: str, 
                  description: str, 
                  unit: str, 
-                 provider: BaseMetricProvider, 
+                 provider: MetricProvider, 
                  labelnames: Optional[Sequence[str]] = None):
         """
         Initialize the UnDownCounter.
@@ -156,7 +155,7 @@ class BaseUpDownCounter(BaseMetric):
             provider: The provider of the metric.
         """
         super().__init__(name, description, unit, provider, labelnames)
-        self._type = MetricType.UnDownCounter
+        self._type = MetricType.UPDOWNCOUNTER
 
     @abstractmethod
     def inc(self, value: int, labels: dict = None) -> None:
@@ -176,9 +175,9 @@ class BaseUpDownCounter(BaseMetric):
             labels: The labels to associate with the value.
         """
 
-class BaseGauge(BaseMetric):
+class Gauge(BaseMetric):
     """
-    BaseGauge is a subclass of BaseMetric, representing a gauge metric.
+    Gauge is a subclass of BaseMetric, representing a gauge metric.
     A gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
     """
 
@@ -186,7 +185,7 @@ class BaseGauge(BaseMetric):
                  name: str, 
                  description: str, 
                  unit: str, 
-                 provider: BaseMetricProvider, 
+                 provider: MetricProvider, 
                  labelnames: Optional[Sequence[str]] = None):
         """
         Initialize the Gauge.
@@ -208,16 +207,16 @@ class BaseGauge(BaseMetric):
             labels: The labels to associate with the value.
         """
 
-class BaseHistogram(BaseMetric):
+class Histogram(BaseMetric):
     """
-    BaseHistogram is a subclass of BaseMetric, representing a histogram metric.
+    Histogram is a subclass of BaseMetric, representing a histogram metric.
     A histogram is a metric that represents the distribution of a set of values.
     """
     def __init__(self, 
                  name: str, 
                  description: str, 
                  unit: str,
-                 provider: BaseMetricProvider, 
+                 provider: MetricProvider, 
                  buckets: Sequence[float] = None, 
                  labelnames: Optional[Sequence[str]] = None):
         """
@@ -242,11 +241,11 @@ class BaseHistogram(BaseMetric):
             labels: The labels to associate with the value.
         """
 
-class BaseMetricExporter(ABC):
+class MetricExporter(ABC):
     """
     MetricExporter is a class for exporting metrics.
     """
-    def __init__(self, provider: BaseMetricProvider):
+    def __init__(self, provider: MetricProvider):
         """
         Initialize the MetricExporter.
         Args:
@@ -261,7 +260,7 @@ class BaseMetricExporter(ABC):
         """
 
 
-_GLOBAL_METRIC_PROVIDER: Optional[BaseMetricProvider] = None
+_GLOBAL_METRIC_PROVIDER: Optional[MetricProvider] = None
 
 def set_metric_provider(provider):
     """

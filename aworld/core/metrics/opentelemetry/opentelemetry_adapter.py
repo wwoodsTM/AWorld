@@ -2,13 +2,13 @@ from typing import Optional, Sequence
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, ConsoleMetricExporter
-from aworld.core.metrics.metric import BaseGauge, BaseHistogram, BaseMetricProvider, BaseCounter, BaseMetricExporter, BaseUpDownCounter
-class OpentelemetryMetricProvider(BaseMetricProvider):
+from aworld.core.metrics.metric import Gauge, Histogram, MetricProvider, Counter, MetricExporter, UpDownCounter
+class OpentelemetryMetricProvider(MetricProvider):
     """
     MetricProvider is a class for providing metrics.
     """
 
-    def __init__(self, exporter: BaseMetricExporter=None):
+    def __init__(self, exporter: MetricExporter=None):
         """
         Initialize the MetricProvider.
         Args:
@@ -26,7 +26,7 @@ class OpentelemetryMetricProvider(BaseMetricProvider):
                        name: str, 
                        description: str, 
                        unit: str,
-                       labelnames: Optional[Sequence[str]] = None) -> BaseCounter:
+                       labelnames: Optional[Sequence[str]] = None) -> Counter:
         """
         Create a counter.
         Args:
@@ -40,7 +40,7 @@ class OpentelemetryMetricProvider(BaseMetricProvider):
                                name: str,
                                description: str,
                                unit: str,
-                               labelnames: Optional[Sequence[str]] = None) -> BaseUpDownCounter:
+                               labelnames: Optional[Sequence[str]] = None) -> UpDownCounter:
         """
         Create a un-down counter.
         Args:
@@ -54,7 +54,7 @@ class OpentelemetryMetricProvider(BaseMetricProvider):
                      name: str,
                      description: str,
                      unit: str,
-                     labelnames: Optional[Sequence[str]] = None) -> BaseGauge:
+                     labelnames: Optional[Sequence[str]] = None) -> Gauge:
         """
         Create a gauge.
         Args:
@@ -69,7 +69,7 @@ class OpentelemetryMetricProvider(BaseMetricProvider):
                          description: str,
                          unit: str,
                          buckets: Optional[Sequence[float]] = None,
-                         labelnames: Optional[Sequence[str]] = None) -> BaseHistogram:
+                         labelnames: Optional[Sequence[str]] = None) -> Histogram:
         """
         Create a histogram.
         Args:
@@ -86,9 +86,9 @@ class OpentelemetryMetricProvider(BaseMetricProvider):
         """
         pass
 
-class OpentelemetryCounter(BaseCounter):
+class OpentelemetryCounter(Counter):
     """
-    Counter is a subclass of BaseCounter, representing a counter metric.
+    OpentelemetryCounter is a subclass of Counter, representing a counter metric.
     A counter is a cumulative metric that represents a single numerical value that only ever goes up.
     """
     def __init__(self, 
@@ -118,9 +118,9 @@ class OpentelemetryCounter(BaseCounter):
             labels = {}
         self._counter.add(value, labels)
 
-class OpentelemetryUpDownCounter(BaseUpDownCounter):
+class OpentelemetryUpDownCounter(UpDownCounter):
     """
-    UpDownCounter is a subclass of BaseUpDownCounter, representing an un-down counter metric.
+    OpentelemetryUpDownCounter is a subclass of UpDownCounter, representing an un-down counter metric.
     An un-down counter is a cumulative metric that represents a single numerical value that only ever goes up.
     """
     def __init__(self,  
@@ -161,9 +161,9 @@ class OpentelemetryUpDownCounter(BaseUpDownCounter):
             labels = {}
         self._counter.add(-value, labels)
 
-class OpentelemetryGauge(BaseGauge):
+class OpentelemetryGauge(Gauge):
     """
-    Gauge is a subclass of BaseGauge, representing a gauge metric.
+    OpentelemetryGauge is a subclass of Gauge, representing a gauge metric.
     A gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
     """
     def __init__(self,
@@ -193,9 +193,9 @@ class OpentelemetryGauge(BaseGauge):
             labels = {}
         self._gauge.set(value, labels)
 
-class OpentelemetryHistogram(BaseHistogram):
+class OpentelemetryHistogram(Histogram):
     """
-    Histogram is a subclass of BaseHistogram, representing a histogram metric.
+    OpentelemetryHistogram is a subclass of Histogram, representing a histogram metric.
     A histogram is a metric that represents the distribution of a set of values.     
     """
     def __init__(self,

@@ -18,7 +18,7 @@ class MetricContext:
         metric = None
         if template.type == MetricType.COUNTER:
             metric = get_metric_provider().create_counter(template.name, template.description, template.unit, template.labels)
-        elif template.type == MetricType.UnDownCounter:
+        elif template.type == MetricType.UPDOWNCOUNTER:
             metric = get_metric_provider().create_updowncounter(template.name, template.description, template.unit, template.labels)
         elif template.type == MetricType.GAUGE:
             metric = get_metric_provider().create_gauge(template.name, template.description, template.unit, template.labels)
@@ -48,7 +48,7 @@ class MetricContext:
         Increment a updowncounter metric.
         """
         metric = cls.get_or_create_metric(template)
-        cls._validate_type(metric, MetricType.UnDownCounter)
+        cls._validate_type(metric, MetricType.UPDOWNCOUNTER)
         metric.inc(value, labels)
     
     @classmethod
@@ -57,7 +57,7 @@ class MetricContext:
         Decrement a updowncounter metric.
         """
         metric = cls.get_or_create_metric(template)
-        cls._validate_type(metric, MetricType.UnDownCounter)
+        cls._validate_type(metric, MetricType.UPDOWNCOUNTER)
         metric.dec(value, labels)
 
     @classmethod

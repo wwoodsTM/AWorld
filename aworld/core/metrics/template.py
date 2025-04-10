@@ -8,7 +8,6 @@ class MetricTemplate(BaseModel):
     """
     MetricTemplate is a class for defining a metric template.
     """
-    # 定义一个枚举类型 
     type: str
     name: str
     description: Optional[str] = None
