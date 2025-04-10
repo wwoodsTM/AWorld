@@ -407,8 +407,8 @@ class AgentExecutor(object):
 
         if is_abstract_method(agent, 'policy'):
             agent.desc_transform()
-            images = observation.images
-            if not images and observation.image:
+            images = observation.images if agent.conf.use_vision else None
+            if agent.conf.use_vision and not images and observation.image:
                 images = [observation.image]
             messages = agent.messages_transform(content=observation.content,
                                                 image_urls=images,
