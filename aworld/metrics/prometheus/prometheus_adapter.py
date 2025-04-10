@@ -1,8 +1,9 @@
 import time
 import threading
-from typing import Sequence, Optional
-from prometheus_client import Counter as PCounter, Gauge as PGauge, Histogram as PHistogram, start_http_server, generate_latest, REGISTRY
-from aworld.core.metrics.metric import MetricProvider, Counter, UpDownCounter, MetricExporter, Gauge, Histogram
+from typing import Sequence, Optional, Dict, List
+from prometheus_client import Counter as PCounter, Gauge as PGauge, Histogram as PHistogram, CollectorRegistry
+from prometheus_client import start_http_server, generate_latest, REGISTRY
+from aworld.metrics.metric import MetricProvider, Counter, UpDownCounter, MetricExporter, Gauge, Histogram
 
 
 class PrometheusMetricProvider(MetricProvider):
@@ -18,14 +19,15 @@ class PrometheusMetricProvider(MetricProvider):
         """
         super().__init__()
         self.exporter = exporter
-    
+
     def shutdown(self) -> None:
         """
         Shutdown the PrometheusMetricProvider.
         """
         self.exporter.shutdown()
-    
-    def create_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> Counter:
+
+    def create_counter(self, name: str, description: str, unit: str,
+                       labelnames: Optional[Sequence[str]] = None) -> Counter:
         """
         Create a counter metric.
         Args:
@@ -36,8 +38,9 @@ class PrometheusMetricProvider(MetricProvider):
             The counter metric.
         """
         return PrometheusCounter(name, description, unit, self, labelnames)
-    
-    def create_un_down_counter(self, name: str, description: str, unit: str, labelnames: Optional[Sequence[str]] = None) -> UpDownCounter:
+
+    def create_un_down_counter(self, name: str, description: str, unit: str,
+                               labelnames: Optional[Sequence[str]] = None) -> UpDownCounter:
         """
         Create an up-down counter metric.
         Args:
@@ -62,10 +65,10 @@ class PrometheusMetricProvider(MetricProvider):
         return PrometheusGauge(name, description, unit, self, labelnames)
 
     def create_histogram(self,
-                         name: str, 
-                         description: str, 
-                         unit: str, 
-                         buckets: Optional[Sequence[float]] = None, 
+                         name: str,
+                         description: str,
+                         unit: str,
+                         buckets: Optional[Sequence[float]] = None,
                          labelnames: Optional[Sequence[str]] = None) -> Histogram:
         """
         Create a histogram metric.
@@ -79,15 +82,17 @@ class PrometheusMetricProvider(MetricProvider):
         """
         return PrometheusHistogram(name, description, unit, self, buckets, labelnames)
 
+
 class PrometheusCounter(Counter):
     """
     PrometheusCounter is a subclass of Counter, representing a counter metric for Prometheus.
     """
-    def __init__(self, 
-                 name: str, 
-                 description: str, 
-                 unit: str, 
-                 provider: MetricProvider, 
+
+    def __init__(self,
+                 name: str,
+                 description: str,
+                 unit: str,
+                 provider: MetricProvider,
                  labelnames: Optional[Sequence[str]] = None):
         """
         Initialize the PrometheusCounter.
@@ -100,7 +105,7 @@ class PrometheusCounter(Counter):
         labelnames = labelnames or []
         super().__init__(name, description, unit, provider, labelnames)
         self._counter = PCounter(name=name, documentation=description, labelnames=labelnames, unit=unit)
-    
+
     def add(self, value: int, labels: dict = None) -> None:
         """
         Add a value to the counter.
@@ -113,14 +118,16 @@ class PrometheusCounter(Counter):
         else:
             self._counter.inc(value)
 
+
 class PrometheusUpDownCounter(UpDownCounter):
     """
     PrometheusUpDownCounter is a subclass of UpDownCounter, representing an up-down counter metric for Prometheus.
     """
-    def __init__(self, 
-                 name: str, 
-                 description: str, 
-                 unit: str, 
+
+    def __init__(self,
+                 name: str,
+                 description: str,
+                 unit: str,
                  provider: MetricProvider,
                  labelnames: Optional[Sequence[str]] = None):
         """
@@ -146,7 +153,7 @@ class PrometheusUpDownCounter(UpDownCounter):
             self._gauge.labels(**labels).inc(value)
         else:
             self._gauge.inc(value)
-    
+
     def dec(self, value: int, labels: dict = None) -> None:
         """
         Subtract a value from the counter.
@@ -158,16 +165,17 @@ class PrometheusUpDownCounter(UpDownCounter):
             self._gauge.labels(**labels).dec(value)
         else:
             self._gauge.dec(value)
-        
+
 
 class PrometheusGauge(Gauge):
     """
     PrometheusGauge is a subclass of Gauge, representing a gauge metric for Prometheus.
     """
+
     def __init__(self,
-                 name: str, 
-                 description: str, 
-                 unit: str, 
+                 name: str,
+                 description: str,
+                 unit: str,
                  provider: MetricProvider,
                  labelnames: Optional[Sequence[str]] = None):
         """
@@ -181,7 +189,7 @@ class PrometheusGauge(Gauge):
         labelnames = labelnames or []
         super().__init__(name, description, unit, provider, labelnames)
         self._gauge = PGauge(name=name, documentation=description, labelnames=labelnames, unit=unit)
-    
+
     def set(self, value: int, labels: dict = None) -> None:
         """
         Set the value of the gauge.
@@ -193,7 +201,7 @@ class PrometheusGauge(Gauge):
             self._gauge.labels(**labels).set(value)
         else:
             self._gauge.set(value)
-    
+
     def inc(self, value: int, labels: dict = None) -> None:
         """
         Add a value to the gauge.
@@ -202,7 +210,7 @@ class PrometheusGauge(Gauge):
             labels: The labels to associate with the value.
         """
         if labels:
-            self._gauge.labels(**labels).inc(value) 
+            self._gauge.labels(**labels).inc(value)
         else:
             self._gauge.inc(value)
 
@@ -218,15 +226,17 @@ class PrometheusGauge(Gauge):
         else:
             self._gauge.dec(value)
 
+
 class PrometheusHistogram(Histogram):
     """
     PrometheusHistogram is a subclass of Histogram, representing a histogram metric for Prometheus.
     """
-    def __init__(self, 
-                 name: str, 
-                 description: str, 
-                 unit: str, 
-                 provider: MetricProvider, 
+
+    def __init__(self,
+                 name: str,
+                 description: str,
+                 unit: str,
+                 provider: MetricProvider,
                  buckets: Sequence[float] = None,
                  labelnames: Optional[Sequence[str]] = None):
         """
@@ -240,10 +250,11 @@ class PrometheusHistogram(Histogram):
         labelnames = labelnames or []
         super().__init__(name, description, unit, provider, buckets, labelnames)
         if buckets:
-            self._histogram = PHistogram(name=name, documentation=description, labelnames=labelnames, unit=unit, buckets=buckets)
+            self._histogram = PHistogram(name=name, documentation=description, labelnames=labelnames, unit=unit,
+                                         buckets=buckets)
         else:
             self._histogram = PHistogram(name=name, documentation=description, labelnames=labelnames, unit=unit)
-    
+
     def record(self, value: int, labels: dict = None) -> None:
         """
         Record a value in the histogram.
@@ -256,11 +267,13 @@ class PrometheusHistogram(Histogram):
         else:
             self._histogram.observe(value)
 
+
 class PrometheusMetricExporter(MetricExporter):
     """
     PrometheusMetricExporter is a class for exporting metrics to Prometheus.
     """
-    def __init__(self, provider: MetricProvider, port: int=8000):
+
+    def __init__(self, provider: MetricProvider, port: int = 8000):
         """
         Initialize the PrometheusMetricExporter.
         Args:
@@ -278,7 +291,8 @@ class PrometheusMetricExporter(MetricExporter):
         """
         self.server.shutdown()
         self.server_thread.join()
-    
+
+
 class PrometheusConsoleMetricExporter(MetricExporter):
     """Implementation of :class:`MetricExporter` that prints metrics to the
     console.
@@ -287,7 +301,7 @@ class PrometheusConsoleMetricExporter(MetricExporter):
     metrics to the console STDOUT.
     """
 
-    def __init__(self, out_interval_secs: float=1.0):
+    def __init__(self, out_interval_secs: float = 1.0):
         """Initialize the console exporter."""
         self._should_shutdown = False
         self.out_interval_secs = out_interval_secs
@@ -295,9 +309,46 @@ class PrometheusConsoleMetricExporter(MetricExporter):
         self.metrics_thread.daemon = True
         self.metrics_thread.start()
 
+    def generate_latest(self, registry: CollectorRegistry = REGISTRY) -> bytes:
+        """Returns the metrics from the registry in latest text format as a string."""
+
+        def sample_line(line):
+            if line.labels:
+                labelstr = '{{{0}}}'.format(','.join(
+                    ['{}="{}"'.format(
+                        k, v.replace('\\', r'\\').replace('\n', r'\n').replace('"', r'\"'))
+                        for k, v in sorted(line.labels.items())]))
+            else:
+                labelstr = ''
+            timestamp = ''
+            if line.timestamp is not None:
+                # Convert to milliseconds.
+                timestamp = f' {int(float(line.timestamp) * 1000):d}'
+            return f'{line.name}{labelstr} {line.value}{timestamp}\n'
+
+        output = []
+        for metric in registry.collect():
+            try:
+                om_samples: Dict[str, List[str]] = {}
+                for s in metric.samples:
+                    for suffix in ['_gsum', '_gcount']:
+                        if s.name == metric.name + suffix:
+                            # OpenMetrics specific sample, put in a gauge at the end.
+                            om_samples.setdefault(suffix, []).append(sample_line(s))
+                            break
+                    else:
+                        output.append(sample_line(s))
+            except Exception as exception:
+                exception.args = (exception.args or ('',)) + (metric,)
+                raise
+
+            for suffix, lines in sorted(om_samples.items()):
+                output.extend(lines)
+        return ''.join(output).encode('utf-8')
+
     def _output_metrics_to_console(self):
         while not self._should_shutdown:
-            metrics_text = generate_latest(REGISTRY)
+            metrics_text = self.generate_latest(REGISTRY)
             print(metrics_text.decode('utf-8'))
             time.sleep(self.out_interval_secs)
 
@@ -306,4 +357,3 @@ class PrometheusConsoleMetricExporter(MetricExporter):
         Shutdown the PrometheusConsoleMetricExporter.
         """
         self._should_shutdown = True
-
