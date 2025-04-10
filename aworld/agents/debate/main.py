@@ -73,11 +73,9 @@ class DebateArena:
             # affirmative_speech
             speech = await self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
             yield speech
-            self.speeches.append(speech)
 
             # negative_speech
             speech = await self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
-            self.speeches.append(speech)
             yield speech
 
             logging.info(f"🛬==================================== round#{i} end =============================================")
