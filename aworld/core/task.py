@@ -171,7 +171,7 @@ class Task(object):
                     observation = self.swarm.action_to_observation(policy, observations)
                     policy: List[ActionModel] = agent_executor.execute_agent(observation,
                                                                              agent=cur_agent,
-                                                                             conf=agent.conf,
+                                                                             conf=cur_agent.conf,
                                                                              step=step)
                     if not policy:
                         logger.warning(f"current agent {cur_agent.name()} no policy to use.")
@@ -211,6 +211,18 @@ class Task(object):
                             observation.content = policy_for_agent.policy_info
                         else:
                             observation = Observation(content=policy_for_agent.policy_info)
+                            observations.append(observation)
+
+                        policy = agent_executor.execute_agent(observation,
+                                                              agent=cur_agent,
+                                                              conf=cur_agent.conf,
+                                                              step=step)
+
+                        if not policy:
+                            logger.warning(
+                                f"{observation} can not get the valid policy in {policy_for_agent.agent_name}, exit task!")
+                            msg = f"{policy_for_agent.agent_name} invalid policy"
+                            break
                     else:
                         # group action by tool name
                         tool_mapping = dict()
