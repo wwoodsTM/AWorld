@@ -164,24 +164,23 @@ class Task(object):
             for agent in self.swarm.ordered_agents:
                 observations = [observation]
                 policy = None
+                terminated = False
+
+                observation = self.swarm.action_to_observation(policy, observations)
+                policy: List[ActionModel] = agent_executor.execute_agent(observation,
+                                                                         agent=agent,
+                                                                         conf=agent.conf,
+                                                                         step=step)
+                if not policy:
+                    logger.warning(f"current agent {agent.name()} no policy to use.")
+                    return {"msg": f"current agent {self.swarm.cur_agent.name()} no policy to use.",
+                            "steps": step,
+                            "success": False,
+                            "time_cost": (time.time() - start)}
+
+                if self.tools is None:
+                    self.tools = {}
                 while step < max_steps:
-                    terminated = False
-
-                    observation = self.swarm.action_to_observation(policy, observations)
-                    policy: List[ActionModel] = agent_executor.execute_agent(observation,
-                                                                             agent=agent,
-                                                                             conf=agent.conf,
-                                                                             step=step)
-                    if not policy:
-                        logger.warning(f"current agent {agent.name()} no policy to use.")
-                        return {"msg": f"current agent {self.swarm.cur_agent.name()} no policy to use.",
-                                "steps": step,
-                                "success": False,
-                                "time_cost": (time.time() - start)}
-
-                    if self.tools is None:
-                        self.tools = {}
-
                     if self.is_agent(policy[0]):
                         # only one agent, and get agent from policy
                         policy_for_agent = policy[0]
