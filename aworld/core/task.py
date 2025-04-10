@@ -164,17 +164,18 @@ class Task(object):
             for agent in self.swarm.ordered_agents:
                 observations = [observation]
                 policy = None
+                cur_agent = agent
                 while step < max_steps:
                     terminated = False
 
                     observation = self.swarm.action_to_observation(policy, observations)
                     policy: List[ActionModel] = agent_executor.execute_agent(observation,
-                                                                             agent=agent,
-                                                                             conf=agent.conf,
+                                                                             agent=cur_agent,
+                                                                             conf=cur_agent.conf,
                                                                              step=step)
                     if not policy:
-                        logger.warning(f"current agent {agent.name()} no policy to use.")
-                        return {"msg": f"current agent {self.swarm.cur_agent.name()} no policy to use.",
+                        logger.warning(f"current agent {cur_agent.name()} no policy to use.")
+                        return {"msg": f"current agent {cur_agent.name()} no policy to use.",
                                 "steps": step,
                                 "success": False,
                                 "time_cost": (time.time() - start)}
@@ -210,6 +211,8 @@ class Task(object):
                             observation.content = policy_for_agent.policy_info
                         else:
                             observation = Observation(content=policy_for_agent.policy_info)
+                            observations.append(observation)
+
                         policy = agent_executor.execute_agent(observation,
                                                               agent=cur_agent,
                                                               conf=cur_agent.conf,
@@ -220,8 +223,6 @@ class Task(object):
                                 f"{observation} can not get the valid policy in {policy_for_agent.agent_name}, exit task!")
                             msg = f"{policy_for_agent.agent_name} invalid policy"
                             break
-                        # clear observation
-                        observation = None
                     else:
                         # group action by tool name
                         tool_mapping = dict()
