@@ -17,10 +17,8 @@ if __name__ == '__main__':
         llm_provider="openai",
         llm_model_name="gpt-4o",
         llm_temperature=0.3,
-        llm_api_key="sk-zk237c1421f07b30908f6e8e7eecf940ecd67e5583a1f5e5",
-        llm_base_url="https://api.zhizengzeng.com/v1"
-        # llm_api_key="your own key",
-        # llm_base_url="http://localhost:5080"  ## paste your own llm server address
+        llm_api_key="your own key",
+        llm_base_url="http://localhost:5080"  ## paste your own llm server address
     )
     browser_tool_config = BrowserToolConfig(width=1280,
                                             height=720,

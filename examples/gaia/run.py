@@ -23,23 +23,12 @@ def main():
     # One sample for example
     test_sample = mock_dataset("gaia")
 
-    # model_config = ModelConfig(
-    #     llm_provider="openai",
-    #     llm_model_name="gpt-4o",
-    #     llm_temperature=1,
-    #     llm_api_key="your own key",
-    #     llm_base_url="http://localhost:5080"  ## paste your own llm server address
-    # )
     model_config = ModelConfig(
-        # llm_model_name="openrouterproxy.openai/gpt-4o",
-        # llm_api_key="sk-3d5f9af9ec1c457c96d86a668cdc5d0a",
-        # llm_base_url="https://agi-pre.alipay.com/api"
-        llm_model_name="deepseek-chat",
-        llm_base_url="https://api.deepseek.com",
-        llm_api_key="sk-f0d545469d7e4d8eba968dc54c33bef7"
-        # llm_model_name = "gpt-4o",
-        # llm_api_key = "sk-zk237c1421f07b30908f6e8e7eecf940ecd67e5583a1f5e5",
-        # llm_base_url = "https://api.zhizengzeng.com/v1"
+        llm_provider="openai",
+        llm_model_name="gpt-4o",
+        llm_temperature=1,
+        llm_api_key="your own key",
+        llm_base_url="http://localhost:5080"  ## paste your own llm server address
     )
 
     agent1_config = AgentConfig(
