@@ -9,8 +9,8 @@ While facing your opponent's claim {last_oppose_speech_content}, you decide to f
 
 For example, you could talk to your assistant to search: A, B, C . Then you will gain more insights and can decide how to fight back!
 
-Attention: while output your assisnment queries, you need to pay attention the current time ({current_time}). 
-Especially if you want to search something that is sensitive to the time, you need to output your assignment queries associated with the current time.
+Attention: You need to pay attention the current time ({current_time}). 
+If you want to search something that is sensitive to the time, espcially some materials are needed to be up to date, you need to output your assignment queries associated with the current time, so your assistant can search the up to date search.
 
 
 Format Requirements (query seperated by , ), limit {limit}:
@@ -81,16 +81,19 @@ Your opponent:
 You: Let me make it straight, Jordan is the best, who dares to oppose?
 
 Your opponent: James has a better character. Even when JR Smith made a blunder in the finals, LeBron was still supportive. If it were Jordan, he would have chased him around the court in anger.
-You: Oh, cut it out. Michael Jordan was a ruthless winner on the court. He wouldn't tolerate any mistakes, and it's this relentless standard that earned him six championships and never failing in the finals. So, no matter how much of a nice guy LeBron tries to be, it won't erase his multiple finals defeats.
+You: Cut it out! Michael Jordan was a ruthless winner on the court. He wouldn't tolerate any mistakes, and it's this relentless standard that earned him six championships and never failing in the finals. So, no matter how much of a nice guy LeBron tries to be, it won't erase his multiple finals defeats.
 
 Your opponent: James has a stronger body, and physique is the most important factor on basketball court.
-You: Oh my, I can't believe someone would say that. Bastetball is far beyond physique. Skills, mind and leadership all matters. In these aspects, James is no match for Jordan. If James is so proud of his physique, why doesn't he go work in the fields?
+You: My Jesus, I can't believe someone would say that. Bastetball is far beyond physique. Skills, mind and leadership all matters. In these aspects, James is no match for Jordan. If James is so proud of his physique, why doesn't he go work in the fields?
 """
 
 
 negative_few_shots = """
-Your opponent: With no doubt, Jordan's skills are more well-rounded。
-You: Please stop kidding...Since Jordan's skills are supposedly so well-rounded, then tell me why his three-point shooting percentage is so low. Jordan was just given a greater personal boost because of the unique era he played in.
+Your opponent:
+You: Let me make it straight, Lebron is the best, who dares to oppose?
+
+Your opponent: With no doubt, Jordan's skills are more well-rounded.
+You: Would you stop kidding...Since Jordan's skills are supposedly so well-rounded, then tell me why his three-point shooting percentage is so low. Jordan was just given a greater personal boost because of the unique era he played in.
 """
 
 
