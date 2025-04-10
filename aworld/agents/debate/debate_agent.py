@@ -111,8 +111,6 @@ class DebateAgent(Agent, ABC):
         #         if i == len(history) - 1 or history[i] != history[i+1]:
         #             # Add the current element to the result list
         #             unique_history.append(history[i])
-        print("self.stance: ", self.stance)  #  "affirmative", "negative"
-        print("chat_history: ", unique_history)
 
 
         affirmative_chat_history = ""
@@ -151,7 +149,6 @@ class DebateAgent(Agent, ABC):
                                                 chat_history = chat_history,
                                                 few_shots = few_shots 
                                                 )
-        print("human_prompt:", human_prompt)
 
         messages = [
             SystemMessage(content=user_debate_system_prompt),
