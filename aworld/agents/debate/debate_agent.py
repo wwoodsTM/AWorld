@@ -5,7 +5,7 @@ from typing import Dict, Any, Union, List, Literal, Optional
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from aworld.agents.debate.base import DebateSpeech
-from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment_system_prompt, \
+from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment_system_prompt, affirmative_few_shots, negative_few_shots, \
     user_debate_system_prompt, user_debate_prompt
 from aworld.agents.debate.search.search_engine import SearchEngine
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
@@ -104,18 +104,60 @@ class DebateAgent(Agent, ABC):
             search_results_content += f"SearchQuery: {search_result['query']}"
             search_results_content += "\n\n".join([truncate_content(s['content'], 1000) for s in search_result['results']])
 
+        unique_history = []
+        if len(history) >= 2:
+            for i in range(len(history)):
+                # Check if the current element is the same as the next one
+                if i == len(history) - 1 or history[i] != history[i+1]:
+                    # Add the current element to the result list
+                    unique_history.append(history[i])
+        print("self.stance: ", self.stance)  #  "affirmative", "negative"
+        print("chat_history: ", unique_history)
+
+
+        affirmative_chat_history = ""
+        negative_chat_history = ""
+ 
+        if len(unique_history) >= 2:
+            if self.stance == "affirmative":
+                for speech in unique_history[:-1]:
+                    if speech.name == "affirmativeSpeaker":
+                        affirmative_chat_history = affirmative_chat_history + "You: " + speech.content + "\n"
+                    elif speech.name == "negativeSpeaker":
+                        affirmative_chat_history = affirmative_chat_history + "Your Opponent: " + speech.content + "\n"
+
+            elif self.stance == "negative":
+                for speech in unique_history[:-1]:
+                    if speech.name == "negativeSpeaker":
+                        negative_chat_history = negative_chat_history + "You: " + speech.content + "\n"
+                    elif speech.name == "affirmativeSpeaker":
+                        negative_chat_history = negative_chat_history + "Your Opponent: " + speech.content + "\n"
+
+        few_shots = ""
+
+        if self.stance == "affirmative":
+            chat_history = affirmative_chat_history
+            few_shots = affirmative_few_shots
+
+        elif self.stance == "negative":
+            chat_history = negative_chat_history
+            few_shots = negative_few_shots
+        
         human_prompt = user_debate_prompt.format(topic=topic,
-                                                     opinion=opinion,
-                                                     oppose_opinion=oppose_opinion,
-                                                     last_oppose_speech_content=opponent_claim,
-                                                     search_results_content=search_results_content
-                                                     )
+                                                opinion=opinion,
+                                                oppose_opinion=oppose_opinion,
+                                                last_oppose_speech_content=opponent_claim,
+                                                search_results_content=search_results_content,
+                                                chat_history = chat_history,
+                                                few_shots = few_shots 
+                                                )
+        print("human_prompt:", human_prompt)
 
         messages = [
             SystemMessage(content=user_debate_system_prompt),
             HumanMessage(content=human_prompt)
         ]
-
+        
         result = await self.llm.ainvoke(input=messages)
         return result.content
 
