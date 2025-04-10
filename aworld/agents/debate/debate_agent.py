@@ -122,16 +122,16 @@ class DebateAgent(Agent, ABC):
         if len(unique_history) >= 2:
             if self.stance == "affirmative":
                 for speech in unique_history[:-1]:
-                    if speech.name == "affirmativeSpeaker":
+                    if speech.stance == "affirmative":
                         affirmative_chat_history = affirmative_chat_history + "You: " + speech.content + "\n"
-                    elif speech.name == "negativeSpeaker":
+                    elif speech.stance == "negative":
                         affirmative_chat_history = affirmative_chat_history + "Your Opponent: " + speech.content + "\n"
 
             elif self.stance == "negative":
                 for speech in unique_history[:-1]:
-                    if speech.name == "negativeSpeaker":
+                    if speech.stance == "negative":
                         negative_chat_history = negative_chat_history + "You: " + speech.content + "\n"
-                    elif speech.name == "affirmativeSpeaker":
+                    elif speech.stance == "affirmative":
                         negative_chat_history = negative_chat_history + "Your Opponent: " + speech.content + "\n"
 
         few_shots = ""
