@@ -21,7 +21,7 @@ def main():
         name=Agents.ANDROID.value,
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_temperature=1
+        llm_temperature=1,
     )
 
     task_config = {
