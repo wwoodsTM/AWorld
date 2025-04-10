@@ -73,7 +73,7 @@ class DebateAgent(Agent, ABC):
         logging.info(f"user_response is {user_response}")
 
         action = ActionModel(
-            policy_info=DebateSpeech(name=self.name(), type="speech", content=user_response, round=round)
+            policy_info=DebateSpeech(name=self.name(), type="speech", stance=self.stance, content=user_response, round=round)
         )
 
         return [action]
