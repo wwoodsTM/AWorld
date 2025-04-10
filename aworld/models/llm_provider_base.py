@@ -16,7 +16,7 @@ from aworld.models.model_response import ModelResponse
 class LLMProviderBase:
     """Base class for large language model providers, defines unified interface."""
 
-    def __init__(self, api_key: str = None, base_url: str = None, model_name: str = None, **kwargs):
+    def __init__(self, api_key: str = None, base_url: str = None, model_name: str = None, sync_able: bool = None, async_able: bool = None, **kwargs):
         """Initialize provider.
 
         Args:
@@ -29,7 +29,14 @@ class LLMProviderBase:
         self.base_url = base_url
         self.model_name = model_name
         self.kwargs = kwargs
-        self.provider = self._init_provider()
+        # Determine whether to initialize sync and async providers
+        self.need_sync = sync_able if sync_able is not None else async_able is not True
+        self.need_async = async_able if async_able is not None else sync_able is not True
+
+        # Initialize providers based on flags
+        self.provider = self._init_provider() if self.need_sync else None
+        self.async_provider = self._init_async_provider() if self.need_async else None
+
 
     def _init_provider(self):
         """Initialize specific provider instance, to be implemented by subclasses.
@@ -37,6 +44,15 @@ class LLMProviderBase:
             Provider instance.
         """
         raise NotImplementedError("Subclasses must implement _init_provider method")
+
+    def _init_async_provider(self):
+        """Initialize async provider instance. Optional for subclasses that don't need async support.
+        Only called if async provider is needed.
+
+        Returns:
+            Async provider instance.
+        """
+        return None
 
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> Any:
         """Preprocess messages, convert OpenAI format messages to specific provider required format.
@@ -90,6 +106,9 @@ class LLMProviderBase:
         Returns:
             ModelResponse: Unified model response object.
         """
+        if not self.async_provider:
+            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+
         raise NotImplementedError("Subclasses must implement acompletion method")
 
     def completion(self, 
@@ -110,6 +129,9 @@ class LLMProviderBase:
         Returns:
             ModelResponse: Unified model response object.
         """
+        if not self.provider:
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+
         raise NotImplementedError("Subclasses must implement completion method")
 
     def stream_completion(self, 

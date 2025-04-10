@@ -48,7 +48,7 @@ class ExecuteAgent(BaseAgent):
             input_content.append(traj[0].content)
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1]._serialize_tool_calls()})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
             else:
                 input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
@@ -147,7 +147,7 @@ class PlanAgent(BaseAgent):
             input_content.append({'role': 'user', 'content': traj[0].content})
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1]._serialize_tool_calls()})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
             else:
                 input_content.append({'role': 'assistant', 'content': traj[-1].content})
 

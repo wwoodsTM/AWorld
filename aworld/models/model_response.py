@@ -552,7 +552,7 @@ class ModelResponse:
         """
         return self.message
 
-    def _serialize_tool_calls(self) -> List[Dict[str, Any]]:
+    def serialize_tool_calls(self) -> List[Dict[str, Any]]:
         """
         Convert tool call objects to JSON format, handling OpenAI object types
 
@@ -583,7 +583,7 @@ class ModelResponse:
             "id": self.id,
             "model": self.model,
             "content": self.content,
-            "tool_calls": self._serialize_tool_calls(),
+            "tool_calls": self.serialize_tool_calls(),
             "usage": self.usage,
             "error": self.error,
             "message": self._serialize_message()
@@ -608,7 +608,7 @@ class ModelResponse:
         for key, value in self.message.items():
             if key == 'tool_calls':
                 # Handle tool_calls
-                result[key] = self._serialize_tool_calls()
+                result[key] = self.serialize_tool_calls()
             else:
                 result[key] = value
 

@@ -123,6 +123,9 @@ class AnthropicProvider(LLMProviderBase):
         Returns:
             ModelResponse object.
         """
+        if not self.provider:
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+
         try:
             processed_data = self.preprocess_messages(messages)
 
@@ -190,6 +193,9 @@ class AnthropicProvider(LLMProviderBase):
         Returns:
             Generator yielding ModelResponse chunks.
         """
+        if not self.provider:
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+
         try:
             processed_data = self.preprocess_messages(messages)
 
@@ -263,9 +269,11 @@ class AnthropicProvider(LLMProviderBase):
         Returns:
             AsyncGenerator yielding ModelResponse chunks.
         """
+        if not self.async_provider:
+            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+
         try:
             processed_data = self.preprocess_messages(messages)
-            async_provider = self._init_async_provider()
 
             if "tools" in kwargs:
                 openai_tools = kwargs["tools"]
@@ -304,7 +312,7 @@ class AnthropicProvider(LLMProviderBase):
                 if param in kwargs:
                     anthropic_params[param] = kwargs[param]
 
-            response_stream = await async_provider.messages.create(**anthropic_params)
+            response_stream = await self.async_provider.messages.create(**anthropic_params)
 
             async for chunk in response_stream:
                 if not chunk:
@@ -337,9 +345,11 @@ class AnthropicProvider(LLMProviderBase):
         Returns:
             ModelResponse object.
         """
+        if not self.async_provider:
+            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+
         try:
             processed_data = self.preprocess_messages(messages)
-            async_provider = self._init_async_provider()
 
             if "tools" in kwargs:
                 openai_tools = kwargs["tools"]
@@ -377,7 +387,7 @@ class AnthropicProvider(LLMProviderBase):
                 if param in kwargs:
                     anthropic_params[param] = kwargs[param]
 
-            response = await async_provider.messages.create(**anthropic_params)
+            response = await self.async_provider.messages.create(**anthropic_params)
 
             return self.postprocess_response(response)
         except Exception as e:

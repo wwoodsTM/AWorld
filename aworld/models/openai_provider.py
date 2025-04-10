@@ -122,6 +122,9 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             ModelResponse object.
         """
+        if not self.provider:
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+
         processed_messages = self.preprocess_messages(messages)
         openai_params = {
             "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
@@ -174,6 +177,9 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             Generator yielding ModelResponse chunks.
         """
+        if not self.provider:
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+
         processed_messages = self.preprocess_messages(messages)
         openai_params = {
             "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
@@ -225,8 +231,10 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             AsyncGenerator yielding ModelResponse chunks.
         """
+        if not self.async_provider:
+            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+
         processed_messages = self.preprocess_messages(messages)
-        async_provider = self._init_async_provider()
 
         openai_params = {
             "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
@@ -248,7 +256,7 @@ class OpenAIProvider(LLMProviderBase):
                 openai_params[param] = kwargs[param]
 
         try:
-            response_stream = await async_provider.chat.completions.create(**openai_params)
+            response_stream = await self.async_provider.chat.completions.create(**openai_params)
 
             async for chunk in response_stream:
                 if not chunk:
@@ -278,8 +286,10 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             ModelResponse object.
         """
+        if not self.async_provider:
+            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+
         processed_messages = self.preprocess_messages(messages)
-        async_provider = self._init_async_provider()
 
         openai_params = {
             "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
@@ -300,7 +310,7 @@ class OpenAIProvider(LLMProviderBase):
                 openai_params[param] = kwargs[param]
 
         try:
-            response = await async_provider.chat.completions.create(**openai_params)
+            response = await self.async_provider.chat.completions.create(**openai_params)
 
             if hasattr(response, 'code') and response.code != 0:
                 error_msg = getattr(response, 'msg', 'Unknown error')
