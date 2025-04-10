@@ -7,7 +7,11 @@ You have an assistant that can help search the relative materials online to supp
 
 While facing your opponent's claim {last_oppose_speech_content}, you decide to fight back! Now you need to ask your assistant to do some online survey, according to that claim, to give you more insights to decide what to debate with your opponent.
 
-For example, you could talk to your assistant to search: A, B, C . Then I will gain more insights and can decide how to fight back!
+For example, you could talk to your assistant to search: A, B, C . Then you will gain more insights and can decide how to fight back!
+
+Attention: while output your assisnment queries, you need to pay attention the current time ({current_time}). 
+Especially if you want to search something that is sensitive to the time, you need to output your assignment queries associated with the current time.
+
 
 Format Requirements (query seperated by , ), limit {limit}:
 query1, query2, query3...
@@ -87,4 +91,29 @@ You: Oh my, I can't believe someone would say that. Bastetball is far beyond phy
 negative_few_shots = """
 Your opponent: With no doubt, Jordan's skills are more well-rounded。
 You: Please stop kidding...Since Jordan's skills are supposedly so well-rounded, then tell me why his three-point shooting percentage is so low. Jordan was just given a greater personal boost because of the unique era he played in.
+"""
+
+
+
+generate_opinions_prompt = """
+Here is the debate topic:{topic}.
+Please output the two sides' (positive side vs negative side) opinions of the topic.
+
+
+For example:
+topic: Who is better? A or B?
+positive_opinion:A
+negative_opinion:B
+
+topic: Is is OK to drink wine?
+positive_opinion:Yes
+negative_opinion:No
+
+
+Output format:
+positive_opinion:xxx
+negative_opinion:yyy
+
+
+Now the topic is {topic}, please follow the example and output format, output the two sides' opinions.
 """

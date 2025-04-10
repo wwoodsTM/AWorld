@@ -1,6 +1,7 @@
 import logging
 from abc import ABC
 from typing import Dict, Any, Union, List, Literal, Optional
+from datetime import datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -80,10 +81,12 @@ class DebateAgent(Agent, ABC):
 
     async def gen_keywords(self, topic, opinion, oppose_opinion, last_oppose_speech_content, history):
 
+        current_time = datetime.now().strftime("%Y-%m-%d-%H")
         human_prompt = user_assignment_prompt.format(topic=topic,
                                                      opinion=opinion,
                                                      oppose_opinion=oppose_opinion,
                                                      last_oppose_speech_content=last_oppose_speech_content,
+                                                     current_time = current_time,
                                                      limit=2
                                                      )
 
