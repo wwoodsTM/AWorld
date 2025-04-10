@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import asyncio
 import re
 from types import FunctionType
 
@@ -14,6 +15,13 @@ def convert_to_snake(name: str) -> str:
 def is_abstract_method(cls, method_name):
     method = getattr(cls, method_name)
     return (hasattr(method, '__isabstractmethod__') and method.__isabstractmethod__) or (
-        isinstance(method, FunctionType) and hasattr(
+            isinstance(method, FunctionType) and hasattr(
         method, '__abstractmethods__') and method in method.__abstractmethods__)
 
+
+def loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+    return loop
