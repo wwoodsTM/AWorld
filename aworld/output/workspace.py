@@ -4,14 +4,14 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Union, Callable
 
-from aworld.output.agent_output import AgentOutput
+from aworld.output.base import Output
 from aworld.output.artifact import ArtifactType, Artifact
 from aworld.output.code_artifact import CodeArtifact
 from aworld.output.storage.artifact_repository import LocalArtifactRepository
 from aworld.output.observer import WorkspaceObserver, get_observer
 
 
-class WorkSpace(AgentOutput):
+class WorkSpace(Output):
     """
     Artifact workspace, managing a group of related artifacts
     
@@ -208,6 +208,14 @@ class WorkSpace(AgentOutput):
             if artifact.artifact_id == artifact_id:
                 return artifact
         return None
+
+
+    def get_terminal(self) -> str:
+        pass
+
+    def get_webpage_groups(self) -> list[Any] | None:
+        return self.list_artifacts(ArtifactType.WEB_PAGE)
+
 
     def update_artifact(
             self,

@@ -57,6 +57,7 @@ class DebateAgent(Agent, ABC):
         topic = info["topic"]
         history: list[DebateSpeech] = info["history"]
 
+        #Event.emit("xxx")
         ## step2: gen keywords
         keywords = await self.gen_keywords(topic, opinion, oppose_opinion, opponent_claim, history)
 

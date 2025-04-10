@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 import uuid
-from typing import Optional
+from typing import Optional, Union, Generator, Any, AsyncGenerator
 
 from dotenv import load_dotenv
 
@@ -11,8 +11,11 @@ from aworld.agents.debate.debate_agent import DebateAgent
 from aworld.agents.debate.search.ant_search_engine import AntSearchEngine
 from aworld.config import AgentConfig
 from aworld.core.agent.base import BaseAgent
+from aworld.core.agent.swarm import Swarm
+from aworld.core.task import Task
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
+from aworld.output.base import Output
 from aworld.output.workspace import WorkSpace
 
 
@@ -48,8 +51,11 @@ class DebateArena:
         self.workspace = workspace
         self.affirmative_speaker.set_workspace(workspace)
         self.negative_speaker.set_workspace(workspace)
+        # Event.register("topic", func= );
 
-    async def start_debate(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int) -> list[DebateSpeech]:
+    async def async_run(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int)\
+            -> AsyncGenerator[Output, None]:
+
         """
         Start the debate
         1. debate will start from round 1
@@ -70,14 +76,15 @@ class DebateArena:
 
             # affirmative_speech
             speech = await self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
+            yield speech
             self.speeches.append(speech)
 
             # negative_speech
             speech = await self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
             self.speeches.append(speech)
+            yield speech
 
             logging.info(f"🛬==================================== round#{i} end =============================================")
-        return self.speeches
 
     async def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
@@ -138,6 +145,13 @@ class DebateArena:
         pass
 
 
+async def start_debate():
+    speeches = debateArena.async_run(topic="Who's GOAT? Jordan or Lebron", affirmative_opinion="Jordan",
+                                     negative_opinion="Lebron", rounds=3)
+    async for speech in speeches:
+        print(f"{speech.name}: {speech.content}")
+
+
 if __name__ == '__main__':
     load_dotenv()
 
@@ -154,5 +168,4 @@ if __name__ == '__main__':
     debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2,
                               workspace=WorkSpace.from_local_storages(str(uuid.uuid4())))
 
-    asyncio.run(debateArena.start_debate(topic="Who's GOAT? Jordan or Lebron", affirmative_opinion="Jordan",
-                             negative_opinion="Lebron", rounds=3))
+    asyncio.run(start_debate())

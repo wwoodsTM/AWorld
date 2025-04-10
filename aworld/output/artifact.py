@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum, auto
 from typing import Dict, Any, Optional
 
-from aworld.output.agent_output import AgentOutput
+from aworld.output.base import Output
 
 
 class ArtifactType(Enum):
@@ -34,7 +34,7 @@ class ArtifactStatus(Enum):
     EDITED = auto()     # Edited status
     ARCHIVED = auto()   # Archived status
 
-class Artifact(AgentOutput):
+class Artifact(Output):
     """
     Represents a specific content generation result (artifact)
     
