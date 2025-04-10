@@ -2,26 +2,26 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
+import asyncio
 import copy
 import json
 import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
 
-from openai import Stream
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
-
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
-from aworld.models.llm import get_llm_model
+from aworld.mcp.utils import mcp_tool_desc_transform
+from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
-from aworld.utils.common import convert_to_snake, is_abstract_method
+from aworld.utils.common import convert_to_snake, is_abstract_method, asyncio_loop, ReturnThread, sync_exec
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -61,7 +61,7 @@ class MemoryModel(BaseModel):
     content: Any = None
 
 
-class Agent(Generic[INPUT, OUTPUT]):
+class BaseAgent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
@@ -77,6 +77,7 @@ class Agent(Generic[INPUT, OUTPUT]):
             logger.warning(f"Unknown conf type: {type(conf)}")
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
+        self._desc = kwargs.pop("desc") if kwargs.get("desc") else ' '.join(self._name.split('_'))
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -96,8 +97,10 @@ class Agent(Generic[INPUT, OUTPUT]):
             setattr(self, k, v)
 
     def name(self) -> str:
-        """Agent name that must be implemented in subclasses"""
         return self._name
+
+    def desc(self) -> str:
+        return self._desc
 
     @abc.abstractmethod
     def policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
@@ -122,8 +125,9 @@ class Agent(Generic[INPUT, OUTPUT]):
         if options is None:
             options = {}
         self.task = options.get("task")
-        self.tool_names = options.get("tool_names")
+        self.tool_names = options.get("tool_names", [])
         self.handoffs = options.get("agent_names", [])
+        self.mcp_servers = options.get("mcp_servers", [])
         self.trajectory = []
         self._finished = False
 
@@ -137,17 +141,18 @@ class Agent(Generic[INPUT, OUTPUT]):
         return self._finished
 
 
-class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
+class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
     """Basic agent for unified protocol within the framework."""
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
-        super(BaseAgent, self).__init__(conf, **kwargs)
+        super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
         self.memory = []
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+        agent_executor.register(self.name(), self)
 
     @property
     def llm(self):
@@ -157,6 +162,11 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
             self._llm = get_llm_model(conf)
         return self._llm
 
+    def env_tool(self):
+        """Description of agent as tool."""
+        return tool_desc_transform(get_tool_desc(),
+                                   tools=self.tool_names if self.tool_names else [])
+
     def handoffs_agent_as_tool(self):
         """Description of agent as tool."""
         return agent_desc_transform(get_agent_desc(),
@@ -164,9 +174,24 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
 
     def mcp_is_tool(self):
         """Description of mcp servers are tools."""
-        return []
+        try:
+            return sync_exec(mcp_tool_desc_transform, self.mcp_servers)
+        except Exception as e:
+            logger.error(f"mcp_is_tool error: {e}")
+            return []
 
     def desc_transform(self):
+        """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
+
+        # Stateless tool
+        self.tools = tool_desc_transform(get_tool_desc(),
+                                         tools=self.tool_names if self.tool_names else [])
+        # Agents as tool
+        self.tools.extend(self.handoffs_agent_as_tool())
+        # MCP servers are tools
+        self.tools.extend(self.mcp_is_tool())
+
+    async def async_desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
         # Stateless tool
@@ -230,23 +255,22 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
         messages.append(cur_msg)
         return messages
 
-    def response_parse(self, resp: ChatCompletion | Stream[ChatCompletionChunk]) -> AgentResult:
+    def response_parse(self, resp: ModelResponse) -> AgentResult:
         """Default parse response by LLM."""
         results = []
-        if not resp or not resp.choices:
+        if not resp:
             logger.warning("LLM no valid response!")
             return AgentResult(actions=[], current_state=None)
 
         is_call_tool = False
-        content = resp.choices[0].message.content
-        if resp.choices[0].message.tool_calls:
+        content = resp.content
+        if resp.tool_calls:
             is_call_tool = True
-            for tool_call in resp.choices[0].message.tool_calls:
+            for tool_call in resp.tool_calls:
                 full_name: str = tool_call.function.name
                 if not full_name:
                     logger.warning("tool call response no tool name.")
                     continue
-
                 params = json.loads(tool_call.function.arguments)
                 # format in framework
                 names = full_name.split("__")
@@ -254,7 +278,7 @@ class BaseAgent(Agent[Observation, Union[Observation, List[ActionModel]]]):
                 if is_agent_by_name(tool_name):
                     results.append(ActionModel(agent_name=tool_name, params=params, policy_info=content))
                 else:
-                    action_name = names[1] if len(names) > 1 else None
+                    action_name = '__'.join(names[1:]) if len(names) > 1 else None
                     results.append(ActionModel(tool_name=tool_name,
                                                action_name=action_name,
                                                params=params,
@@ -352,11 +376,11 @@ AgentFactory = AgentManager("agent_type")
 class AgentExecutor(object):
     """The default executor for agent execution can be used for sequential execution by the user."""
 
-    def __init__(self, agent: BaseAgent = None):
+    def __init__(self, agent: Agent = None):
         self.agent = agent
-        self.agents: Dict[str, BaseAgent] = {}
+        self.agents: Dict[str, Agent] = {}
 
-    def register(self, name: str, agent: BaseAgent):
+    def register(self, name: str, agent: Agent):
         self.agents[name] = agent
 
     def execute(self, observation: Observation, **kwargs) -> List[ActionModel]:
@@ -369,7 +393,7 @@ class AgentExecutor(object):
 
     def execute_agent(self,
                       observation: Observation,
-                      agent: BaseAgent,
+                      agent: Agent,
                       **kwargs) -> List[ActionModel]:
         """The synchronous execution process of the agent with some hooks.
 
@@ -391,23 +415,25 @@ class AgentExecutor(object):
                                                 output_prompt=agent.output_prompt)
             llm_response = None
             try:
-                llm_response = agent.llm.chat.completions.create(
+                llm_response = call_llm_model(
+                    agent.llm,
                     messages=messages,
                     model=agent.model_name,
-                    **{'temperature': 0, 'tools': agent.tools},
+                    temperature=agent.conf.llm_config.llm_temperature,
+                    tools=agent.tools if agent.tools else None
                 )
-                logger.info(f"Execute response: {llm_response.choices[0].message}")
+                logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
-                    if not llm_response.choices:
-                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
                     else:
                         agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.choices[0].message.tool_calls,
-                                                        content=llm_response.choices[0].message.content))
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
@@ -426,7 +452,7 @@ class AgentExecutor(object):
 
     async def async_execute_agent(self,
                                   observation: Observation,
-                                  agent: BaseAgent,
+                                  agent: Agent,
                                   **kwargs) -> List[ActionModel]:
         """The asynchronous execution process of the agent.
 
@@ -437,7 +463,45 @@ class AgentExecutor(object):
         agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
 
         if is_abstract_method(agent, 'async_policy'):
-            return [ActionModel(tool_name="", action_name="")]
+            await agent.async_desc_transform()
+            images = observation.images
+            if not images and observation.image:
+                images = [observation.image]
+            messages = agent.messages_transform(content=observation.content,
+                                                image_urls=images,
+                                                sys_prompt=agent.system_prompt,
+                                                agent_prompt=agent.agent_prompt,
+                                                output_prompt=agent.output_prompt)
+            llm_response = None
+            try:
+                # TODO: models interface update
+                llm_response = call_llm_model(
+                    agent.llm,
+                    messages=messages,
+                    model=agent.model_name,
+                    temperature=agent.conf.llm_config.llm_temperature,
+                    tools=agent.tools if agent.tools else None
+                )
+                logger.info(f"Execute response: {llm_response.message}")
+            except Exception as e:
+                logger.warn(traceback.format_exc())
+                raise e
+            finally:
+                if llm_response:
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
+                    else:
+                        agent.memory.append(MemoryModel(message=messages[-1],
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
+                else:
+                    logger.error(f"{agent.name()} failed to get LLM response")
+                    raise RuntimeError(f"{agent.name()} failed to get LLM response")
+
+            agent_result = agent.response_parse(llm_response)
+            if not agent_result.is_call_tool:
+                agent._finished = True
+            return agent_result.actions
         else:
             try:
                 actions = await agent.async_policy(observation, kwargs)
@@ -446,7 +510,7 @@ class AgentExecutor(object):
                 logger.warning(traceback.format_exc())
                 return [ActionModel(agent_name=agent.name())]
 
-    def _get_or_create_agent(self, name: str, agent: BaseAgent = None, conf=None):
+    def _get_or_create_agent(self, name: str, agent: Agent = None, conf=None):
         if agent is None:
             agent = self.agents.get(name)
             if agent is None:

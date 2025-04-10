@@ -4,31 +4,23 @@ from pydantic import BaseModel
 from dataclasses import dataclass
 
 
-class ToolCall:
+class Function(BaseModel):
+    """
+    Represents a function call made by a model
+    """
+    name: str
+    arguments: str = None
+
+class ToolCall(BaseModel):
     """
     Represents a tool call made by a model
     """
 
-    def __init__(
-        self,
-        id: str,
-        type: str = "function",
-        name: str = None,
-        arguments: str = None
-    ):
-        """
-        Initialize ToolCall object
-
-        Args:
-            id: Tool call ID
-            type: Tool call type (usually "function")
-            name: Function name
-            arguments: Function arguments (JSON string)
-        """
-        self.id = id
-        self.type = type
-        self.name = name
-        self.arguments = arguments
+    id: str
+    type: str = "function"
+    function: Function = None
+    # name: str = None
+    # arguments: str = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ToolCall':
@@ -55,12 +47,31 @@ class ToolCall:
         if arguments and not isinstance(arguments, str):
             arguments = json.dumps(arguments)
 
+        function = Function(name=name, arguments=arguments)
+
         return cls(
             id=tool_id,
             type=tool_type,
-            name=name,
-            arguments=arguments,
+            function=function,
+            # name=name,
+            # arguments=arguments,
         )
+
+    def dict(self) -> dict[str, Any]:
+        """
+                Convert ToolCall to dictionary representation
+
+                Returns:
+                    Dictionary representation
+                """
+        return {
+            'id': self.id,
+            'type': self.type,
+            'function': {
+                'name': self.function.name,
+                'arguments': self.function.arguments
+            }
+        }
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -73,8 +84,8 @@ class ToolCall:
             "id": self.id,
             "type": self.type,
             "function": {
-                "name": self.name,
-                "arguments": self.arguments
+                "name": self.function.name,
+                "arguments": self.function.arguments
             }
         }
 

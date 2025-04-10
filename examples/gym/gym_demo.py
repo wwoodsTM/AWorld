@@ -5,7 +5,7 @@ import time
 
 from aworld.config.common import Tools, Agents
 from aworld.core.client import Client
-from aworld.core.agent.base import BaseAgent, AgentFactory
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
@@ -15,7 +15,7 @@ from aworld.core.task import Task
 from aworld.virtual_environments.gym.async_openai_gym import OpenAIGym as AOpenAIGym
 
 
-async def async_run_gym_game(agent: BaseAgent, tool: AsyncTool):
+async def async_run_gym_game(agent: Agent, tool: AsyncTool):
     gym_tool = tool
     logger.info('observation space: {}'.format(gym_tool.env.observation_space))
     logger.info('action space: {}'.format(gym_tool.env.action_space))
@@ -48,16 +48,15 @@ def main():
     agent = AgentFactory(Agents.GYM.value, conf=AgentConfig())
 
     # can run tasks like this:
-    client = Client()
-    task = Task(agent=agent, tools=[gym_tool])
-    res = client.submit([task], parallel=False)
+    res = Task(agent=agent, tools=[gym_tool]).run()
     return res
 
 
 if __name__ == "__main__":
+    # We use it as a showcase to demonstrate the framework's scalability.
     main()
 
-    # We can run the task use utility method, as follows:
+    # Can run the task use utility method, as follows:
     # async run gym
     # agym_tool = ToolFactory("async_"+Tools.GYM.value)
     # agent = GymAgent(AgentConfig())

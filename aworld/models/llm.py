@@ -10,6 +10,7 @@ from typing import (
     AsyncGenerator,
 )
 from langchain_openai import ChatOpenAI
+from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig
 from aworld.env_secrets import secrets
 from aworld.logs.util import logger
@@ -45,7 +46,7 @@ class LLMModel:
     """Unified large model interface, encapsulates different model implementations, provides a unified completion method.
     """
 
-    def __init__(self, conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs):
+    def __init__(self, conf: Union[ConfigDict, AgentConfig] = None, custom_provider: LLMProviderBase = None, **kwargs):
         """Initialize unified model interface.
 
         Args:
@@ -66,6 +67,7 @@ class LLMModel:
             self.provider = custom_provider
             return
 
+        conf = conf.llm_config if conf.llm_config.llm_api_key or conf.llm_config.llm_base_url else conf
         # Get basic parameters
         base_url = kwargs.get("base_url") or (conf.llm_base_url if conf else None)
         model_name = kwargs.get("model_name") or (conf.llm_model_name if conf else None)
@@ -171,28 +173,13 @@ class LLMModel:
             temperature: Temperature parameter.
             max_tokens: Maximum number of tokens to generate.
             stop: List of stop sequences.
-            **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint.
-                - api_key: API key.
-                - model_name: Model name.
+            **kwargs: Other parameters.
 
         Returns:
             ModelResponse: Unified model response object.
         """
-        # Get or update provider instance
-        base_url = kwargs.get("base_url")
-        api_key = kwargs.get("api_key")
-
-        # Only create new provider temporarily if new parameters are provided
-        temp_provider = None
-        if base_url or api_key:
-            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
-
-        # Use temporary provider or default provider
-        provider = temp_provider or self.provider
-
         # Call provider's acompletion method directly
-        return await provider.acompletion(
+        return await self.provider.acompletion(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -213,28 +200,13 @@ class LLMModel:
             temperature: Temperature parameter.
             max_tokens: Maximum number of tokens to generate.
             stop: List of stop sequences.
-            **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint.
-                - api_key: API key.
-                - model_name: Model name.
+            **kwargs: Other parameters.
 
         Returns:
             ModelResponse: Unified model response object.
         """
-        # Get or update provider instance
-        base_url = kwargs.get("base_url")
-        api_key = kwargs.get("api_key")
-
-        # Only create new provider temporarily if new parameters are provided
-        temp_provider = None
-        if base_url or api_key:
-            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
-
-        # Use temporary provider or default provider
-        provider = temp_provider or self.provider
-
         # Call provider's completion method directly
-        return provider.completion(
+        return self.provider.completion(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -255,28 +227,13 @@ class LLMModel:
             temperature: Temperature parameter.
             max_tokens: Maximum number of tokens to generate.
             stop: List of stop sequences.
-            **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint.
-                - api_key: API key.
-                - model_name: Model name.
+            **kwargs: Other parameters.
 
         Returns:
             Generator yielding ModelResponse chunks.
         """
-        # Get or update provider instance
-        base_url = kwargs.get("base_url")
-        api_key = kwargs.get("api_key")
-
-        # Only create new provider temporarily if new parameters are provided
-        temp_provider = None
-        if base_url or api_key:
-            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
-
-        # Use temporary provider or default provider
-        provider = temp_provider or self.provider
-
         # Call provider's stream_completion method directly
-        return provider.stream_completion(
+        return self.provider.stream_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -305,20 +262,8 @@ class LLMModel:
         Returns:
             AsyncGenerator yielding ModelResponse chunks.
         """
-        # Get or update provider instance
-        base_url = kwargs.get("base_url")
-        api_key = kwargs.get("api_key")
-
-        # Only create new provider temporarily if new parameters are provided
-        temp_provider = None
-        if base_url or api_key:
-            temp_provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
-
-        # Use temporary provider or default provider
-        provider = temp_provider or self.provider
-
         # Call provider's astream_completion method directly
-        async for chunk in provider.astream_completion(
+        async for chunk in self.provider.astream_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -340,7 +285,7 @@ def register_llm_provider(provider: str, provider_class: type):
     PROVIDER_CLASSES[provider] = provider_class
 
 
-def get_llm_model(conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs) -> Union[LLMModel, ChatOpenAI]:
+def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: LLMProviderBase = None, **kwargs) -> Union[LLMModel, ChatOpenAI]:
     """Get a unified LLM model instance.
 
     Args:

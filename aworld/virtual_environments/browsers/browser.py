@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import time
+import traceback
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Tuple, List, Union
@@ -192,15 +193,29 @@ class BrowserTool(Tool[Observation, List[ActionModel]]):
 
     def _get_observation(self, fail_error: str = None) -> Observation:
         if fail_error:
-            return Observation(observer=self.name(), info={"exception": fail_error})
+            return Observation(observer=self.name(), action_result=[ActionResult(error=fail_error)])
 
-        dom_tree = self._parse_dom_tree()
-        image = self.screenshot()
-        pixels_above, pixels_below = self._scroll_info()
-        info = {"pixels_above": pixels_above,
-                "pixels_below": pixels_below,
-                "url": self.page.url}
-        return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+        try:
+            dom_tree = self._parse_dom_tree()
+            image = self.screenshot()
+            pixels_above, pixels_below = self._scroll_info()
+            info = {"pixels_above": pixels_above,
+                    "pixels_below": pixels_below,
+                    "url": self.page.url}
+            return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+        except Exception as e:
+            try:
+                self.page.go_back()
+                dom_tree = self._parse_dom_tree()
+                image = self.screenshot()
+                pixels_above, pixels_below = self._scroll_info()
+                info = {"pixels_above": pixels_above,
+                        "pixels_below": pixels_below,
+                        "url": self.page.url}
+                return Observation(observer=self.name(), dom_tree=dom_tree, image=image, info=info)
+            except Exception as e:
+                logger.warning(f"build observation fail, {traceback.format_exc()}")
+                return Observation(observer=self.name(), action_result=[ActionResult(error=traceback.format_exc())])
 
     def _parse_dom_tree(self) -> DomTree:
         args = {

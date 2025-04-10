@@ -68,6 +68,13 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             Processed message list.
         """
+        for message in messages:
+            if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"]:
+                for tool_call in message["tool_calls"]:
+                    if "function" not in tool_call and "name" in tool_call and "arguments" in tool_call:
+                        tool_call["function"] = {"name": tool_call["name"], "arguments": tool_call["arguments"]}
+
+
         return messages
 
     def postprocess_response(self, response: Any) -> ModelResponse:
@@ -145,6 +152,8 @@ class OpenAIProvider(LLMProviderBase):
                 openai_params[param] = kwargs[param]
 
         try:
+            print("-" * 50)
+            print("-" * 50)
             response = self.provider.chat.completions.create(**openai_params)
 
             if hasattr(response, 'code') and response.code != 0:

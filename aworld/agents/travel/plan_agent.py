@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from aworld.agents.travel.prompts import PROMPT_TEMPLATE
 from aworld.config.common import Tools
-from aworld.core.agent.base import AgentFactory, BaseAgent, AgentResult
+from aworld.core.agent.base import AgentFactory, Agent, AgentResult
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
@@ -21,7 +21,7 @@ from aworld.agents.browser.agent import Trajectory
 
 
 @AgentFactory.register(name="travel_plan_agent", desc="travel plan agent")
-class TravelPlanAgent(BaseAgent):
+class TravelPlanAgent(Agent):
     def __init__(self, conf: AgentConfig, **kwargs):
         super(TravelPlanAgent, self).__init__(conf, **kwargs)
         self.state = AgentState()

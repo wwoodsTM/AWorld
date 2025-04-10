@@ -34,9 +34,8 @@ class Client(InheritanceSingleton):
                 loop = self.loop()
                 loop.run_until_complete(self._parallel_run_in_local(task, res))
             else:
-                input = task[0].input
                 for i, t in enumerate(task):
-                    input = self._run_in_local(t, res, i, input)
+                    self._run_in_local(t, res, i, None)
 
         res['success'] = True
         res['time_cost'] = time.time() - start

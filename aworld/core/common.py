@@ -10,7 +10,7 @@ from typing import Dict, Any, Union, List
 class ActionResult(BaseModel):
     """Result of executing an action by use tool."""
     is_done: bool = False
-    success: bool = None
+    success: bool = False
     content: str = None
     error: str = None
     keep: bool = False
@@ -70,7 +70,7 @@ class ActionModel(BaseModel):
 
 
 class AgentPolicy(BaseModel):
-    """The unified model of BaseAgent response can be provided to the agent, or tool actions in environmental."""
+    """The unified model of Agent response can be provided to the agent, or tool actions in environmental."""
 
     # decision to agent policy
     actions: List[ActionModel]
