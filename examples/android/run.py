@@ -22,6 +22,8 @@ def main():
         llm_provider="openai",
         llm_model_name="gpt-4o",
         llm_temperature=1,
+        llm_api_key="sk-zk237c1421f07b30908f6e8e7eecf940ecd67e5583a1f5e5",
+        llm_base_url="https://api.zhizengzeng.com/v1"
     )
 
     task_config = {

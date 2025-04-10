@@ -23,7 +23,6 @@ from aworld.models.model_response import ModelResponse
 MODEL_NAMES = {
     "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229"],
     "openai": ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini"],
-    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
     "azure_openai": ["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-35-turbo"],
 }
 
@@ -32,7 +31,6 @@ ENDPOINT_PATTERNS = {
     "openai": ["api.openai.com"],
     "anthropic": ["api.anthropic.com", "claude-api"],
     "azure_openai": ["openai.azure.com"],
-    "deepseek": ["api.deepseek.com", "deepseek-api"]
 }
 
 # Provider class mapping
@@ -40,27 +38,24 @@ PROVIDER_CLASSES = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "azure_openai": AzureOpenAIProvider,
-    "deepseek": OpenAIProvider,  # Use OpenAI compatible provider
 }
 
 
 class LLMModel:
-    """
-    Unified large model interface, encapsulates different model implementations, provides a unified completion method
+    """Unified large model interface, encapsulates different model implementations, provides a unified completion method.
     """
 
     def __init__(self, conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs):
-        """
-        Initialize unified model interface
+        """Initialize unified model interface.
 
         Args:
-            conf: Agent configuration, if provided, create model based on configuration
-            custom_provider: Custom LLMProviderBase instance, if provided, use it directly
+            conf: Agent configuration, if provided, create model based on configuration.
+            custom_provider: Custom LLMProviderBase instance, if provided, use it directly.
             **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint
-                - api_key: API key
-                - model_name: Model name
-                - temperature: Temperature parameter
+                - base_url: Specify model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
+                - temperature: Temperature parameter.
         """
 
         # If custom_provider instance is provided, use it directly
@@ -91,22 +86,21 @@ class LLMModel:
         self._create_provider(**kwargs)
 
     def _identify_provider(self, provider: str = None, base_url: str = None, model_name: str = None) -> str:
-        """
-        Identify LLM provider
+        """Identify LLM provider.
 
         Identification logic:
-        1. If provider is specified and doesn't need to be overridden, use the specified provider
-        2. If base_url is provided, try to identify provider based on base_url
-        3. If model_name is provided, try to identify provider based on model_name
-        4. If none can be identified, default to "openai"
+        1. If provider is specified and doesn't need to be overridden, use the specified provider.
+        2. If base_url is provided, try to identify provider based on base_url.
+        3. If model_name is provided, try to identify provider based on model_name.
+        4. If none can be identified, default to "openai".
 
         Args:
-            provider: Specified provider
-            base_url: Service URL
-            model_name: Model name
+            provider: Specified provider.
+            base_url: Service URL.
+            model_name: Model name.
 
         Returns:
-            str: Identified provider
+            str: Identified provider.
         """
         # Default provider
         identified_provider = "openai"
@@ -126,7 +120,7 @@ class LLMModel:
                     identified_provider = p
                     logger.info(f"Identified provider: {identified_provider} based on model_name: {model_name}")
                     break
-        
+
         if identified_provider and provider and identified_provider != provider:
             logger.warning(f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider")
             identified_provider = provider
@@ -134,31 +128,26 @@ class LLMModel:
         return identified_provider
 
     def _create_provider(self, **kwargs):
-        """
-        Return the corresponding provider instance based on provider
+        """Return the corresponding provider instance based on provider.
 
         Args:
-            base_url: Model endpoint
-            api_key: API key
-            **kwargs: Other parameters, may include:
-                - model_name: Model name
-                - temperature: Temperature parameter
-                - timeout: Timeout
-                - max_retries: Maximum number of retries
-
-        Returns:
-            Any: Corresponding provider instance
+            **kwargs: Parameters, may include:
+                - base_url: Model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
+                - temperature: Temperature parameter.
+                - timeout: Timeout.
+                - max_retries: Maximum number of retries.
         """
         self.provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
     def update_provider(self, base_url: str = None, api_key: str = None, **kwargs):
-        """
-        Update current provider instance
+        """Update current provider instance.
 
         Args:
-            base_url: Model endpoint
-            api_key: API key
-            **kwargs: Other parameters
+            base_url: Model endpoint.
+            api_key: API key.
+            **kwargs: Other parameters.
         """
         if base_url:
             kwargs["base_url"] = base_url
@@ -175,21 +164,20 @@ class LLMModel:
                           max_tokens: int = None,
                           stop: List[str] = None,
                           **kwargs) -> ModelResponse:
-        """
-        Asynchronously call model to generate response
+        """Asynchronously call model to generate response.
 
         Args:
-            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
+            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
             **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint
-                - api_key: API key
-                - model_name: Model name
+                - base_url: Specify model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
 
         Returns:
-            ModelResponse: Unified model response object
+            ModelResponse: Unified model response object.
         """
         # Get or update provider instance
         base_url = kwargs.get("base_url")
@@ -218,21 +206,20 @@ class LLMModel:
                    max_tokens: int = None,
                    stop: List[str] = None,
                    **kwargs) -> ModelResponse:
-        """
-        Synchronously call model to generate response
+        """Synchronously call model to generate response.
 
         Args:
-            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
+            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
             **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint
-                - api_key: API key
-                - model_name: Model name
+                - base_url: Specify model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
 
         Returns:
-            ModelResponse: Unified model response object
+            ModelResponse: Unified model response object.
         """
         # Get or update provider instance
         base_url = kwargs.get("base_url")
@@ -261,21 +248,20 @@ class LLMModel:
                           max_tokens: int = None,
                           stop: List[str] = None,
                           **kwargs) -> Generator[ModelResponse, None, None]:
-        """
-        Synchronously call model to generate streaming response
+        """Synchronously call model to generate streaming response.
 
         Args:
-            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
+            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
             **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint
-                - api_key: API key
-                - model_name: Model name
+                - base_url: Specify model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
 
         Returns:
-            Generator[ModelResponse, None, None]: Generator yielding ModelResponse chunks
+            Generator yielding ModelResponse chunks.
         """
         # Get or update provider instance
         base_url = kwargs.get("base_url")
@@ -297,28 +283,27 @@ class LLMModel:
             stop=stop,
             **kwargs
         )
-        
+
     async def astream_completion(self,
                                  messages: List[Dict[str, str]],
                                  temperature: float = 0.0,
                                  max_tokens: int = None,
                                  stop: List[str] = None,
                                  **kwargs) -> AsyncGenerator[ModelResponse, None]:
-        """
-        Asynchronously call model to generate streaming response
+        """Asynchronously call model to generate streaming response.
 
         Args:
-            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
+            messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
             **kwargs: Other parameters, may include:
-                - base_url: Specify model endpoint
-                - api_key: API key
-                - model_name: Model name
+                - base_url: Specify model endpoint.
+                - api_key: API key.
+                - model_name: Model name.
 
         Returns:
-            AsyncGenerator[ModelResponse, None]: Async generator yielding ModelResponse chunks
+            AsyncGenerator yielding ModelResponse chunks.
         """
         # Get or update provider instance
         base_url = kwargs.get("base_url")
@@ -344,18 +329,11 @@ class LLMModel:
 
 
 def register_llm_provider(provider: str, provider_class: type):
-    """
-    Register new LLM provider class to global provider_classes dictionary
+    """Register a custom LLM provider.
 
     Args:
-        provider: Provider name, used to identify provider type
-        provider_class: Subclass of LLMProviderBase
-
-    Returns:
-        None
-
-    Raises:
-        TypeError: If provider_class is not a subclass of LLMProviderBase
+        provider: Provider name.
+        provider_class: Provider class, must inherit from LLMProviderBase.
     """
     if not issubclass(provider_class, LLMProviderBase):
         raise TypeError("provider_class must be a subclass of LLMProviderBase")
@@ -363,22 +341,19 @@ def register_llm_provider(provider: str, provider_class: type):
 
 
 def get_llm_model(conf: AgentConfig = None, custom_provider: LLMProviderBase = None, **kwargs) -> Union[LLMModel, ChatOpenAI]:
-    """
-    Get large model provider instance, returns LLMModel instance
+    """Get a unified LLM model instance.
 
     Args:
-        conf: Agent configuration
-        custom_provider: Custom LLMProviderBase instance, if provided, use it directly
+        conf: Agent configuration, if provided, create model based on configuration.
+        custom_provider: Custom LLMProviderBase instance, if provided, use it directly.
         **kwargs: Other parameters, may include:
-            - base_url: Specify model endpoint
-            - api_key: API key
-            - model_name: Model name
-            - temperature: Temperature parameter
-            - timeout: Timeout
-            - max_retries: Maximum number of retries
+            - base_url: Specify model endpoint.
+            - api_key: API key.
+            - model_name: Model name.
+            - temperature: Temperature parameter.
 
     Returns:
-        LLMModel: Unified large model interface instance
+        Unified model interface.
     """
     # Create and return LLMModel instance directly
     llm_provider = conf.llm_provider if conf else None
@@ -406,22 +381,19 @@ def call_llm_model(
         stream: bool = False,
         **kwargs
 ) -> Union[ModelResponse, Generator[ModelResponse, None, None]]:
-    """
-    Call LLM model for inference
+    """Convenience function to call LLM model.
 
     Args:
-        llm_model: LLMModel instance obtained from get_llm_model
-        messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-        temperature: Temperature parameter
-        max_tokens: Maximum number of tokens to generate
-        stop: List of stop sequences
-        stream: Whether to use streaming API, if True returns a generator of responses
-        **kwargs: Other parameters
+        llm_model: LLM model instance.
+        messages: Message list.
+        temperature: Temperature parameter.
+        max_tokens: Maximum number of tokens to generate.
+        stop: List of stop sequences.
+        stream: Whether to return a streaming response.
+        **kwargs: Other parameters.
 
     Returns:
-        Union[ModelResponse, Generator[ModelResponse, None, None]]: 
-            - If stream=False: Returns a single ModelResponse object
-            - If stream=True: Returns a generator yielding ModelResponse chunks
+        Model response or response generator.
     """
     if stream:
         return llm_model.stream_completion(
@@ -450,22 +422,19 @@ async def acall_llm_model(
         stream: bool = False,
         **kwargs
 ) -> Union[ModelResponse, AsyncGenerator[ModelResponse, None]]:
-    """
-    Asynchronously call LLM model for inference
+    """Convenience function to asynchronously call LLM model.
 
     Args:
-        llm_model: LLMModel instance obtained from get_llm_model
-        messages: Message list, format is [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
-        temperature: Temperature parameter
-        max_tokens: Maximum number of tokens to generate
-        stop: List of stop sequences
-        stream: Whether to use streaming API, if True returns an async generator of responses
-        **kwargs: Other parameters
+        llm_model: LLM model instance.
+        messages: Message list.
+        temperature: Temperature parameter.
+        max_tokens: Maximum number of tokens to generate.
+        stop: List of stop sequences.
+        stream: Whether to return a streaming response.
+        **kwargs: Other parameters.
 
     Returns:
-        Union[ModelResponse, AsyncGenerator[ModelResponse, None]]: 
-            - If stream=False: Returns a single ModelResponse object
-            - If stream=True: Returns an async generator yielding ModelResponse chunks
+        Model response or response generator.
     """
     if stream:
         async def _stream_wrapper():
@@ -477,7 +446,7 @@ async def acall_llm_model(
                 **kwargs
             ):
                 yield chunk
-        
+
         return _stream_wrapper()
     else:
         return await llm_model.acompletion(

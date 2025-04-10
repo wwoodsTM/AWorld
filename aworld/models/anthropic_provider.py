@@ -14,13 +14,12 @@ from aworld.env_secrets import secrets
 class AnthropicProvider(LLMProviderBase):
     """Anthropic provider implementation.
     """
-    
+
     def _init_provider(self):
-        """
-        Initialize Anthropic provider
-        
+        """Initialize Anthropic provider.
+
         Returns:
-            Anthropic provider instance
+            Anthropic provider instance.
         """
         # Get API key
         api_key = self.api_key
@@ -28,19 +27,19 @@ class AnthropicProvider(LLMProviderBase):
             env_var = "ANTHROPIC_API_KEY"
             api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "") or secrets.claude_api_key
             if not api_key:
-                raise ValueError(f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
+                raise ValueError(
+                    f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
 
         return Anthropic(
             api_key=api_key,
             base_url=self.base_url
         )
-    
+
     def _init_async_provider(self):
-        """
-        Initialize async Anthropic provider
-        
+        """Initialize async Anthropic provider.
+
         Returns:
-            Async Anthropic provider instance
+            Async Anthropic provider instance.
         """
         # Get API key
         api_key = self.api_key
@@ -48,84 +47,81 @@ class AnthropicProvider(LLMProviderBase):
             env_var = "ANTHROPIC_API_KEY"
             api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "") or secrets.claude_api_key
             if not api_key:
-                raise ValueError(f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
+                raise ValueError(
+                    f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
 
         return AsyncAnthropic(
             api_key=api_key,
             base_url=self.base_url
         )
-    
+
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
-        """
-        Preprocess messages, convert OpenAI format to Anthropic format
-        
+        """Preprocess messages, convert OpenAI format to Anthropic format.
+
         Args:
-            messages: OpenAI format message list
-            
+            messages: OpenAI format message list.
+
         Returns:
-            Converted message dictionary, containing messages and system fields
+            Converted message dictionary, containing messages and system fields.
         """
         anthropic_messages = []
         system_content = None
-        
+
         for msg in messages:
             role = msg.get("role", "")
             content = msg.get("content", "")
-            
+
             if role == "system":
                 system_content = content
             elif role == "user":
                 anthropic_messages.append({"role": "user", "content": content})
             elif role == "assistant":
                 anthropic_messages.append({"role": "assistant", "content": content})
-        
+
         return {
             "messages": anthropic_messages,
             "system": system_content
         }
-    
+
     def postprocess_response(self, response: Any) -> ModelResponse:
-        """
-        Process Anthropic response to unified ModelResponse
-        
+        """Process Anthropic response to unified ModelResponse.
+
         Args:
-            response: Anthropic response object
-            
+            response: Anthropic response object.
+
         Returns:
-            ModelResponse object
+            ModelResponse object.
         """
         return ModelResponse.from_anthropic_response(response)
-    
+
     def postprocess_stream_response(self, chunk: Any) -> ModelResponse:
-        """
-        Process Anthropic streaming response chunk
-        
+        """Process Anthropic streaming response chunk.
+
         Args:
-            chunk: Anthropic response chunk
-            
+            chunk: Anthropic response chunk.
+
         Returns:
-            ModelResponse object
+            ModelResponse object.
         """
         return ModelResponse.from_anthropic_stream_chunk(chunk)
-    
+
     def completion(self, 
                 messages: List[Dict[str, str]], 
                 temperature: float = 0.0, 
                 max_tokens: int = None, 
                 stop: List[str] = None, 
                 **kwargs) -> ModelResponse:
-        """
-        Synchronously call Anthropic to generate response
+        """Synchronously call Anthropic to generate response.
         
         Args:
-            messages: Message list
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
-            **kwargs: Other parameters
-            
+            messages: Message list.
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
+            **kwargs: Other parameters.
+
         Returns:
-            ModelResponse object
+            ModelResponse object.
         """
         try:
             processed_data = self.preprocess_messages(messages)
@@ -182,18 +178,17 @@ class AnthropicProvider(LLMProviderBase):
                      max_tokens: int = None, 
                      stop: List[str] = None, 
                      **kwargs) -> Generator[ModelResponse, None, None]:
-        """
-        Synchronously call Anthropic to generate streaming response
-        
+        """Synchronously call Anthropic to generate streaming response.
+
         Args:
-            messages: Message list
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
-            **kwargs: Other parameters
-            
+            messages: Message list.
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
+            **kwargs: Other parameters.
+
         Returns:
-            Generator yielding ModelResponse chunks
+            Generator yielding ModelResponse chunks.
         """
         try:
             processed_data = self.preprocess_messages(messages)
@@ -236,38 +231,37 @@ class AnthropicProvider(LLMProviderBase):
                     anthropic_params[param] = kwargs[param]
 
             response_stream = self.provider.messages.create(**anthropic_params)
-            
+
             for chunk in response_stream:
                 if not chunk:
                     continue
-                    
+
                 yield self.postprocess_stream_response(chunk)
-                
+
         except Exception as e:
             logger.warn(f"Error in Anthropic stream_completion: {e}")
             yield ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
             )
-            
+
     async def astream_completion(self, 
                            messages: List[Dict[str, str]], 
                            temperature: float = 0.0, 
                            max_tokens: int = None, 
                            stop: List[str] = None, 
                            **kwargs) -> AsyncGenerator[ModelResponse, None]:
-        """
-        Asynchronously call Anthropic to generate streaming response
+        """Asynchronously call Anthropic to generate streaming response.
         
         Args:
-            messages: Message list
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
-            **kwargs: Other parameters
-            
+            messages: Message list.
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
+            **kwargs: Other parameters.
+
         Returns:
-            AsyncGenerator yielding ModelResponse chunks
+            AsyncGenerator yielding ModelResponse chunks.
         """
         try:
             processed_data = self.preprocess_messages(messages)
@@ -311,38 +305,37 @@ class AnthropicProvider(LLMProviderBase):
                     anthropic_params[param] = kwargs[param]
 
             response_stream = await async_provider.messages.create(**anthropic_params)
-            
+
             async for chunk in response_stream:
                 if not chunk:
                     continue
-                    
+
                 yield self.postprocess_stream_response(chunk)
-                
+
         except Exception as e:
             logger.warn(f"Error in Anthropic astream_completion: {e}")
             yield ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
             )
-            
+
     async def acompletion(self, 
                     messages: List[Dict[str, str]], 
                     temperature: float = 0.0, 
                     max_tokens: int = None, 
                     stop: List[str] = None, 
                     **kwargs) -> ModelResponse:
-        """
-        Asynchronously call Anthropic to generate response
+        """Asynchronously call Anthropic to generate response.
         
         Args:
-            messages: Message list
-            temperature: Temperature parameter
-            max_tokens: Maximum number of tokens to generate
-            stop: List of stop sequences
-            **kwargs: Other parameters
-            
+            messages: Message list.
+            temperature: Temperature parameter.
+            max_tokens: Maximum number of tokens to generate.
+            stop: List of stop sequences.
+            **kwargs: Other parameters.
+
         Returns:
-            ModelResponse object
+            ModelResponse object.
         """
         try:
             processed_data = self.preprocess_messages(messages)
