@@ -104,13 +104,13 @@ class DebateAgent(Agent, ABC):
             search_results_content += f"SearchQuery: {search_result['query']}"
             search_results_content += "\n\n".join([truncate_content(s['content'], 1000) for s in search_result['results']])
 
-        unique_history = []
-        if len(history) >= 2:
-            for i in range(len(history)):
-                # Check if the current element is the same as the next one
-                if i == len(history) - 1 or history[i] != history[i+1]:
-                    # Add the current element to the result list
-                    unique_history.append(history[i])
+        unique_history = history
+        # if len(history) >= 2:
+        #     for i in range(len(history)):
+        #         # Check if the current element is the same as the next one
+        #         if i == len(history) - 1 or history[i] != history[i+1]:
+        #             # Add the current element to the result list
+        #             unique_history.append(history[i])
         print("self.stance: ", self.stance)  #  "affirmative", "negative"
         print("chat_history: ", unique_history)
 
