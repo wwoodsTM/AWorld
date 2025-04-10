@@ -38,3 +38,19 @@ def asyncio_loop():
     except RuntimeError:
         loop = None
     return loop
+
+
+def sync_exec(async_func, *args, **kwargs):
+    """Async function to sync execution."""
+    if not asyncio.iscoroutinefunction(async_func):
+        return async_func(*args, **kwargs)
+
+    loop = asyncio_loop()
+    if loop and loop.is_running():
+        thread = ReturnThread(async_func, *args, **kwargs)
+        thread.start()
+        thread.join()
+        result = thread.result
+    else:
+        result = asyncio.run(async_func(*args, **kwargs))
+    return result

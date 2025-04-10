@@ -23,7 +23,7 @@ from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
-from aworld.utils.common import convert_to_snake, is_abstract_method, asyncio_loop, ReturnThread
+from aworld.utils.common import convert_to_snake, is_abstract_method, asyncio_loop, ReturnThread, sync_exec
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -176,16 +176,8 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
 
     def mcp_is_tool(self):
         """Description of mcp servers are tools."""
-        loop = asyncio_loop()
         try:
-            if loop and loop.is_running():
-                thread = ReturnThread(mcp_tool_desc_transform, self.mcp_servers)
-                thread.start()
-                thread.join()
-                result = thread.result
-            else:
-                result = asyncio.run(mcp_tool_desc_transform(self.mcp_servers))
-            return result
+            return sync_exec(mcp_tool_desc_transform, self.mcp_servers)
         except Exception as e:
             logger.error(f"mcp_is_tool error: {e}")
             return []
