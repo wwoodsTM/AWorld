@@ -141,7 +141,9 @@ class Swarm(object):
                 res = Observation(content=policy_info)
             else:
                 res = observation[-1]
-                res.content = policy_info if policy_info else res.content
+                if res.content is None:
+                    res.content = ''
+                res.content += policy_info if policy_info else ''
             return res
         else:
             logger.warning(f"{strategy} not supported now.")

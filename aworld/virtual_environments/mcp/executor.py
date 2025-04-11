@@ -1,21 +1,24 @@
-import asyncio
 import json
 import logging
 import os
-from pathlib import Path
+import traceback
+
 from typing import Any, Dict, List, Tuple
 
 from mcp.types import TextContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
+from aworld.core.envs.tool import ToolActionExecutor, Tool
 from aworld.mcp.server import MCPServer, MCPServerSse
+from aworld.utils.common import sync_exec
 
 
-class MCPToolExecutor:
+class MCPToolExecutor(ToolActionExecutor):
     """A tool executor that uses MCP server to execute actions."""
 
-    def __init__(self):
+    def __init__(self, tool: Tool[Observation, List[ActionModel]] = None):
         """Initialize the MCP tool executor."""
+        super().__init__(tool)
         self.initialized = False
         self.mcp_servers: Dict[str, MCPServer] = {}
         self._load_mcp_config()
@@ -23,13 +26,17 @@ class MCPToolExecutor:
     def _load_mcp_config(self) -> None:
         """Load MCP server configurations from config file."""
         try:
-            # Use relative path for config file
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            config_path = os.path.normpath(os.path.join(current_dir, "../config/mcp.json"))
-            
+            # Priority given to the running path.
+            if os.path.exists(os.path.join(os.getcwd(), "mcp.json")):
+                config_path = os.path.join(os.getcwd(), "mcp.json")
+            else:
+                # Use relative path for config file
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                config_path = os.path.normpath(os.path.join(current_dir, "../../config/mcp.json"))
+
             with open(config_path, "r") as f:
                 config_data = json.load(f)
-                
+
             # Load all server configurations
             for server_name, server_config in config_data.get("mcpServers", {}).items():
                 # Skip disabled servers
@@ -41,7 +48,10 @@ class MCPToolExecutor:
                     self.mcp_servers[server_name] = {
                         "type": "sse",
                         "url": server_config["url"],
-                        "instance": None
+                        "instance": None,
+                        "timeout": server_config.get('timeout', 5.),
+                        "sse_read_timeout": server_config.get('sse_read_timeout', 300.0),
+                        "headers": server_config.get('headers')
                     }
                 # Handle stdio server
                 elif "command" in server_config:
@@ -58,13 +68,13 @@ class MCPToolExecutor:
             
             self.initialized = True
         except Exception as e:
-            logging.error(f"Failed to load MCP config: {e}")
+            logging.error(f"Failed to load MCP config: {traceback.format_exc()}")
 
     async def _get_or_create_server(self, server_name: str) -> MCPServer:
         """Get an existing MCP server instance or create a new one."""
         if server_name not in self.mcp_servers:
             raise ValueError(f"MCP server '{server_name}' not found in configuration")
-            
+
         server_info = self.mcp_servers[server_name]
         if server_info["instance"] is None:
             server_type = server_info.get("type", "sse")
@@ -73,8 +83,9 @@ class MCPToolExecutor:
                 # Create new SSE server instance
                 server_params = {
                     "url": server_info["url"],
-                    "timeout": 5.0,
-                    "sse_read_timeout": 300.0  # 5 minutes
+                    "timeout": server_info['timeout'],
+                    "sse_read_timeout": server_info['sse_read_timeout'],
+                    "headers": server_info['headers']
                 }
                 
                 server = MCPServerSse(server_params, cache_tools_list=True, name=server_name)
@@ -96,10 +107,11 @@ class MCPToolExecutor:
                 
             await server.connect()
             server_info["instance"] = server
-            
-        return server_info["instance"]
 
-    async def execute_action(self, actions: List[ActionModel], **kwargs) -> List[ActionResult]:
+        return server
+
+    async def async_execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
+        List[ActionResult], Any]:
         """Execute actions using the MCP server.
         
         Args:
@@ -111,37 +123,36 @@ class MCPToolExecutor:
         """
         if not self.initialized:
             raise RuntimeError("MCP Tool Executor not initialized")
-            
+
         if not actions:
-            return []
-            
+            return [], None
+
         results = []
         for action in actions:
             # Check if this is an MCP action
             # if not action.is_mcp:
             #     raise ValueError(f"Action {action.action_name} is not an MCP action")
-                
+
             # Get the server name from tool_name
             server_name = action.tool_name
             if not server_name:
                 raise ValueError("Missing tool_name in action model")
-                
+
             # Get the action name
             action_name = action.action_name
             if not action_name:
                 raise ValueError("Missing action_name in action model")
-                
+
             # Get parameters
             params = action.params or {}
-                
             try:
                 # Get or create the MCP server
                 server = await self._get_or_create_server(server_name)
-                
+
                 # Call the tool on the server
                 result = await server.call_tool(action_name, params)
                 if result and result.content:
-                    if isinstance(result.content[0],TextContent):
+                    if isinstance(result.content[0], TextContent):
                         action_result = ActionResult(
                             content=result.content[0].text,
                             keep=True
@@ -153,8 +164,8 @@ class MCPToolExecutor:
                 error_msg = str(e)
                 logging.error(f"Error executing MCP action: {error_msg}")
                 break
-        
-        return results
+
+        return results, None
 
     async def cleanup(self) -> None:
         """Clean up all MCP server connections."""
@@ -165,56 +176,6 @@ class MCPToolExecutor:
                 except Exception as e:
                     logging.error(f"Error cleaning up MCP server {server_name}: {e}")
 
-    def step(self, actions: List[ActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
-        """Execute actions and return observation, reward, done flags and info.
-        
-        Args:
-            actions: A list of action models to execute
-            **kwargs: Additional arguments
-            
-        Returns:
-            A tuple containing:
-            - observation: The observation after executing the action
-            - reward: The reward for the action
-            - terminated: Whether the episode is terminated
-            - truncated: Whether the episode is truncated
-            - info: Additional information
-        """
-        if not self.initialized:
-            raise RuntimeError("Call init first before calling step.")
-
-        # Create the event loop or get the existing one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        reward = 0
-        fail_error = ""
-        action_results = None
-
-        try:
-            # Execute the action asynchronously
-            action_results = loop.run_until_complete(self.execute_action(actions, **kwargs))
-            reward = 1
-        except (ValueError, IOError, RuntimeError) as e:
-            fail_error = str(e)
-        finally:
-            loop.close()
-
-
-        terminated = kwargs.get("terminated", False)
-        if action_results:
-            for res in action_results:
-                if res.is_done:
-                    terminated = res.is_done
-                if not res.success and res.error:
-                    fail_error = res.error
-
-        info = {"exception": fail_error}
-
-        observation = Observation(dom_tree="", image="", action_result=[], info={})
-        if action_results:
-            observation.action_result = action_results
-            if action_results and len(action_results) > 0:
-                observation.content = action_results[-1].content
-        
-        return (observation, reward, terminated, kwargs.get("truncated", False), info)
+    def execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
+        List[ActionResult], Any]:
+        return sync_exec(self.async_execute_action, actions, **kwargs)

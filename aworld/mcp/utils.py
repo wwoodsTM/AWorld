@@ -55,22 +55,26 @@ async def run(mcp_servers: list[MCPServer]) -> List[Dict[str, Any]]:
                 openai_tools.append({
                     "type": "function",
                     "function": openai_function_schema,
-                    #"is_mcp": "true"
                 })
             logging.info(f"✅ server #{i + 1} ({server.name}) connected success，tools: {len(tools)}")
 
         except Exception as e:
-            logging.error(f"❌ server #{i+1} ({server.name}) connect fail: {e}")
+            logging.error(f"❌ server #{i + 1} ({server.name}) connect fail: {e}")
             return []
 
     return openai_tools
 
+
 async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of tool description."""
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.normpath(os.path.join(current_dir, "../config/mcp.json"))
-    
+    # Priority given to the running path.
+    if os.path.exists(os.path.join(os.getcwd(), "mcp.json")):
+        config_path = os.path.join(os.getcwd(), "mcp.json")
+    else:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.normpath(os.path.join(current_dir, "../config/mcp.json"))
+
     if not os.path.exists(config_path):
         logging.info(f"mcp config is not exist: {config_path}")
         return []
@@ -89,7 +93,7 @@ async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any
         # Skip disabled servers
         if server_config.get("disabled", False):
             continue
-            
+
         if tools is None or server_name in tools:
             # Handle SSE server
             if "url" in server_config:
@@ -116,8 +120,7 @@ async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any
     if not server_configs:
         logging.info("not match mcp server")
         return []
-        
-    openai_tools = []
+
     async with AsyncExitStack() as stack:
         servers = []
         for server_config in server_configs:
@@ -135,10 +138,10 @@ async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any
             else:
                 logging.warning(f"Unsupported MCP server type: {server_config['type']}")
                 continue
-                
+
             server = await stack.enter_async_context(server)
             servers.append(server)
-            
+
         openai_tools = await run(servers)
 
     return openai_tools

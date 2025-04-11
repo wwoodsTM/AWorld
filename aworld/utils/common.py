@@ -4,6 +4,7 @@ import asyncio
 import re
 import threading
 from types import FunctionType
+from typing import Callable, Any
 
 
 def convert_to_snake(name: str) -> str:
@@ -40,7 +41,7 @@ def asyncio_loop():
     return loop
 
 
-def sync_exec(async_func, *args, **kwargs):
+def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
     """Async function to sync execution."""
     if not asyncio.iscoroutinefunction(async_func):
         return async_func(*args, **kwargs)
