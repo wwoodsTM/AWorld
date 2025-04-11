@@ -86,25 +86,59 @@ async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any
 
     server_configs = []
     for server_name, server_config in mcp_servers_config.items():
+        # Skip disabled servers
+        if server_config.get("disabled", False):
+            continue
+            
         if tools is None or server_name in tools:
-            server_configs.append({
-                "name": "mcp__"+server_name,
-                "params": {"url": server_config["url"]}
-            })
+            # Handle SSE server
+            if "url" in server_config:
+                server_configs.append({
+                    "name": "mcp__" + server_name,
+                    "type": "sse",
+                    "params": {"url": server_config["url"]}
+                })
+            # Handle stdio server
+            elif "command" in server_config:
+                server_configs.append({
+                    "name": "mcp__" + server_name,
+                    "type": "stdio",
+                    "params": {
+                        "command": server_config["command"],
+                        "args": server_config.get("args", []),
+                        "env": server_config.get("env", {}),
+                        "cwd": server_config.get("cwd"),
+                        "encoding": server_config.get("encoding", "utf-8"),
+                        "encoding_error_handler": server_config.get("encoding_error_handler", "strict")
+                    }
+                })
 
     if not server_configs:
         logging.info("not match mcp server")
         return []
+        
     openai_tools = []
     async with AsyncExitStack() as stack:
         servers = []
         for server_config in server_configs:
-            server = MCPServerSse(
-                name=server_config["name"],
-                params=server_config["params"]
-            )
+            if server_config["type"] == "sse":
+                server = MCPServerSse(
+                    name=server_config["name"],
+                    params=server_config["params"]
+                )
+            elif server_config["type"] == "stdio":
+                from aworld.mcp.server import MCPServerStdio
+                server = MCPServerStdio(
+                    name=server_config["name"],
+                    params=server_config["params"]
+                )
+            else:
+                logging.warning(f"Unsupported MCP server type: {server_config['type']}")
+                continue
+                
             server = await stack.enter_async_context(server)
             servers.append(server)
-        openai_tools =  await run(servers)
+            
+        openai_tools = await run(servers)
 
     return openai_tools
