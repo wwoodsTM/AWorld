@@ -29,6 +29,13 @@ class Output(BaseModel):
             self.parts = []
         return self
 
+class CommonOutput(Output):
+    data: Any = Field(default=None, exclude=True, description="Output Data")
+
+class MessageOutput(Output):
+    reasoning: Any = Field(default=None, exclude=True, description="reasoning")
+    response: Any = Field(default=None, exclude=True, description="response")
+
 class Event(Output):
     pass
 

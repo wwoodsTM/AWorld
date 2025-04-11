@@ -113,9 +113,11 @@ positive_opinion:Yes
 negative_opinion:No
 
 
-Output format:
-positive_opinion:xxx
-negative_opinion:yyy
+Output format(please use json):
+{{
+   "positive_opinion":"xxx"
+   "negative_opinion":"yyy"
+}}
 
 
 Now the topic is {topic}, please follow the example and output format, output the two sides' opinions.

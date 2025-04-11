@@ -8,8 +8,11 @@ from dotenv import load_dotenv
 
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.debate_agent import DebateAgent
+from aworld.agents.debate.moderator_agent import ModeratorAgent
+from aworld.agents.debate.prompts import generate_opinions_prompt
 from aworld.config import AgentConfig
 from aworld.core.agent.base import BaseAgent
+from aworld.core.common import Observation
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.output import Output,WorkSpace
@@ -34,10 +37,10 @@ class DebateArena:
     def __init__(self,
                  affirmative_speaker: DebateAgent,
                  negative_speaker: DebateAgent,
+                 moderator: BaseAgent,
                  workspace: WorkSpace,
                  **kwargs
                  ):
-        super().__init__()
         self.affirmative_speaker = affirmative_speaker
         self.negative_speaker = negative_speaker
         self.memory = Memory.from_config(config={
@@ -47,9 +50,10 @@ class DebateArena:
         self.workspace = workspace
         self.affirmative_speaker.set_workspace(workspace)
         self.negative_speaker.set_workspace(workspace)
+        self.moderator = moderator
         # Event.register("topic", func= );
 
-    async def async_run(self, topic: str, affirmative_opinion: str, negative_opinion: str, rounds: int)\
+    async def async_run(self, topic: str, rounds: int)\
             -> AsyncGenerator[Output, None]:
 
         """
@@ -67,6 +71,19 @@ class DebateArena:
         Returns: list[DebateSpeech]
 
         """
+        results = await self.moderator.async_policy(Observation(content = topic))
+        if not results  or not results[0] or not results[0].policy_info or not results[0].policy_info.data :
+            return
+        opinions = results[0].policy_info.data
+        affirmative_opinion = opinions.get("positive_opinion")
+        negative_opinion = opinions.get("negative_opinion")
+
+        logging.info(f"✈️==================================== opinions =============================================")
+        logging.info(f"topic: {topic}")
+        logging.info(f"affirmative_opinion: {affirmative_opinion}")
+        logging.info(f"negative_opinion: {negative_opinion}")
+        logging.info(f"✈️==================================== start... =============================================")
+
         for i in range(1, rounds+1):
             logging.info(f"✈️==================================== round#{i} start =============================================")
 
@@ -139,27 +156,3 @@ class DebateArena:
         pass
 
 
-async def start_debate():
-    speeches = debateArena.async_run(topic="Who's GOAT? Jordan or Lebron", affirmative_opinion="Jordan",
-                                     negative_opinion="Lebron", rounds=3)
-    async for speech in speeches:
-        print(f"{speech.name}: {speech.content}")
-
-
-if __name__ == '__main__':
-    load_dotenv()
-
-    agentConfig = AgentConfig(
-        llm_provider="chatopenai",
-        llm_model_name="bailing_moe_plus_function_call",
-        llm_base_url=os.environ['LLM_BASE_URL'],
-        llm_api_key=os.environ['LLM_API_KEY'],
-    )
-
-    agent1 = DebateAgent(name="affirmativeSpeaker", stance="affirmative", conf=agentConfig)
-    agent2 = DebateAgent(name="negativeSpeaker", stance="negative", conf=agentConfig)
-
-    debateArena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2,
-                              workspace=WorkSpace.from_local_storages(str(uuid.uuid4())))
-
-    asyncio.run(start_debate())
