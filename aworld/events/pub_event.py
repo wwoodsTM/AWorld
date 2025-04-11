@@ -1,14 +1,12 @@
 """
 Event publishing functionality.
 """
-import logging
+from aworld.logs.util import logger
 from typing import Dict, List, Callable, Any, Union, Tuple, Set
 from enum import Enum
 
 from aworld.events.event import Event
 
-# Logger for the publisher
-logger = logging.getLogger(__name__)
 # Define subscription types
 class SubscriptionType(Enum):
     EVENT_CODE = "event_code"
