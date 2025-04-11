@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-from typing import Dict, Any, List
+from typing import Dict, List
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
-from aworld.core.agent.base import Agent, Agent
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.core.common import ActionModel, Observation
 from aworld.logs.util import logger
 
@@ -61,13 +61,20 @@ class Swarm(object):
 
             if pair[0] not in self.agents:
                 self.agents[pair[0].name()] = pair[0]
-                pair[0].tool_names.extend(self.tools)
+            if pair[0].name() not in AgentFactory:
+                AgentFactory._cls[pair[0].name()] = pair[0].__class__
+                AgentFactory._desc[pair[0].name()] = pair[0].desc()
+                AgentFactory._agent_conf[pair[0].name()] = pair[0].conf
+
             if len(pair) == 1:
                 continue
 
             if pair[1] not in self.agents:
                 self.agents[pair[1].name()] = pair[1]
-                pair[1].tool_names.extend(self.tools)
+                if pair[1].name() not in AgentFactory:
+                    AgentFactory._cls[pair[1].name()] = pair[1].__class__
+                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
+                    AgentFactory._agent_conf[pair[1].name()] = pair[1].conf
 
             if self.topology_type == 'social':
                 # need to explicitly set handoffs in the agent

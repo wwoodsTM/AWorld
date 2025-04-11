@@ -1,4 +1,3 @@
-from email.policy import default
 from typing import Sequence
 from pydantic import BaseModel, Field, root_validator
 from typing import Optional
@@ -24,8 +23,8 @@ class MetricTemplate(BaseModel):
             values['description'] = values['name']
         return values
 
+
 class MetricTemplates:
-    
     REQUEST_COUNT = MetricTemplate(**{
         "type": "counter",
         "name": "request_count",
@@ -33,7 +32,7 @@ class MetricTemplates:
         "unit": "1",
         "labels": ["method", "status"]
     })
-    
+
     REQUEST_LATENCY = MetricTemplate(**{
         "type": "histogram",
         "name": "request_latency",
