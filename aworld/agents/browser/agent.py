@@ -383,7 +383,7 @@ class BrowserAgent(Agent):
         messages.append(system_message)
 
         tool_calling_method = self.settings.get("tool_calling_method")
-        llm_provider = self.settings.get("llm_provider")
+        llm_provider = self.conf.llm_provider if self.conf.llm_provider else self.conf.llm_config.llm_provider
 
         if tool_calling_method == 'raw' or (tool_calling_method == 'auto' and (
                 llm_provider == 'deepseek-reasoner' or llm_provider.startswith('deepseek-r1'))):

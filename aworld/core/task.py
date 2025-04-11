@@ -187,7 +187,7 @@ class Task(object):
                                                                                  conf=cur_agent.conf,
                                                                                  step=step)
                     observation.content = None
-                    print(policy)
+                    color_log(f"{cur_agent.name()} policy: {policy}")
                     if not policy:
                         logger.warning(f"current agent {cur_agent.name()} no policy to use.")
                         return {"msg": f"current agent {cur_agent.name()} no policy to use.",
