@@ -76,37 +76,36 @@ class MCPToolExecutor(ToolActionExecutor):
             raise ValueError(f"MCP server '{server_name}' not found in configuration")
 
         server_info = self.mcp_servers[server_name]
-        if server_info["instance"] is None:
-            server_type = server_info.get("type", "sse")
-            
-            if server_type == "sse":
-                # Create new SSE server instance
-                server_params = {
-                    "url": server_info["url"],
-                    "timeout": server_info['timeout'],
-                    "sse_read_timeout": server_info['sse_read_timeout'],
-                    "headers": server_info['headers']
-                }
-                
-                server = MCPServerSse(server_params, cache_tools_list=True, name=server_name)
-            elif server_type == "stdio":
-                # Create new stdio server instance
-                server_params = {
-                    "command": server_info["command"],
-                    "args": server_info["args"],
-                    "env": server_info["env"],
-                    "cwd": server_info.get("cwd"),
-                    "encoding": server_info["encoding"],
-                    "encoding_error_handler": server_info["encoding_error_handler"]
-                }
-                
-                from aworld.mcp.server import MCPServerStdio
-                server = MCPServerStdio(server_params, cache_tools_list=True, name=server_name)
-            else:
-                raise ValueError(f"Unsupported MCP server type: {server_type}")
-                
-            await server.connect()
-            server_info["instance"] = server
+        server_type = server_info.get("type", "sse")
+
+        if server_type == "sse":
+            # Create new SSE server instance
+            server_params = {
+                "url": server_info["url"],
+                "timeout": server_info['timeout'],
+                "sse_read_timeout": server_info['sse_read_timeout'],
+                "headers": server_info['headers']
+            }
+
+            server = MCPServerSse(server_params, cache_tools_list=True, name=server_name)
+        elif server_type == "stdio":
+            # Create new stdio server instance
+            server_params = {
+                "command": server_info["command"],
+                "args": server_info["args"],
+                "env": server_info["env"],
+                "cwd": server_info.get("cwd"),
+                "encoding": server_info["encoding"],
+                "encoding_error_handler": server_info["encoding_error_handler"]
+            }
+
+            from aworld.mcp.server import MCPServerStdio
+            server = MCPServerStdio(server_params, cache_tools_list=True, name=server_name)
+        else:
+            raise ValueError(f"Unsupported MCP server type: {server_type}")
+
+        await server.connect()
+        server_info["instance"] = server
 
         return server
 
