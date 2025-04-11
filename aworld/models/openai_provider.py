@@ -152,8 +152,6 @@ class OpenAIProvider(LLMProviderBase):
                 openai_params[param] = kwargs[param]
 
         try:
-            print("-" * 50)
-            print("-" * 50)
             response = self.provider.chat.completions.create(**openai_params)
 
             if hasattr(response, 'code') and response.code != 0:
