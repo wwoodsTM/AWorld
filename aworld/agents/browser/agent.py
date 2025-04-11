@@ -56,7 +56,10 @@ class BrowserAgent(Agent):
         self.state = AgentState()
         self.settings = self.conf
         provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
-        self.conf.llm_config.llm_provider = "chat" + provider
+        if self.conf.llm_config.llm_provider:
+            self.conf.llm_config.llm_provider = "chat" + provider
+        else:
+            self.conf.llm_provider = "chat" + provider
 
         self.save_file_path = self.conf.save_file_path
         self.available_actions = self._build_action_prompt()

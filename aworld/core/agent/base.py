@@ -2,12 +2,10 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
-import asyncio
-import copy
 import json
 import traceback
 import uuid
-from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
+from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
 from openai import Stream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
@@ -23,7 +21,7 @@ from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
-from aworld.utils.common import convert_to_snake, is_abstract_method, asyncio_loop, ReturnThread, sync_exec
+from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -143,10 +141,21 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         return self._finished
 
 
-class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
+class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
     """Basic agent for unified protocol within the framework."""
 
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
+    def __init__(self,
+                 conf: Union[Dict[str, Any], ConfigDict, AgentConfig],
+                 executor: Callable[..., Any] = None,
+                 resp_parse_func: Callable[..., Any] = None,
+                 **kwargs):
+        """A base class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
+
+        Args:
+            conf: Agent config, supported AgentConfig, ConfigDict or dict.
+            executor: The agent special executor.
+            resp_parse_func: Response parse function for the agent standard output.
+        """
         super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
@@ -154,6 +163,9 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+
+        self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
+        self.executor = executor if executor else agent_executor
         agent_executor.register(self.name(), self)
 
     @property
@@ -439,7 +451,7 @@ class AgentExecutor(object):
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            agent_result = agent.response_parse(llm_response)
+            agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True
             return agent_result.actions
@@ -498,7 +510,7 @@ class AgentExecutor(object):
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            agent_result = agent.response_parse(llm_response)
+            agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True
             return agent_result.actions
