@@ -7,14 +7,12 @@ import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
-from openai import Stream
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
-
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
-from aworld.models.llm import get_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
@@ -269,18 +267,18 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         messages.append(cur_msg)
         return messages
 
-    def response_parse(self, resp: ChatCompletion | Stream[ChatCompletionChunk]) -> AgentResult:
+    def response_parse(self, resp: ModelResponse) -> AgentResult:
         """Default parse response by LLM."""
         results = []
-        if not resp or not resp.choices:
+        if not resp:
             logger.warning("LLM no valid response!")
             return AgentResult(actions=[], current_state=None)
 
         is_call_tool = False
-        content = resp.choices[0].message.content
-        if resp.choices[0].message.tool_calls:
+        content = resp.content
+        if resp.tool_calls:
             is_call_tool = True
-            for tool_call in resp.choices[0].message.tool_calls:
+            for tool_call in resp.tool_calls:
                 full_name: str = tool_call.function.name
                 if not full_name:
                     logger.warning("tool call response no tool name.")
@@ -429,24 +427,25 @@ class AgentExecutor(object):
                                                 output_prompt=agent.output_prompt)
             llm_response = None
             try:
-                llm_response = agent.llm.chat.completions.create(
+                llm_response = call_llm_model(
+                    agent.llm,
                     messages=messages,
                     model=agent.model_name,
                     temperature=agent.conf.llm_config.llm_temperature,
                     tools=agent.tools if agent.tools else None
                 )
-                logger.info(f"Execute response: {llm_response.choices[0].message}")
+                logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
-                    if not llm_response.choices:
-                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
                     else:
                         agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.choices[0].message.tool_calls,
-                                                        content=llm_response.choices[0].message.content))
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
@@ -488,24 +487,25 @@ class AgentExecutor(object):
             llm_response = None
             try:
                 # TODO: models interface update
-                llm_response = agent.llm.chat.completions.create(
+                llm_response = call_llm_model(
+                    agent.llm,
                     messages=messages,
                     model=agent.model_name,
                     temperature=agent.conf.llm_config.llm_temperature,
                     tools=agent.tools if agent.tools else None
                 )
-                logger.info(f"Execute response: {llm_response.choices[0].message}")
+                logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
-                    if not llm_response.choices:
-                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
                     else:
                         agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.choices[0].message.tool_calls,
-                                                        content=llm_response.choices[0].message.content))
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
