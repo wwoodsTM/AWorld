@@ -75,7 +75,7 @@ class DebateAgent(Agent, ABC):
                 "results": [SearchItem(title=result["title"],url=result["url"], metadata={}) for result in search_result["results"]]
             }
             search_output = SearchOutput.from_dict(search_item)
-            self.workspace.create_artifact(
+            await self.workspace.create_artifact(
                 artifact_type=ArtifactType.WEB_PAGES,
                 artifact_id=str(uuid.uuid4()),
                 content=search_output,

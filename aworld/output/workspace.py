@@ -159,7 +159,7 @@ class WorkSpace(BaseModel):
         )
         return workspace
 
-    def create_artifact(
+    async def create_artifact(
             self,
             artifact_type: Union[ArtifactType, str],
             artifact_id: Optional[str] = None,
@@ -218,7 +218,7 @@ class WorkSpace(BaseModel):
 
         # Notify observers
         for artifact in artifacts:
-            self._notify_observers("create", artifact)
+            await self._notify_observers("create", artifact)
 
         return artifacts  # Return the list of created artifacts
 
@@ -237,7 +237,7 @@ class WorkSpace(BaseModel):
         return self.list_artifacts(ArtifactType.WEB_PAGE)
 
 
-    def update_artifact(
+    async def update_artifact(
             self,
             artifact_id: str,
             content: Any,
@@ -265,12 +265,12 @@ class WorkSpace(BaseModel):
             self.updated_at = datetime.now().isoformat()
 
             # Notify observers
-            self._notify_observers("update", artifact)
+            await self._notify_observers("update", artifact)
 
             return artifact
         return None
 
-    def delete_artifact(self, artifact_id: str) -> bool:
+    async def delete_artifact(self, artifact_id: str) -> bool:
         """
         Delete an artifact from the workspace
         
@@ -296,7 +296,7 @@ class WorkSpace(BaseModel):
                 self.save()
 
                 # Notify observers
-                self._notify_observers("delete", artifact)
+                await self._notify_observers("delete", artifact)
                 return True
         return False
 
@@ -330,18 +330,35 @@ class WorkSpace(BaseModel):
         if observer in self.observers:
             self.observers.remove(observer)
 
-    def _notify_observers(self, operation: str, artifact: Artifact) -> None:
-        """Notify all observers of workspace changes"""
+    async def _notify_observers(self, operation: str, artifact: Artifact) -> List[Any]:
+        """
+        Notify all observers of workspace changes
+        
+        Args:
+            operation: Type of operation (create, update, delete)
+            artifact: Affected artifact
+            
+        Returns:
+            List of results from handlers
+        """
+        results = []
         for observer in self.observers:
             try:
                 if operation == "create":
-                    observer.on_create(artifact)
+                    result = await observer.on_create(workspace_id=self.workspace_id, artifact=artifact)
+                    if result:
+                        results.append(result)
                 elif operation == "update":
-                    observer.on_update(artifact)
+                    result = await observer.on_update(workspace_id=self.workspace_id, artifact=artifact)
+                    if result:
+                        results.append(result)
                 elif operation == "delete":
-                    observer.on_delete(artifact)
+                    result = await observer.on_delete(workspace_id=self.workspace_id, artifact=artifact)
+                    if result:
+                        results.append(result)
             except Exception as e:
                 print(f"Observer notification failed: {e}")
+        return results
 
     def _store_artifact(self, artifact: Artifact) -> None:
         """Store artifact in repository"""
