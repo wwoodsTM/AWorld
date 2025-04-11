@@ -1,4 +1,3 @@
-# 普通函数作为处理程序
 import asyncio
 
 from aworld.output import WorkSpace, ArtifactType
