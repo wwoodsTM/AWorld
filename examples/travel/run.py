@@ -14,6 +14,7 @@ from examples.travel.search_agent import search
 from examples.travel.write_agent import write
 from examples.travel.plan_agent import plan
 
+# TODO: social mode
 if __name__ == '__main__':
     llm_config = ModelConfig(
         llm_provider="openai",
