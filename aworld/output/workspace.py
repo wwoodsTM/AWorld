@@ -2,22 +2,35 @@ import os
 import traceback
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Union, Callable
+from typing import Dict, Any, Optional, List, Union
 
-from aworld.output.base import Output
+from pydantic import BaseModel, Field, ConfigDict
+
 from aworld.output.artifact import ArtifactType, Artifact
 from aworld.output.code_artifact import CodeArtifact
-from aworld.output.storage.artifact_repository import LocalArtifactRepository
+from aworld.output.storage.artifact_repository import ArtifactRepository, LocalArtifactRepository
 from aworld.output.observer import WorkspaceObserver, get_observer
 
 
-class WorkSpace(Output):
+class WorkSpace(BaseModel):
     """
     Artifact workspace, managing a group of related artifacts
     
     Provides collaborative editing features, supporting version management, update notifications, etc. for multiple Artifacts
     """
 
+    workspace_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="unique identifier for the workspace")
+    name: str = Field(default="", description="name of the workspace")
+    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    metadata: Dict[str, Any] = Field(default={}, description="metadata")
+    artifacts: List[Artifact] = Field(default=[], description="list of artifacts")
+
+    observers: Optional[List[WorkspaceObserver]] = Field(default=[], description="list of observers", exclude=True)
+    repository: Optional[ArtifactRepository] = Field(default=None, description="local artifact repository", exclude=True)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     def __init__(
             self,
             workspace_id: Optional[str] = None,
@@ -151,17 +164,16 @@ class WorkSpace(Output):
             artifact_type: Union[ArtifactType, str],
             artifact_id: Optional[str] = None,
             content: Optional[Any] = None,
-            metadata: Optional[Dict[str, Any]] = None,
-            render_type: Optional[str] = None
+            metadata: Optional[Dict[str, Any]] = None
     ) -> List[Artifact]:
         """
-        Create a new artifact in the workspace
+        Create a new artifact
         
         Args:
-            artifact_type: Artifact type
+            artifact_type: Artifact type (enum or string)
+            artifact_id: Optional artifact ID (will be generated if not provided)
             content: Artifact content
-            metadata: Artifact metadata
-            render_type: Rendering type
+            metadata: Metadata dictionary
             
         Returns:
             List of created artifact objects
@@ -173,6 +185,14 @@ class WorkSpace(Output):
         # Create new artifacts
         artifacts = []
 
+        # Ensure metadata is a dictionary
+        if metadata is None:
+            metadata = {}
+            
+        # Ensure artifact_id is a valid string
+        if artifact_id is None:
+            artifact_id = str(uuid.uuid4())
+
         if artifact_type == ArtifactType.CODE:
             artifacts = CodeArtifact.from_code_content(artifact_type, content)
         else:
@@ -180,8 +200,7 @@ class WorkSpace(Output):
                 artifact_id=artifact_id,
                 artifact_type=artifact_type,
                 content=content,
-                metadata=metadata,
-                render_type=render_type
+                metadata=metadata
             )
             artifacts.append(artifact)  # Add single artifact to the list
 
@@ -361,7 +380,6 @@ class WorkSpace(Output):
                     "artifact_id": a.artifact_id,
                     "type": str(a.artifact_type),
                     "metadata": a.metadata,
-                    "render_type": a.render_type,
                     # "version": a.current_version
                 } for a in self.artifacts
             ]

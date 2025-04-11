@@ -3,6 +3,7 @@ import re
 from abc import ABC
 from typing import Dict, Any, Union, List, Literal, Optional
 from datetime import datetime
+import uuid
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -73,7 +74,13 @@ class DebateAgent(Agent, ABC):
                 "query": search_result.get("query", ""),
                 "results": [SearchItem(title=result["title"],url=result["url"], metadata={}) for result in search_result["results"]]
             }
-            self.workspace.create_artifact(ArtifactType.WEB_PAGES, content=SearchOutput.from_dict(search_item))
+            search_output = SearchOutput.from_dict(search_item)
+            self.workspace.create_artifact(
+                artifact_type=ArtifactType.WEB_PAGES,
+                artifact_id=str(uuid.uuid4()),
+                content=search_output,
+                metadata={"query": search_output.query}
+            )
 
         ## step4 gen result
         user_response = await self.gen_statement(topic, opinion, oppose_opinion, opponent_claim, history, search_results)
