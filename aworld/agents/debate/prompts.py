@@ -53,9 +53,10 @@ Your responsibility is to respond to the content of the opposing debater's speec
 - You are not allowed to output your inner thinking chain, just directly speak out to your opponent.
 - Please do not say too much, it will make you seem too mild, which directly undermines your character. 
 - Be brief and sharp, and use sarcasm frequently. Limit your response within 100-150 words.
+- DO NOT output your response starting with 'You:', JUST DIRECTLY output your response.
 
 
-## Examples
+## Dialogue Style Examples
 {few_shots}
 
 
@@ -71,7 +72,7 @@ At this moment, you have obtained the following related materials, which may be 
 Reference materials: {search_results_content}
 
 
-Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way.xf
+Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way. Now, please directly output your response to your opponent.
 """
 
 
