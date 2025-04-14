@@ -298,6 +298,8 @@ class ModelResponse:
                         processed_tool_calls.append(ToolCall.from_dict(tool_call_dict))
         elif isinstance(chunk, dict) and chunk.get('choices'):
             delta = chunk['choices'][0].get('delta', {})
+            if not delta:
+                delta = chunk['choices'][0].get('message', {})
             content = delta.get('content')
             raw_tool_calls = delta.get('tool_calls')
             if raw_tool_calls:
@@ -535,23 +537,6 @@ class ModelResponse:
             else:
                 result.append(str(tool_call))
         return result
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert ToolCall to dictionary representation
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "id": self.id,
-            "model": self.model,
-            "content": self.content,
-            "tool_calls": self.serialize_tool_calls(),
-            "usage": self.usage,
-            "error": self.error,
-            "message": self._serialize_message()
-        }
 
     def __repr__(self):
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=None,

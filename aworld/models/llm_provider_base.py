@@ -16,7 +16,7 @@ from aworld.models.model_response import ModelResponse
 class LLMProviderBase(abc.ABC):
     """Base class for large language model providers, defines unified interface."""
 
-    def __init__(self, api_key: str = None, base_url: str = None, model_name: str = None, sync_able: bool = None, async_able: bool = None, **kwargs):
+    def __init__(self, api_key: str = None, base_url: str = None, model_name: str = None, sync_enabled: bool = None, async_enabled: bool = None, **kwargs):
         """Initialize provider.
 
         Args:
@@ -30,8 +30,8 @@ class LLMProviderBase(abc.ABC):
         self.model_name = model_name
         self.kwargs = kwargs
         # Determine whether to initialize sync and async providers
-        self.need_sync = sync_able if sync_able is not None else async_able is not True
-        self.need_async = async_able if async_able is not None else sync_able is not True
+        self.need_sync = sync_enabled if sync_enabled is not None else async_enabled is not True
+        self.need_async = async_enabled if async_enabled is not None else sync_enabled is not True
 
         # Initialize providers based on flags
         self.provider = self._init_provider() if self.need_sync else None
@@ -52,6 +52,10 @@ class LLMProviderBase(abc.ABC):
             Async provider instance.
         """
         return None
+
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        return []
 
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> Any:
         """Preprocess messages, convert OpenAI format messages to specific provider required format.

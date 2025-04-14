@@ -52,6 +52,10 @@ class AnthropicProvider(LLMProviderBase):
             base_url=self.base_url
         )
 
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        return [r"claude-3-.*"]
+
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Preprocess messages, convert OpenAI format to Anthropic format.
 
@@ -166,6 +170,7 @@ class AnthropicProvider(LLMProviderBase):
             system_content = processed_data["system"]
             anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens,
                                                          stop, **kwargs)
+            anthropic_params["stream"] = True
             response_stream = self.provider.messages.create(**anthropic_params)
 
             for chunk in response_stream:
@@ -208,6 +213,7 @@ class AnthropicProvider(LLMProviderBase):
             system_content = processed_data["system"]
             anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens,
                                                          stop, **kwargs)
+            anthropic_params["stream"] = True
             response_stream = await self.async_provider.messages.create(**anthropic_params)
 
             async for chunk in response_stream:

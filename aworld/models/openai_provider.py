@@ -3,7 +3,9 @@ from typing import Any, Dict, List, Generator, AsyncGenerator
 from openai import OpenAI, AsyncOpenAI
 from langchain_openai import AzureChatOpenAI
 
+from aworld.config.conf import AgentConfig, ClientType
 from aworld.models.llm_provider_base import LLMProviderBase
+from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse
 from aworld.env_secrets import secrets
 from aworld.logs.util import logger
@@ -27,12 +29,23 @@ class OpenAIProvider(LLMProviderBase):
                 raise ValueError(
                     f"OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")
 
-        return OpenAI(
-            api_key=api_key,
-            base_url=self.base_url or "https://api.openai.com/v1",
-            timeout=self.kwargs.get("timeout", 180),
-            max_retries=self.kwargs.get("max_retries", 3)
-        )
+        self.is_http_provider = False
+        if self.kwargs.get("client_type", ClientType.SDK) == ClientType.HTTP:
+            logger.info(f"Using HTTP provider for OpenAI")
+            self.http_provider = LLMHTTPHandler(
+                base_url=self.base_url,
+                api_key=api_key,
+                model_name=self.model_name,
+            )
+            self.is_http_provider = True
+            return self.http_provider
+        else:
+            return OpenAI(
+                api_key=api_key,
+                base_url=self.base_url or "https://api.openai.com/v1",
+                timeout=self.kwargs.get("timeout", 180),
+                max_retries=self.kwargs.get("max_retries", 3)
+            )
 
     def _init_async_provider(self):
         """Initialize async OpenAI provider.
@@ -55,6 +68,10 @@ class OpenAIProvider(LLMProviderBase):
             timeout=self.kwargs.get("timeout", 180),
             max_retries=self.kwargs.get("max_retries", 3)
         )
+
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        return ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner", r"qwq-.*",r"qwen-.*"]
 
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """Preprocess messages, use OpenAI format directly.
@@ -83,7 +100,8 @@ class OpenAIProvider(LLMProviderBase):
         Returns:
             ModelResponse object.
         """
-        if not hasattr(response, 'choices') or not response.choices:
+        if ((not isinstance(response, dict) and (not hasattr(response, 'choices') or not response.choices))
+                or (isinstance(response, dict) and not response.get("choices"))):
             error_msg = ""
             if hasattr(response, 'error') and response.error and isinstance(response.error, dict):
                 error_msg = response.error.get('message', '')
@@ -133,9 +151,12 @@ class OpenAIProvider(LLMProviderBase):
 
         try:
             openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
-            response = self.provider.chat.completions.create(**openai_params)
+            if self.is_http_provider:
+                response = self.http_provider.sync_call(openai_params)
+            else:
+                response = self.provider.chat.completions.create(**openai_params)
 
-            if hasattr(response, 'code') and response.code != 0:
+            if (hasattr(response, 'code') and response.code != 0) or (isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
                 logger.warn(f"API Error: {error_msg}")
                 return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
@@ -172,12 +193,15 @@ class OpenAIProvider(LLMProviderBase):
 
         try:
             openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
-            response_stream = self.provider.chat.completions.create(**openai_params)
+            openai_params["stream"] = True
+            if self.is_http_provider:
+                response_stream = self.http_provider.sync_stream_call(openai_params)
+            else:
+                response_stream = self.provider.chat.completions.create(**openai_params)
 
             for chunk in response_stream:
                 if not chunk:
                     continue
-
                 yield self.postprocess_stream_response(chunk)
 
         except Exception as e:
@@ -209,13 +233,19 @@ class OpenAIProvider(LLMProviderBase):
 
         try:
             openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
-            response_stream = await self.async_provider.chat.completions.create(**openai_params)
-
-            async for chunk in response_stream:
-                if not chunk:
-                    continue
-
-                yield self.postprocess_stream_response(chunk)
+            openai_params["stream"] = True
+            
+            if self.is_http_provider:
+                async for chunk in self.http_provider.async_stream_call(openai_params):
+                    if not chunk:
+                        continue
+                    yield self.postprocess_stream_response(chunk)
+            else:
+                response_stream = await self.async_provider.chat.completions.create(**openai_params)
+                async for chunk in response_stream:
+                    if not chunk:
+                        continue
+                    yield self.postprocess_stream_response(chunk)
 
         except Exception as e:
             logger.warn(f"Error in astream_completion: {e}")
@@ -246,9 +276,13 @@ class OpenAIProvider(LLMProviderBase):
 
         try:
             openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
-            response = await self.async_provider.chat.completions.create(**openai_params)
+            if self.is_http_provider:
+                response = await self.http_provider.async_call(openai_params)
+            else:
+                response = await self.async_provider.chat.completions.create(**openai_params)
 
-            if hasattr(response, 'code') and response.code != 0:
+            if (hasattr(response, 'code') and response.code != 0) or (
+                    isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
                 logger.warn(f"API Error: {error_msg}")
                 return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
