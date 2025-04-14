@@ -87,7 +87,7 @@ class ArtifactRepository:
 class CommonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Enum):
-            return {"__enum__": True, "__enum_type__": obj.__class__.__name__, "__enum_value__": obj.name}
+            return obj.name
         if isinstance(obj, BaseModel):
             return obj.model_dump()
         return json.JSONEncoder.default(self, obj)
@@ -215,7 +215,7 @@ class LocalArtifactRepository(ArtifactRepository):
             if version_id != version['version_id']:
                 continue
             content_hash = version["hash"]
-            content_path = self.storage_path / f"{content_hash}.json"
+            content_path = self.storage_path / f"workspace_{content_hash}.json"
 
             if not content_path.exists():
                 return None
@@ -238,7 +238,7 @@ class LocalArtifactRepository(ArtifactRepository):
             if artifact['artifact_id'] != artifact_id:
                 continue
             content_hash = artifact["version"]["hash"]
-            content_path = self.storage_path / f"{content_hash}.json"
+            content_path = self.storage_path / f"artifact_{content_hash}.json"
 
             if not content_path.exists():
                 return None

@@ -1,4 +1,5 @@
 import logging
+import traceback
 from typing import Callable, List, Dict, Any, Optional, Union
 import inspect
 
@@ -76,7 +77,7 @@ class DecoratorBasedObserver(WorkspaceObserver):
                 if result is not None:
                     results.append(result)
             except Exception as e:
-                print(f"Create handler failed: {e}")
+                print(f"Create handler failed:  error is {e}: {traceback.format_exc()}")
         return results
     
     async def on_update(self, artifact: Artifact, **kwargs) -> List[Any]:
@@ -108,7 +109,15 @@ class DecoratorBasedObserver(WorkspaceObserver):
         logging.info(f"Registering create handler for {func}")
         self.create_handlers.append(Handler(func, instance, workspace_id, filters))
         return func
-        
+
+    def un_register_create_handler(self, func, instance=None, workspace_id=None):
+        """Register a handler for artifact creation"""
+        logging.info(f"UnRegister create handler for {func}")
+        for handler in self.create_handlers:
+            if handler.func == func:
+                self.create_handlers.remove(handler)
+                logging.info(f"UnRegister create handler for {func} success")
+
     def register_update_handler(self, func, instance=None, workspace_id=None, filters=None):
         """Register a handler for artifact update"""
         logging.info(f"Registering update handler for {func}")

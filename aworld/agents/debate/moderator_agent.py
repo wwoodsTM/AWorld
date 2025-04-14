@@ -38,6 +38,9 @@ class ModeratorAgent(Agent, ABC):
         opinions = await self.gen_opinions(topic)
         logging.info(f"gen opinions = {opinions}")
 
+        if isinstance(opinions, str):
+            opinions = json.loads(opinions)
+
 
         action = ActionModel(
             policy_info=CommonOutput(data=opinions)

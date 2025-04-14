@@ -234,7 +234,7 @@ class WorkSpace(BaseModel):
         pass
 
     def get_webpage_groups(self) -> list[Any] | None:
-        return self.list_artifacts(ArtifactType.WEB_PAGE)
+        return self.list_artifacts(ArtifactType.WEB_PAGES)
 
 
     async def update_artifact(
