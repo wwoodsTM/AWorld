@@ -1,5 +1,10 @@
 from mcp.server import FastMCP
 from pydantic import Field
+import pyttsx3
+from gtts import gTTS
+import librosa
+import soundfile as sf
+import numpy as np  # type: ignore
 
 from aworld.utils import import_package
 from aworld.logs.util import logger
@@ -13,9 +18,11 @@ import_package('soundfile', install_name='soundfile')
 mcp = FastMCP("text_to_audio")
 
 @mcp.tool()
-def convert_text_to_audio(text: str = Field(description="Text to convert to audio"), output_file: str = Field(description="Path to the generated audio file")) -> str:
-    """
-    Convert input text to audio with child-friendly settings
+def convert_text_to_audio(
+    text: str = Field(description="Text to convert to audio"),
+    output_file: str = Field(description="Path to the generated audio file")
+) -> str:
+    """Convert input text to audio with child-friendly settings.
     
     Args:
         text: Input text to convert
@@ -23,8 +30,6 @@ def convert_text_to_audio(text: str = Field(description="Text to convert to audi
     Returns:
         str: Path to the generated audio file
     """
-
-    import pyttsx3
     engine = pyttsx3.init()
     # Set default properties for child-friendly speech
     engine.setProperty('rate', 150)  # Slower speaking rate
@@ -41,25 +46,22 @@ def convert_text_to_audio(text: str = Field(description="Text to convert to audi
 
         # Preprocess text for child-friendly output
         text = _preprocess_text(text)
-        
         if params.get("use_gtts", False):
             # Use gTTS for more natural sound
-            from gtts import gTTS
             tts = gTTS(text=text, lang=params["language"], slow=True)
             tts.save(params["output_file"])
 
         # Post-process audio if needed (adjust volume, remove noise, etc.)
         _post_process_audio(params["output_file"])
-        
         return params["output_file"]
 
     except Exception as e:
-        logger.error(f"Error in text-to-audio conversion: {str(e)}")
+        logger.error("Error in text-to-audio conversion: %s", str(e))
         raise
 
 def _preprocess_text(text: str) -> str:
-    """
-    Preprocess text for child-friendly output
+    """Preprocess text for child-friendly output.
+    
     - Add pauses between sentences
     - Emphasize important words
     - Handle special characters
@@ -71,31 +73,22 @@ def _preprocess_text(text: str) -> str:
     return text
 
 def _post_process_audio(audio_file: str) -> None:
-        """
-        Optimized post-processing for audio files
-        """
-        try:
-            import librosa
-            import soundfile as sf
-            import numpy as np
-            
-            # Load with a lower sample rate and mono channel
-            y, sr = librosa.load(audio_file, sr=16000, mono=True)
-            
-            # Use faster normalization method
-            y_norm = y / np.max(np.abs(y))
-            
-            # Write with optimized settings
-            sf.write(
-                audio_file, 
-                y_norm, 
-                sr,
-                format='mp4',
-                subtype='MP4'
-            )
-        except Exception as e:
-            logger.warning(f"Audio post-processing failed: {str(e)}")
-            pass
+    """Optimized post-processing for audio files."""
+    try:
+        # Load with a lower sample rate and mono channel
+        y, sr = librosa.load(audio_file, sr=16000, mono=True)
+        # Use faster normalization method
+        y_norm = y / np.max(np.abs(y))
+        # Write with optimized settings
+        sf.write(
+            audio_file,
+            y_norm,
+            sr,
+            format='mp4',
+            subtype='MP4'
+        )
+    except (IOError, ValueError, RuntimeError) as e:
+        logger.warning("Audio post-processing failed: %s", e)
 
 # Main function
 if __name__ == "__main__":
