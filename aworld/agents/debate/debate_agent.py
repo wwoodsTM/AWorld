@@ -78,7 +78,15 @@ class DebateAgent(Agent, ABC):
                 artifact_type=ArtifactType.WEB_PAGES,
                 artifact_id=str(uuid.uuid4()),
                 content=search_output,
-                metadata={"query": search_output.query}
+                metadata={
+                    "query": search_output.query,
+                    "user": self.name(),
+                    "round": info["round"],
+                    "opinion": info["opinion"],
+                    "oppose_opinion": info["oppose_opinion"],
+                    "topic": info["topic"],
+                    "tags": [f"user#{self.name()}",f"Rounds#{info['round']}"]
+                }
             )
 
         ## step4 gen result

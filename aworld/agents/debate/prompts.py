@@ -71,7 +71,7 @@ At this moment, you have obtained the following related materials, which may be 
 Reference materials: {search_results_content}
 
 
-Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way, and in Chinese Mandarin.
+Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way.xf
 """
 
 
@@ -102,18 +102,7 @@ generate_opinions_prompt = """
 Here is the debate topic:{topic}.
 Please output the two sides' (positive side vs negative side) opinions of the topic.
 
-
-For example:
-topic: Who is better? A or B?
-positive_opinion:A
-negative_opinion:B
-
-topic: Is is OK to drink wine?
-positive_opinion:Yes
-negative_opinion:No
-
-
-Output format(please use json):
+Output format:
 {{
    "positive_opinion":"xxx"
    "negative_opinion":"yyy"
@@ -121,4 +110,25 @@ Output format(please use json):
 
 
 Now the topic is {topic}, please follow the example and output format, output the two sides' opinions.
+you must always return json, don not return markdown tag or others ，such as ```json,``` etc;
+
+
+For example:
+----------------------------------
+topic: Who is better? A or B?
+
+{{
+   "positive_opinion":"A"
+   "negative_opinion":"B"
+}}
+
+----------------------------------
+topic: Is is OK to drink wine?
+positive_opinion:Yes
+negative_opinion:No
+
+{{
+   "positive_opinion":"Yes"
+   "negative_opinion":"No"
+}}
 """

@@ -78,6 +78,21 @@ class DebateArena:
         affirmative_opinion = opinions.get("positive_opinion")
         negative_opinion = opinions.get("negative_opinion")
 
+        moderator_speech = DebateSpeech.from_dict({
+            "content": "",
+            "round": 0,
+            "type": "speech",
+            "stance": "moderator",
+            "name": self.moderator.name(),
+            "metadata": {
+                "topic": topic,
+                "affirmative_opinion": affirmative_opinion,
+                "negative_opinion": negative_opinion,
+            }
+        })
+        yield moderator_speech
+        self.store_speech(moderator_speech)
+
         logging.info(f"✈️==================================== opinions =============================================")
         logging.info(f"topic: {topic}")
         logging.info(f"affirmative_opinion: {affirmative_opinion}")

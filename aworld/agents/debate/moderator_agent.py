@@ -22,7 +22,7 @@ def truncate_content(raw_content, char_limit):
 
 
 class ModeratorAgent(Agent, ABC):
-    stance: Literal["affirmative", "negative"]
+    stance: str = "moderator"
 
     def __init__(self, conf: AgentConfig, **kwargs
                  ):
