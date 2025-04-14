@@ -1,7 +1,4 @@
 import os
-import dotenv
-import json
-import asyncio
 from typing import Any, Dict, List, Generator, AsyncGenerator
 from anthropic import Anthropic, AsyncAnthropic
 
@@ -25,7 +22,7 @@ class AnthropicProvider(LLMProviderBase):
         api_key = self.api_key
         if not api_key:
             env_var = "ANTHROPIC_API_KEY"
-            api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "") or secrets.claude_api_key
+            api_key = os.getenv(env_var, "") or secrets.claude_api_key
             if not api_key:
                 raise ValueError(
                     f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
@@ -45,7 +42,7 @@ class AnthropicProvider(LLMProviderBase):
         api_key = self.api_key
         if not api_key:
             env_var = "ANTHROPIC_API_KEY"
-            api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "") or secrets.claude_api_key
+            api_key = os.getenv(env_var, "") or secrets.claude_api_key
             if not api_key:
                 raise ValueError(
                     f"Anthropic API key not found, please set {env_var} environment variable or provide it in the parameters")
@@ -128,43 +125,10 @@ class AnthropicProvider(LLMProviderBase):
 
         try:
             processed_data = self.preprocess_messages(messages)
-
-            if "tools" in kwargs:
-                openai_tools = kwargs["tools"]
-                claude_tools = []
-
-                for tool in openai_tools:
-                    if tool["type"] == "function":
-                        claude_tool = {
-                            "name": tool["name"],
-                            "description": tool["description"],
-                            "input_schema": {
-                                "type": "object",
-                                "properties": tool["parameters"]["properties"],
-                                "required": tool["parameters"].get("required", [])
-                            }
-                        }
-                        claude_tools.append(claude_tool)
-
-                kwargs["tools"] = claude_tools
-
-            anthropic_params = {
-                "model": kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022"),
-                "messages": processed_data["messages"],
-                "system": processed_data["system"],
-                "temperature": temperature,
-                "max_tokens": max_tokens or 4096,
-                "stop_sequences": stop,
-            }
-
-            if "tools" in kwargs and kwargs["tools"]:
-                anthropic_params["tools"] = kwargs["tools"]
-                anthropic_params["tool_choice"] = kwargs.get("tool_choice", "auto")
-
-            for param in ["top_p", "top_k", "metadata", "stream"]:
-                if param in kwargs:
-                    anthropic_params[param] = kwargs[param]
-
+            processed_messages = processed_data["messages"]
+            system_content = processed_data["system"]
+            anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens,
+                                                         stop, **kwargs)
             response = self.provider.messages.create(**anthropic_params)
 
             return self.postprocess_response(response)
@@ -198,44 +162,10 @@ class AnthropicProvider(LLMProviderBase):
 
         try:
             processed_data = self.preprocess_messages(messages)
-
-            if "tools" in kwargs:
-                openai_tools = kwargs["tools"]
-                claude_tools = []
-
-                for tool in openai_tools:
-                    if tool["type"] == "function":
-                        claude_tool = {
-                            "name": tool["name"],
-                            "description": tool["description"],
-                            "input_schema": {
-                                "type": "object",
-                                "properties": tool["parameters"]["properties"],
-                                "required": tool["parameters"].get("required", [])
-                            }
-                        }
-                        claude_tools.append(claude_tool)
-
-                kwargs["tools"] = claude_tools
-
-            anthropic_params = {
-                "model": kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022"),
-                "messages": processed_data["messages"],
-                "system": processed_data["system"],
-                "temperature": temperature,
-                "max_tokens": max_tokens or 4096,
-                "stop_sequences": stop,
-                "stream": True  # Enable streaming
-            }
-
-            if "tools" in kwargs and kwargs["tools"]:
-                anthropic_params["tools"] = kwargs["tools"]
-                anthropic_params["tool_choice"] = kwargs.get("tool_choice", "auto")
-
-            for param in ["top_p", "top_k", "metadata"]:
-                if param in kwargs:
-                    anthropic_params[param] = kwargs[param]
-
+            processed_messages = processed_data["messages"]
+            system_content = processed_data["system"]
+            anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens,
+                                                         stop, **kwargs)
             response_stream = self.provider.messages.create(**anthropic_params)
 
             for chunk in response_stream:
@@ -274,44 +204,10 @@ class AnthropicProvider(LLMProviderBase):
 
         try:
             processed_data = self.preprocess_messages(messages)
-
-            if "tools" in kwargs:
-                openai_tools = kwargs["tools"]
-                claude_tools = []
-
-                for tool in openai_tools:
-                    if tool["type"] == "function":
-                        claude_tool = {
-                            "name": tool["name"],
-                            "description": tool["description"],
-                            "input_schema": {
-                                "type": "object",
-                                "properties": tool["parameters"]["properties"],
-                                "required": tool["parameters"].get("required", [])
-                            }
-                        }
-                        claude_tools.append(claude_tool)
-
-                kwargs["tools"] = claude_tools
-
-            anthropic_params = {
-                "model": kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022"),
-                "messages": processed_data["messages"],
-                "system": processed_data["system"],
-                "temperature": temperature,
-                "max_tokens": max_tokens or 4096,
-                "stop_sequences": stop,
-                "stream": True  # Enable streaming
-            }
-
-            if "tools" in kwargs and kwargs["tools"]:
-                anthropic_params["tools"] = kwargs["tools"]
-                anthropic_params["tool_choice"] = kwargs.get("tool_choice", "auto")
-
-            for param in ["top_p", "top_k", "metadata"]:
-                if param in kwargs:
-                    anthropic_params[param] = kwargs[param]
-
+            processed_messages = processed_data["messages"]
+            system_content = processed_data["system"]
+            anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens,
+                                                         stop, **kwargs)
             response_stream = await self.async_provider.messages.create(**anthropic_params)
 
             async for chunk in response_stream:
@@ -350,43 +246,9 @@ class AnthropicProvider(LLMProviderBase):
 
         try:
             processed_data = self.preprocess_messages(messages)
-
-            if "tools" in kwargs:
-                openai_tools = kwargs["tools"]
-                claude_tools = []
-
-                for tool in openai_tools:
-                    if tool["type"] == "function":
-                        claude_tool = {
-                            "name": tool["name"],
-                            "description": tool["description"],
-                            "input_schema": {
-                                "type": "object",
-                                "properties": tool["parameters"]["properties"],
-                                "required": tool["parameters"].get("required", [])
-                            }
-                        }
-                        claude_tools.append(claude_tool)
-
-                kwargs["tools"] = claude_tools
-
-            anthropic_params = {
-                "model": kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022"),
-                "messages": processed_data["messages"],
-                "system": processed_data["system"],
-                "temperature": temperature,
-                "max_tokens": max_tokens or 4096,
-                "stop_sequences": stop,
-            }
-
-            if "tools" in kwargs and kwargs["tools"]:
-                anthropic_params["tools"] = kwargs["tools"]
-                anthropic_params["tool_choice"] = kwargs.get("tool_choice", "auto")
-
-            for param in ["top_p", "top_k", "metadata", "stream"]:
-                if param in kwargs:
-                    anthropic_params[param] = kwargs[param]
-
+            processed_messages = processed_data["messages"]
+            system_content = processed_data["system"]
+            anthropic_params = self.get_anthropic_params(processed_messages, system_content, temperature, max_tokens, stop, **kwargs)
             response = await self.async_provider.messages.create(**anthropic_params)
 
             return self.postprocess_response(response)
@@ -395,4 +257,49 @@ class AnthropicProvider(LLMProviderBase):
             return ModelResponse.from_error(
                 str(e),
                 kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
-            ) 
+            )
+
+    def get_anthropic_params(self,
+                           messages: List[Dict[str, str]],
+                           system: str = None,
+                           temperature: float = 0.0,
+                           max_tokens: int = None,
+                           stop: List[str] = None,
+                           **kwargs) -> Dict[str, Any]:
+        if "tools" in kwargs:
+            openai_tools = kwargs["tools"]
+            claude_tools = []
+
+            for tool in openai_tools:
+                if tool["type"] == "function":
+                    claude_tool = {
+                        "name": tool["name"],
+                        "description": tool["description"],
+                        "input_schema": {
+                            "type": "object",
+                            "properties": tool["parameters"]["properties"],
+                            "required": tool["parameters"].get("required", [])
+                        }
+                    }
+                    claude_tools.append(claude_tool)
+
+            kwargs["tools"] = claude_tools
+
+        anthropic_params = {
+            "model": kwargs.get("model_name", self.model_name or ""),
+            "messages": messages,
+            "system": system,
+            "temperature": temperature,
+            "max_tokens": max_tokens or 4096,
+            "stop_sequences": stop,
+        }
+
+        if "tools" in kwargs and kwargs["tools"]:
+            anthropic_params["tools"] = kwargs["tools"]
+            anthropic_params["tool_choice"] = kwargs.get("tool_choice", "auto")
+
+        for param in ["top_p", "top_k", "metadata", "stream"]:
+            if param in kwargs:
+                anthropic_params[param] = kwargs[param]
+
+        return anthropic_params

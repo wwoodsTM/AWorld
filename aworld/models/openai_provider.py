@@ -1,7 +1,4 @@
 import os
-import dotenv
-import json
-import asyncio
 from typing import Any, Dict, List, Generator, AsyncGenerator
 from openai import OpenAI, AsyncOpenAI
 from langchain_openai import AzureChatOpenAI
@@ -25,7 +22,7 @@ class OpenAIProvider(LLMProviderBase):
         api_key = self.api_key
         if not api_key:
             env_var = "OPENAI_API_KEY"
-            api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "")
+            api_key = os.getenv(env_var, "")
             if not api_key:
                 raise ValueError(
                     f"OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")
@@ -47,7 +44,7 @@ class OpenAIProvider(LLMProviderBase):
         api_key = self.api_key
         if not api_key:
             env_var = "OPENAI_API_KEY"
-            api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "")
+            api_key = os.getenv(env_var, "")
             if not api_key:
                 raise ValueError(
                     f"OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")
@@ -133,25 +130,9 @@ class OpenAIProvider(LLMProviderBase):
             raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
-        openai_params = {
-            "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
-            "messages": processed_messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stop": stop
-        }
-
-        supported_params = [
-            "frequency_penalty", "logit_bias", "logprobs", "top_logprobs",
-            "presence_penalty", "response_format", "seed", "stream", "top_p",
-            "user", "function_call", "functions", "tools", "tool_choice"
-        ]
-
-        for param in supported_params:
-            if param in kwargs:
-                openai_params[param] = kwargs[param]
 
         try:
+            openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
             response = self.provider.chat.completions.create(**openai_params)
 
             if hasattr(response, 'code') and response.code != 0:
@@ -188,26 +169,9 @@ class OpenAIProvider(LLMProviderBase):
             raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
-        openai_params = {
-            "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
-            "messages": processed_messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stop": stop,
-            "stream": True  # Enable streaming
-        }
-
-        supported_params = [
-            "frequency_penalty", "logit_bias", "logprobs", "top_logprobs",
-            "presence_penalty", "response_format", "seed", "top_p",
-            "user", "function_call", "functions", "tools", "tool_choice"
-        ]
-
-        for param in supported_params:
-            if param in kwargs:
-                openai_params[param] = kwargs[param]
 
         try:
+            openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
             response_stream = self.provider.chat.completions.create(**openai_params)
 
             for chunk in response_stream:
@@ -243,26 +207,8 @@ class OpenAIProvider(LLMProviderBase):
 
         processed_messages = self.preprocess_messages(messages)
 
-        openai_params = {
-            "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
-            "messages": processed_messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stop": stop,
-            "stream": True  # Enable streaming
-        }
-
-        supported_params = [
-            "frequency_penalty", "logit_bias", "logprobs", "top_logprobs",
-            "presence_penalty", "response_format", "seed", "top_p",
-            "user", "function_call", "functions", "tools", "tool_choice"
-        ]
-
-        for param in supported_params:
-            if param in kwargs:
-                openai_params[param] = kwargs[param]
-
         try:
+            openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
             response_stream = await self.async_provider.chat.completions.create(**openai_params)
 
             async for chunk in response_stream:
@@ -298,9 +244,32 @@ class OpenAIProvider(LLMProviderBase):
 
         processed_messages = self.preprocess_messages(messages)
 
+        try:
+            openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
+            response = await self.async_provider.chat.completions.create(**openai_params)
+
+            if hasattr(response, 'code') and response.code != 0:
+                error_msg = getattr(response, 'msg', 'Unknown error')
+                logger.warn(f"API Error: {error_msg}")
+                return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
+
+            if not response:
+                return ModelResponse.from_error("Empty response", kwargs.get("model_name", self.model_name or "gpt-4o"))
+
+            return self.postprocess_response(response)
+        except Exception as e:
+            logger.warn(f"Error in acompletion: {e}")
+            return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+
+    def get_openai_params(self,
+                        messages: List[Dict[str, str]],
+                        temperature: float = 0.0,
+                        max_tokens: int = None,
+                        stop: List[str] = None,
+                        **kwargs) -> Dict[str, Any]:
         openai_params = {
-            "model": kwargs.get("model_name", self.model_name or "gpt-4o"),
-            "messages": processed_messages,
+            "model": kwargs.get("model_name", self.model_name or ""),
+            "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stop": stop
@@ -316,21 +285,7 @@ class OpenAIProvider(LLMProviderBase):
             if param in kwargs:
                 openai_params[param] = kwargs[param]
 
-        try:
-            response = await self.async_provider.chat.completions.create(**openai_params)
-
-            if hasattr(response, 'code') and response.code != 0:
-                error_msg = getattr(response, 'msg', 'Unknown error')
-                logger.warn(f"API Error: {error_msg}")
-                return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
-
-            if not response:
-                return ModelResponse.from_error("Empty response", kwargs.get("model_name", self.model_name or "gpt-4o"))
-
-            return self.postprocess_response(response)
-        except Exception as e:
-            logger.warn(f"Error in acompletion: {e}")
-            return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+        return openai_params
 
 
 class AzureOpenAIProvider(OpenAIProvider):
@@ -347,7 +302,7 @@ class AzureOpenAIProvider(OpenAIProvider):
         api_key = self.api_key
         if not api_key:
             env_var = "AZURE_OPENAI_API_KEY"
-            api_key = dotenv.get_key(".env", env_var) or os.getenv(env_var, "") or secrets.azure_openai_api_key
+            api_key = os.getenv(env_var, "") or secrets.azure_openai_api_key
             if not api_key:
                 raise ValueError(
                     f"Azure OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")

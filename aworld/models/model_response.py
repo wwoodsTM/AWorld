@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Optional
 import json
 from pydantic import BaseModel
-from dataclasses import dataclass
 
 
 class Function(BaseModel):
@@ -57,22 +56,6 @@ class ToolCall(BaseModel):
             # arguments=arguments,
         )
 
-    def dict(self) -> dict[str, Any]:
-        """
-                Convert ToolCall to dictionary representation
-
-                Returns:
-                    Dictionary representation
-                """
-        return {
-            'id': self.id,
-            'type': self.type,
-            'function': {
-                'name': self.function.name,
-                'arguments': self.function.arguments
-            }
-        }
-
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert ToolCall to dictionary representation
@@ -89,44 +72,14 @@ class ToolCall(BaseModel):
             }
         }
 
-    def __json__(self):
-        """
-        Make ToolCall JSON serializable
-        """
-        return self.to_dict()
-
     def __repr__(self):
         return json.dumps(self.to_dict())
-
-    def toJSON(self):
-        """
-        Convert to JSON serializable format
-        """
-        return self.to_dict()
 
     def __iter__(self):
         """
         Make ToolCall dict-like for JSON serialization
         """
         yield from self.to_dict().items()
-
-    def __getstate__(self):
-        """
-        Return state for pickle serialization (also used by json serialization)
-        """
-        return self.to_dict()
-
-    def to_json(self):
-        """
-        Convert to JSON string
-        """
-        return json.dumps(self.to_dict())
-
-    def default(self):
-        """
-        Support for json.dumps default parameter
-        """
-        return self.to_dict()
 
 
 class ModelResponse:
@@ -583,14 +536,14 @@ class ModelResponse:
                 result.append(str(tool_call))
         return result
 
-    def to_json(self) -> str:
+    def to_dict(self) -> Dict[str, Any]:
         """
-        Convert ModelResponse to JSON string representation
+        Convert ToolCall to dictionary representation
 
         Returns:
-            str: JSON string
+            Dictionary representation
         """
-        json_dict = {
+        return {
             "id": self.id,
             "model": self.model,
             "content": self.content,
@@ -600,7 +553,8 @@ class ModelResponse:
             "message": self._serialize_message()
         }
 
-        return json.dumps(json_dict, ensure_ascii=False, indent=None,
+    def __repr__(self):
+        return json.dumps(self.to_dict(), ensure_ascii=False, indent=None,
                           default=lambda obj: obj.to_dict() if hasattr(obj, 'to_dict') else str(obj))
 
     def _serialize_message(self) -> Dict[str, Any]:
