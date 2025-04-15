@@ -14,6 +14,7 @@ from aworld.logs.util import logger
 class OpenAIProvider(LLMProviderBase):
     """OpenAI provider implementation.
     """
+
     def _init_provider(self):
         """Initialize OpenAI provider.
         
@@ -28,12 +29,15 @@ class OpenAIProvider(LLMProviderBase):
             if not api_key:
                 raise ValueError(
                     f"OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")
+        base_url = self.base_url
+        if not base_url:
+            base_url = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
 
         self.is_http_provider = False
         if self.kwargs.get("client_type", ClientType.SDK) == ClientType.HTTP:
             logger.info(f"Using HTTP provider for OpenAI")
             self.http_provider = LLMHTTPHandler(
-                base_url=self.base_url,
+                base_url=base_url,
                 api_key=api_key,
                 model_name=self.model_name,
             )
@@ -42,7 +46,7 @@ class OpenAIProvider(LLMProviderBase):
         else:
             return OpenAI(
                 api_key=api_key,
-                base_url=self.base_url or "https://api.openai.com/v1",
+                base_url=base_url,
                 timeout=self.kwargs.get("timeout", 180),
                 max_retries=self.kwargs.get("max_retries", 3)
             )
@@ -61,17 +65,21 @@ class OpenAIProvider(LLMProviderBase):
             if not api_key:
                 raise ValueError(
                     f"OpenAI API key not found, please set {env_var} environment variable or provide it in the parameters")
+        base_url = self.base_url
+        if not base_url:
+            base_url = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
 
         return AsyncOpenAI(
             api_key=api_key,
-            base_url=self.base_url or "https://api.openai.com/v1",
+            base_url=base_url,
             timeout=self.kwargs.get("timeout", 180),
             max_retries=self.kwargs.get("max_retries", 3)
         )
 
     @classmethod
     def supported_models(cls) -> list[str]:
-        return ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner", r"qwq-.*",r"qwen-.*"]
+        return ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner",
+                r"qwq-.*", r"qwen-.*"]
 
     def preprocess_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """Preprocess messages, use OpenAI format directly.
@@ -87,7 +95,6 @@ class OpenAIProvider(LLMProviderBase):
                 for tool_call in message["tool_calls"]:
                     if "function" not in tool_call and "name" in tool_call and "arguments" in tool_call:
                         tool_call["function"] = {"name": tool_call["name"], "arguments": tool_call["arguments"]}
-
 
         return messages
 
@@ -139,15 +146,15 @@ class OpenAIProvider(LLMProviderBase):
                 self.model_name or "unknown",
                 chunk
             )
-            
+
         return ModelResponse.from_openai_stream_chunk(chunk)
-    
-    def completion(self, 
-                messages: List[Dict[str, str]], 
-                temperature: float = 0.0, 
-                max_tokens: int = None, 
-                stop: List[str] = None, 
-                **kwargs) -> ModelResponse:
+
+    def completion(self,
+                   messages: List[Dict[str, str]],
+                   temperature: float = 0.0,
+                   max_tokens: int = None,
+                   stop: List[str] = None,
+                   **kwargs) -> ModelResponse:
         """Synchronously call OpenAI to generate response.
         
         Args:
@@ -164,7 +171,8 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
+            raise RuntimeError(
+                "Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -175,7 +183,8 @@ class OpenAIProvider(LLMProviderBase):
             else:
                 response = self.provider.chat.completions.create(**openai_params)
 
-            if (hasattr(response, 'code') and response.code != 0) or (isinstance(response, dict) and response.get("code", 0) != 0):
+            if (hasattr(response, 'code') and response.code != 0) or (
+                    isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
                 logger.warn(f"API Error: {error_msg}")
                 raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
@@ -190,12 +199,12 @@ class OpenAIProvider(LLMProviderBase):
             logger.warn(f"Error in OpenAI completion: {e}")
             raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
 
-    def stream_completion(self, 
-                     messages: List[Dict[str, str]], 
-                     temperature: float = 0.0, 
-                     max_tokens: int = None, 
-                     stop: List[str] = None, 
-                     **kwargs) -> Generator[ModelResponse, None, None]:
+    def stream_completion(self,
+                          messages: List[Dict[str, str]],
+                          temperature: float = 0.0,
+                          max_tokens: int = None,
+                          stop: List[str] = None,
+                          **kwargs) -> Generator[ModelResponse, None, None]:
         """Synchronously call OpenAI to generate streaming response.
         
         Args:
@@ -212,7 +221,8 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
+            raise RuntimeError(
+                "Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -232,13 +242,13 @@ class OpenAIProvider(LLMProviderBase):
         except Exception as e:
             logger.warn(f"Error in stream_completion: {e}")
             raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
-            
-    async def astream_completion(self, 
-                           messages: List[Dict[str, str]], 
-                           temperature: float = 0.0, 
-                           max_tokens: int = None, 
-                           stop: List[str] = None, 
-                           **kwargs) -> AsyncGenerator[ModelResponse, None]:
+
+    async def astream_completion(self,
+                                 messages: List[Dict[str, str]],
+                                 temperature: float = 0.0,
+                                 max_tokens: int = None,
+                                 stop: List[str] = None,
+                                 **kwargs) -> AsyncGenerator[ModelResponse, None]:
         """Asynchronously call OpenAI to generate streaming response.
         
         Args:
@@ -255,14 +265,15 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
+            raise RuntimeError(
+                "Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
         try:
             openai_params = self.get_openai_params(processed_messages, temperature, max_tokens, stop, **kwargs)
             openai_params["stream"] = True
-            
+
             if self.is_http_provider:
                 async for chunk in self.http_provider.async_stream_call(openai_params):
                     if not chunk:
@@ -278,13 +289,13 @@ class OpenAIProvider(LLMProviderBase):
         except Exception as e:
             logger.warn(f"Error in astream_completion: {e}")
             raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
-            
-    async def acompletion(self, 
-                    messages: List[Dict[str, str]], 
-                    temperature: float = 0.0, 
-                    max_tokens: int = None, 
-                    stop: List[str] = None, 
-                    **kwargs) -> ModelResponse:
+
+    async def acompletion(self,
+                          messages: List[Dict[str, str]],
+                          temperature: float = 0.0,
+                          max_tokens: int = None,
+                          stop: List[str] = None,
+                          **kwargs) -> ModelResponse:
         """Asynchronously call OpenAI to generate response.
         
         Args:
@@ -301,7 +312,8 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
+            raise RuntimeError(
+                "Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -329,11 +341,11 @@ class OpenAIProvider(LLMProviderBase):
             raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
 
     def get_openai_params(self,
-                        messages: List[Dict[str, str]],
-                        temperature: float = 0.0,
-                        max_tokens: int = None,
-                        stop: List[str] = None,
-                        **kwargs) -> Dict[str, Any]:
+                          messages: List[Dict[str, str]],
+                          temperature: float = 0.0,
+                          max_tokens: int = None,
+                          stop: List[str] = None,
+                          **kwargs) -> Dict[str, Any]:
         openai_params = {
             "model": kwargs.get("model_name", self.model_name or ""),
             "messages": messages,
@@ -391,4 +403,4 @@ class AzureOpenAIProvider(OpenAIProvider):
             api_version=api_version,
             azure_endpoint=azure_endpoint,
             api_key=api_key
-        ) 
+        )

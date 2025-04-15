@@ -4,14 +4,14 @@ from pydantic import BaseModel
 
 
 class LLMResponseError(Exception):
-    """
-    Represents an error in LLM response
+    """Represents an error in LLM response.
     
     Attributes:
         message: Error message
         model: Model name
         response: Original response object
     """
+
     def __init__(self, message: str, model: str = "unknown", response: Any = None):
         """
         Initialize LLM response error
@@ -34,6 +34,7 @@ class Function(BaseModel):
     name: str
     arguments: str = None
 
+
 class ToolCall(BaseModel):
     """
     Represents a tool call made by a model
@@ -42,6 +43,7 @@ class ToolCall(BaseModel):
     id: str
     type: str = "function"
     function: Function = None
+
     # name: str = None
     # arguments: str = None
 
@@ -112,15 +114,15 @@ class ModelResponse:
     """
 
     def __init__(
-        self,
-        id: str,
-        model: str,
-        content: str = None,
-        tool_calls: List[ToolCall] = None,
-        usage: Dict[str, int] = None,
-        error: str = None,
-        raw_response: Any = None,
-        message: Dict[str, Any] = None
+            self,
+            id: str,
+            model: str,
+            content: str = None,
+            tool_calls: List[ToolCall] = None,
+            usage: Dict[str, int] = None,
+            error: str = None,
+            raw_response: Any = None,
+            message: Dict[str, Any] = None
     ):
         """
         Initialize ModelResponse object
@@ -370,8 +372,8 @@ class ModelResponse:
             if not chunk or (isinstance(chunk, dict) and chunk.get('error')):
                 error_msg = chunk.get('error', 'Unknown error') if isinstance(chunk, dict) else 'Empty response'
                 raise LLMResponseError(
-                    error_msg, 
-                    chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'), 
+                    error_msg,
+                    chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'),
                     chunk)
 
             # Handle stop reason (end of stream)
@@ -427,8 +429,8 @@ class ModelResponse:
             if isinstance(e, LLMResponseError):
                 raise e
             raise LLMResponseError(
-                f"Error processing Anthropic stream chunk: {str(e)}", 
-                chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'), 
+                f"Error processing Anthropic stream chunk: {str(e)}",
+                chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'),
                 chunk)
 
     @classmethod
@@ -450,8 +452,8 @@ class ModelResponse:
             if not response or (isinstance(response, dict) and response.get('error')):
                 error_msg = response.get('error', 'Unknown error') if isinstance(response, dict) else 'Empty response'
                 raise LLMResponseError(
-                    error_msg, 
-                    response.model if hasattr(response, 'model') else response.get('model', 'unknown'), 
+                    error_msg,
+                    response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
                     response)
 
             # Build message content
@@ -514,8 +516,8 @@ class ModelResponse:
             if isinstance(e, LLMResponseError):
                 raise e
             raise LLMResponseError(
-                f"Error processing Anthropic response: {str(e)}", 
-                response.model if hasattr(response, 'model') else response.get('model', 'unknown'), 
+                f"Error processing Anthropic response: {str(e)}",
+                response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
                 response)
 
     @classmethod
