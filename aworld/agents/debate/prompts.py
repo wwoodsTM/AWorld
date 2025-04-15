@@ -14,9 +14,9 @@ If you want to search something that is sensitive to the time, espcially some ma
 
 
 Format Requirements (query seperated by , ), limit {limit}:
-query1, query2, query3...
+aaa, bbb, ccc...
 
-Now, you could output your assignment queries (strictly follow the Format Requirements) to your assistant.
+Now, you could output your assignment queries (strictly follow the Format Requirements: seperated by ,) to your assistant.
 """
 
 
