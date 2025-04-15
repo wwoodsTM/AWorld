@@ -272,7 +272,9 @@ class ToolOutput(Output):
 
 class SearchItem(BaseModel):
     title: str = Field(default="", description="search result title")
-    url: str= Field(default="", description="search result url")
+    url: str = Field(default="", description="search result url")
+    content: str = Field(default="", description="search content", exclude=True)
+    raw_content: Optional[str] = Field(default="", description="search raw content", exclude=True)
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="metadata")
 
 

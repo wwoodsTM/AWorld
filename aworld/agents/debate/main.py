@@ -1,14 +1,14 @@
 import logging
-from typing import Optional, AsyncGenerator, Any, Coroutine
+from typing import Optional, AsyncGenerator
 
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.debate_agent import DebateAgent
-from aworld.core.agent.base import BaseAgent
+from aworld.agents.debate.moderator_agent import ModeratorAgent
+from aworld.core.agent.base import Agent
 from aworld.core.common import Observation
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.output import Output, WorkSpace
-from aworld.output.base import OutputPart
 
 
 class DebateArena:
@@ -19,9 +19,7 @@ class DebateArena:
     affirmative_speaker: DebateAgent
     negative_speaker: DebateAgent
 
-    moderator: Optional[BaseAgent]
-    judges: Optional[BaseAgent]
-
+    moderator: Optional[ModeratorAgent]
 
     speeches: list[DebateSpeech]
 
@@ -30,20 +28,18 @@ class DebateArena:
     def __init__(self,
                  affirmative_speaker: DebateAgent,
                  negative_speaker: DebateAgent,
-                 moderator: BaseAgent,
+                 moderator: ModeratorAgent,
                  workspace: WorkSpace,
                  **kwargs
                  ):
         self.affirmative_speaker = affirmative_speaker
         self.negative_speaker = negative_speaker
-        self.memory = Memory.from_config(config={
-            "memory_store": "inmemory"
-        })
+        self.moderator = moderator
         self.speeches=[]
         self.workspace = workspace
         self.affirmative_speaker.set_workspace(workspace)
         self.negative_speaker.set_workspace(workspace)
-        self.moderator = moderator
+        self.moderator.set_workspace(workspace)
         # Event.register("topic", func= );
 
     async def async_run(self, topic: str, rounds: int)\
@@ -66,7 +62,7 @@ class DebateArena:
         """
 
         ## 1. generate opinions
-        moderator_speech = await self.moderator_speech(topic)
+        moderator_speech = await self.moderator_speech(topic, rounds)
         if not moderator_speech:
             return
         yield moderator_speech
@@ -103,9 +99,16 @@ class DebateArena:
             logging.info(f"🛬==================================== round#{i} end =============================================")
 
         ## 3. Summary speeches
+        moderator_speech = await self.moderator.summary_speech()
+        if not moderator_speech:
+            return
+        yield moderator_speech
+        await moderator_speech.wait_until_finished()
+        logging.info(
+        f"🛬====================================  total is end =============================================")
 
-    async def moderator_speech(self, topic) -> DebateSpeech | None:
-        results = await self.moderator.async_policy(Observation(content=topic))
+    async def moderator_speech(self, topic, rounds) -> DebateSpeech | None:
+        results = await self.moderator.async_policy(Observation(content=topic, info = {"rounds" : rounds}))
         if not results or not results[0] or not results[0].policy_info:
             return None
         return results[0].policy_info
@@ -152,7 +155,7 @@ class DebateArena:
         return self.negative_speaker
 
     def store_speech(self, speech: DebateSpeech):
-        self.memory.add(MemoryItem.from_dict({
+        self.moderator.memory.add(MemoryItem.from_dict({
             "content": speech.content,
             "metadata": {
                 "round": speech.round,
