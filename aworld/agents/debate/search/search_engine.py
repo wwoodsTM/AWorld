@@ -13,10 +13,8 @@ class SearchAPI(Enum):
 
 
 class SearchException(Exception):
-    """搜索异常"""
 
     def __init__(self, message, error_code=None):
-        # 调用父类的初始化方法
         super().__init__()
         self.message = message
         self.error_code = error_code
