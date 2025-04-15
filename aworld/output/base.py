@@ -86,7 +86,26 @@ class MessageOutput(Output):
             self.reason_generator, self.response_generator = self.__split_reasoning_and_response__()
         elif self.source is not None and isinstance(self.source, str):
             self.reasoning, self.response = self.__resolve_think__(self.source, self.json_parse)    
-        return self 
+        return self
+
+    async def get_finished_reasoning(self):
+        if self.reasoning:
+            return self.reasoning
+        else:
+            if self.has_reasoning and not self.reasoning:
+                async for reason in self.reason_generator:
+                    pass
+                return self.reasoning
+            else:
+                return self.reasoning
+
+    async def get_finished_response(self):
+        if self.response:
+            return self.response
+        else:
+            async for item in self.response_generator:
+                pass
+            return self.response
     
     async def __aget_reasoning_generator(self) -> AsyncGenerator[str, None]:
         """
@@ -147,7 +166,6 @@ class MessageOutput(Output):
         except StopAsyncIteration:
             self.finished = True
             self.response = self.__resolve_json__(response_buffer, self.json_parse)
-            print(f"...finished....")
 
     def __split_reasoning_and_response__(self) -> tuple[Generator[str, None, None], Generator[str, None, None]]: # type: ignore
         """

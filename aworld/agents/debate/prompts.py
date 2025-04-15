@@ -140,7 +140,7 @@ negative_opinion:No
 
 
 summary_system_prompt = "You are a good assistant to make summary."
-user_debate_prompt = """
+summary_debate_prompt = """
 ## Your Role
 You are a reliable assistant to make summary. Your responsibility is to read people's conversation and make summary on this conversation. 
 

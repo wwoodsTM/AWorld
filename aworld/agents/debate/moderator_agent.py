@@ -1,7 +1,9 @@
+import logging
 from abc import ABC
 from datetime import datetime
 from typing import Dict, Any, Union, List
 
+from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.prompts import user_assignment_system_prompt
 from aworld.agents.debate.stream_output_agent import StreamOutputAgent
 from aworld.config import AgentConfig
@@ -33,9 +35,31 @@ class ModeratorAgent(StreamOutputAgent, ABC):
         ## step2: gen opinions
         output = await self.gen_opinions(topic)
 
+        ## step3: gen speech
+        moderator_speech = DebateSpeech.from_dict({
+            "content": "",
+            "round": 0,
+            "type": "speech",
+            "stance": "moderator",
+            "name": self.name(),
+        })
+
+        async def after_speech_call(message_output_response):
+            logging.info("moderator: after_speech_call")
+            opinions = message_output_response
+            affirmative_opinion = opinions.get("positive_opinion")
+            negative_opinion = opinions.get("negative_opinion")
+            moderator_speech.metadata = {
+                "topic": topic,
+                "affirmative_opinion": affirmative_opinion,
+                "negative_opinion": negative_opinion,
+            }
+            moderator_speech.finished = True
+
+        await moderator_speech.convert_to_parts(output, after_speech_call)
 
         action = ActionModel(
-            policy_info=output
+            policy_info=moderator_speech
         )
 
         return [action]

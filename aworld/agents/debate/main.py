@@ -71,6 +71,7 @@ class DebateArena:
             return
         yield moderator_speech
         await moderator_speech.wait_until_finished()
+        self.store_speech(moderator_speech)
 
 
         affirmative_opinion = moderator_speech.metadata["affirmative_opinion"]
@@ -90,10 +91,14 @@ class DebateArena:
             # affirmative_speech
             speech = await self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
             yield speech
+            await speech.wait_until_finished()
+            self.store_speech(speech)
 
             # negative_speech
             speech = await self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
             yield speech
+            await speech.wait_until_finished()
+            self.store_speech(speech)
 
             logging.info(f"🛬==================================== round#{i} end =============================================")
 
@@ -103,32 +108,7 @@ class DebateArena:
         results = await self.moderator.async_policy(Observation(content=topic))
         if not results or not results[0] or not results[0].policy_info:
             return None
-
-        moderator_speech = DebateSpeech.from_dict({
-            "content": "",
-            "round": 0,
-            "type": "speech",
-            "stance": "moderator",
-            "name": self.moderator.name(),
-        })
-
-        async def after_speech_call(message_output_response):
-            logging.info("moderator: after_speech_call")
-            opinions = message_output_response
-            affirmative_opinion = opinions.get("positive_opinion")
-            negative_opinion = opinions.get("negative_opinion")
-            moderator_speech.metadata = {
-                "topic": topic,
-                "affirmative_opinion": affirmative_opinion,
-                "negative_opinion": negative_opinion,
-            }
-            moderator_speech.finished = True
-            self.store_speech(moderator_speech)
-
-        output = results[0].policy_info
-        await moderator_speech.convert_to_parts(output, after_speech_call)
-        return moderator_speech
-
+        return results[0].policy_info
 
     async def affirmative_speech(self, round: int, topic: str, opinion: str, oppose_opinion: str) -> DebateSpeech:
         """
@@ -140,7 +120,6 @@ class DebateArena:
         logging.info(affirmative_speaker.name() + ": " + "start")
 
         speech = await affirmative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
-        self.store_speech(speech)
 
         logging.info(affirmative_speaker.name() + ":  result: " + speech.content)
         return speech
@@ -155,8 +134,6 @@ class DebateArena:
         logging.info(negative_speaker.name() + ": " + "start")
 
         speech = await negative_speaker.speech(topic, opinion, oppose_opinion, round, self.speeches)
-        
-        self.store_speech(speech)
 
         logging.info(negative_speaker.name() + ":  result: " + speech.content)
         return speech
