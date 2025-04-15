@@ -10,6 +10,7 @@ from typing import (
     AsyncGenerator,
 )
 from langchain_openai import ChatOpenAI
+
 from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig, ClientType
 from aworld.env_secrets import secrets
@@ -69,7 +70,6 @@ class LLMModel:
             self.provider = custom_provider
             return
 
-        conf = conf.llm_config if conf.llm_config.llm_api_key or conf.llm_config.llm_base_url else conf
         # Get basic parameters
         base_url = kwargs.get("base_url") or (conf.llm_base_url if conf else None)
         model_name = kwargs.get("model_name") or (conf.llm_model_name if conf else None)

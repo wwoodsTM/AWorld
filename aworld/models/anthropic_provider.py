@@ -4,7 +4,7 @@ from anthropic import Anthropic, AsyncAnthropic
 
 from aworld.logs.util import logger
 from aworld.models.llm_provider_base import LLMProviderBase
-from aworld.models.model_response import ModelResponse
+from aworld.models.model_response import ModelResponse, LLMResponseError
 from aworld.env_secrets import secrets
 
 
@@ -92,7 +92,15 @@ class AnthropicProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
+        # Check if response is empty or contains error
+        if not response or (isinstance(response, dict) and response.get('error')):
+            error_msg = response.get('error', 'Unknown error') if isinstance(response, dict) else 'Empty response'
+            raise LLMResponseError(error_msg, self.model_name or "claude", response)
+        
         return ModelResponse.from_anthropic_response(response)
 
     def postprocess_stream_response(self, chunk: Any) -> ModelResponse:
@@ -103,7 +111,15 @@ class AnthropicProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
+        # Check if chunk is empty or contains error
+        if not chunk or (isinstance(chunk, dict) and chunk.get('error')):
+            error_msg = chunk.get('error', 'Unknown error') if isinstance(chunk, dict) else 'Empty response'
+            raise LLMResponseError(error_msg, self.model_name or "claude", chunk)
+            
         return ModelResponse.from_anthropic_stream_chunk(chunk)
 
     def completion(self, 
@@ -138,10 +154,7 @@ class AnthropicProvider(LLMProviderBase):
             return self.postprocess_response(response)
         except Exception as e:
             logger.warn(f"Error in Anthropic completion: {e}")
-            return ModelResponse.from_error(
-                str(e),
-                kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
-            ) 
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "claude"))
     
     def stream_completion(self, 
                      messages: List[Dict[str, str]], 
@@ -181,10 +194,7 @@ class AnthropicProvider(LLMProviderBase):
 
         except Exception as e:
             logger.warn(f"Error in Anthropic stream_completion: {e}")
-            yield ModelResponse.from_error(
-                str(e),
-                kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
-            )
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "claude"))
 
     async def astream_completion(self, 
                            messages: List[Dict[str, str]], 
@@ -224,10 +234,7 @@ class AnthropicProvider(LLMProviderBase):
 
         except Exception as e:
             logger.warn(f"Error in Anthropic astream_completion: {e}")
-            yield ModelResponse.from_error(
-                str(e),
-                kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
-            )
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "claude"))
 
     async def acompletion(self, 
                     messages: List[Dict[str, str]], 
@@ -260,10 +267,7 @@ class AnthropicProvider(LLMProviderBase):
             return self.postprocess_response(response)
         except Exception as e:
             logger.warn(f"Error in Anthropic acompletion: {e}")
-            return ModelResponse.from_error(
-                str(e),
-                kwargs.get("model_name", self.model_name or "claude-3-5-sonnet-20241022")
-            )
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "claude"))
 
     def get_anthropic_params(self,
                            messages: List[Dict[str, str]],

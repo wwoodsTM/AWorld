@@ -3,6 +3,30 @@ import json
 from pydantic import BaseModel
 
 
+class LLMResponseError(Exception):
+    """
+    Represents an error in LLM response
+    
+    Attributes:
+        message: Error message
+        model: Model name
+        response: Original response object
+    """
+    def __init__(self, message: str, model: str = "unknown", response: Any = None):
+        """
+        Initialize LLM response error
+        
+        Args:
+            message: Error message
+            model: Model name
+            response: Original response object
+        """
+        self.message = message
+        self.model = model
+        self.response = response
+        super().__init__(f"LLM Error ({model}): {message}")
+
+
 class Function(BaseModel):
     """
     Represents a function call made by a model
@@ -145,15 +169,17 @@ class ModelResponse:
 
         Returns:
             ModelResponse object
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs
         """
         # Handle error cases
         if hasattr(response, 'error') or (isinstance(response, dict) and response.get('error')):
             error_msg = response.error if hasattr(response, 'error') else response.get('error', 'Unknown error')
-            return cls(
-                id=response.id if hasattr(response, 'id') else response.get('id', 'error'),
-                model=response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
-                error=error_msg,
-                raw_response=response
+            raise LLMResponseError(
+                error_msg,
+                response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
+                response
             )
 
         # Normal case
@@ -164,11 +190,10 @@ class ModelResponse:
             message = response['choices'][0].get('message', {})
 
         if not message:
-            return cls(
-                id=response.id if hasattr(response, 'id') else response.get('id', 'unknown'),
-                model=response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
-                error="No message found in response",
-                raw_response=response
+            raise LLMResponseError(
+                "No message found in response",
+                response.model if hasattr(response, 'model') else response.get('model', 'unknown'),
+                response
             )
 
         # Extract usage information
@@ -244,15 +269,17 @@ class ModelResponse:
 
         Returns:
             ModelResponse object
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs
         """
         # Handle error cases
         if hasattr(chunk, 'error') or (isinstance(chunk, dict) and chunk.get('error')):
             error_msg = chunk.error if hasattr(chunk, 'error') else chunk.get('error', 'Unknown error')
-            return cls(
-                id=chunk.id if hasattr(chunk, 'id') else chunk.get('id', 'error'),
-                model=chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'),
-                error=error_msg,
-                raw_response=chunk
+            raise LLMResponseError(
+                error_msg,
+                chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'),
+                chunk
             )
 
         # Handle finish reason chunk (end of stream)
@@ -334,12 +361,18 @@ class ModelResponse:
 
         Returns:
             ModelResponse object
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs
         """
         try:
             # Handle error cases
             if not chunk or (isinstance(chunk, dict) and chunk.get('error')):
                 error_msg = chunk.get('error', 'Unknown error') if isinstance(chunk, dict) else 'Empty response'
-                return cls.from_error(error_msg, "claude")
+                raise LLMResponseError(
+                    error_msg, 
+                    chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'), 
+                    chunk)
 
             # Handle stop reason (end of stream)
             if hasattr(chunk, 'stop_reason') and chunk.stop_reason:
@@ -391,7 +424,12 @@ class ModelResponse:
             )
 
         except Exception as e:
-            return cls.from_error(f"Error processing Anthropic stream chunk: {str(e)}", "claude")
+            if isinstance(e, LLMResponseError):
+                raise e
+            raise LLMResponseError(
+                f"Error processing Anthropic stream chunk: {str(e)}", 
+                chunk.model if hasattr(chunk, 'model') else chunk.get('model', 'unknown'), 
+                chunk)
 
     @classmethod
     def from_anthropic_response(cls, response: Any) -> 'ModelResponse':
@@ -403,12 +441,18 @@ class ModelResponse:
 
         Returns:
             ModelResponse object
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs
         """
         try:
             # Handle error cases
             if not response or (isinstance(response, dict) and response.get('error')):
                 error_msg = response.get('error', 'Unknown error') if isinstance(response, dict) else 'Empty response'
-                return cls.from_error(error_msg, "claude")
+                raise LLMResponseError(
+                    error_msg, 
+                    response.model if hasattr(response, 'model') else response.get('model', 'unknown'), 
+                    response)
 
             # Build message content
             message = {
@@ -467,7 +511,12 @@ class ModelResponse:
                 message=message
             )
         except Exception as e:
-            return cls.from_error(f"Error processing Anthropic response: {str(e)}", "claude")
+            if isinstance(e, LLMResponseError):
+                raise e
+            raise LLMResponseError(
+                f"Error processing Anthropic response: {str(e)}", 
+                response.model if hasattr(response, 'model') else response.get('model', 'unknown'), 
+                response)
 
     @classmethod
     def from_error(cls, error_msg: str, model: str = "unknown") -> 'ModelResponse':

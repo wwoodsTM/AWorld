@@ -6,7 +6,7 @@ from langchain_openai import AzureChatOpenAI
 from aworld.config.conf import AgentConfig, ClientType
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.llm_http_handler import LLMHTTPHandler
-from aworld.models.model_response import ModelResponse
+from aworld.models.model_response import ModelResponse, LLMResponseError
 from aworld.env_secrets import secrets
 from aworld.logs.util import logger
 
@@ -99,6 +99,9 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         if ((not isinstance(response, dict) and (not hasattr(response, 'choices') or not response.choices))
                 or (isinstance(response, dict) and not response.get("choices"))):
@@ -108,9 +111,10 @@ class OpenAIProvider(LLMProviderBase):
             elif hasattr(response, 'msg'):
                 error_msg = response.msg
 
-            return ModelResponse.from_error(
+            raise LLMResponseError(
                 error_msg if error_msg else "Unknown error",
-                self.model_name or "unknown"
+                self.model_name or "unknown",
+                response
             )
 
         return ModelResponse.from_openai_response(response)
@@ -123,7 +127,19 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
+        # Check if chunk contains error
+        if hasattr(chunk, 'error') or (isinstance(chunk, dict) and chunk.get('error')):
+            error_msg = chunk.error if hasattr(chunk, 'error') else chunk.get('error', 'Unknown error')
+            raise LLMResponseError(
+                error_msg,
+                self.model_name or "unknown",
+                chunk
+            )
+            
         return ModelResponse.from_openai_stream_chunk(chunk)
     
     def completion(self, 
@@ -143,6 +159,9 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
             raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
@@ -159,14 +178,17 @@ class OpenAIProvider(LLMProviderBase):
             if (hasattr(response, 'code') and response.code != 0) or (isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
                 logger.warn(f"API Error: {error_msg}")
-                return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
 
             if not response:
-                return ModelResponse.from_error("Empty response", kwargs.get("model_name", self.model_name or "gpt-4o"))
+                raise LLMResponseError("Empty response", kwargs.get("model_name", self.model_name or "unknown"))
 
             return self.postprocess_response(response)
         except Exception as e:
-            return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+            if isinstance(e, LLMResponseError):
+                raise e
+            logger.warn(f"Error in OpenAI completion: {e}")
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
 
     def stream_completion(self, 
                      messages: List[Dict[str, str]], 
@@ -185,6 +207,9 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             Generator yielding ModelResponse chunks.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
             raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
@@ -206,7 +231,7 @@ class OpenAIProvider(LLMProviderBase):
 
         except Exception as e:
             logger.warn(f"Error in stream_completion: {e}")
-            yield ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
             
     async def astream_completion(self, 
                            messages: List[Dict[str, str]], 
@@ -225,6 +250,9 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             AsyncGenerator yielding ModelResponse chunks.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
             raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
@@ -249,7 +277,7 @@ class OpenAIProvider(LLMProviderBase):
 
         except Exception as e:
             logger.warn(f"Error in astream_completion: {e}")
-            yield ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
             
     async def acompletion(self, 
                     messages: List[Dict[str, str]], 
@@ -268,6 +296,9 @@ class OpenAIProvider(LLMProviderBase):
 
         Returns:
             ModelResponse object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
             raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
@@ -285,15 +316,17 @@ class OpenAIProvider(LLMProviderBase):
                     isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
                 logger.warn(f"API Error: {error_msg}")
-                return ModelResponse.from_error(error_msg, kwargs.get("model_name", self.model_name or "gpt-4o"))
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
 
             if not response:
-                return ModelResponse.from_error("Empty response", kwargs.get("model_name", self.model_name or "gpt-4o"))
+                raise LLMResponseError("Empty response", kwargs.get("model_name", self.model_name or "unknown"))
 
             return self.postprocess_response(response)
         except Exception as e:
+            if isinstance(e, LLMResponseError):
+                raise e
             logger.warn(f"Error in acompletion: {e}")
-            return ModelResponse.from_error(str(e), kwargs.get("model_name", self.model_name or "gpt-4o"))
+            raise LLMResponseError(str(e), kwargs.get("model_name", self.model_name or "unknown"))
 
     def get_openai_params(self,
                         messages: List[Dict[str, str]],

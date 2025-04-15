@@ -10,7 +10,7 @@ from typing import (
     AsyncGenerator,
 )
 
-from aworld.models.model_response import ModelResponse
+from aworld.models.model_response import ModelResponse, LLMResponseError
 
 
 class LLMProviderBase(abc.ABC):
@@ -77,6 +77,9 @@ class LLMProviderBase(abc.ABC):
 
         Returns:
             ModelResponse: Unified format response object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
 
     def postprocess_stream_response(self, chunk: Any) -> ModelResponse:
@@ -87,6 +90,9 @@ class LLMProviderBase(abc.ABC):
             
         Returns:
             ModelResponse: Unified format response object for the chunk.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
         """
         return None
 
@@ -107,6 +113,10 @@ class LLMProviderBase(abc.ABC):
 
         Returns:
             ModelResponse: Unified model response object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
+            RuntimeError: When async provider is not initialized.
         """
         if not self.async_provider:
             raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
@@ -131,6 +141,10 @@ class LLMProviderBase(abc.ABC):
 
         Returns:
             ModelResponse: Unified model response object.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
+            RuntimeError: When sync provider is not initialized.
         """
 
     def stream_completion(self,
@@ -150,6 +164,10 @@ class LLMProviderBase(abc.ABC):
 
         Returns:
             Generator yielding ModelResponse chunks.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
+            RuntimeError: When sync provider is not initialized.
         """
         return None
 
@@ -170,5 +188,9 @@ class LLMProviderBase(abc.ABC):
 
         Returns:
             AsyncGenerator yielding ModelResponse chunks.
+            
+        Raises:
+            LLMResponseError: When LLM response error occurs.
+            RuntimeError: When async provider is not initialized.
         """
         return None
