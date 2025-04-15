@@ -357,7 +357,18 @@ def call_llm_model(
             **kwargs
         )
 
+def log_llm_call(func):
+    import time
+    def wrapper(*args, **kwargs):
+        print(f"Calling LLM model with args: {args}, kwargs: {kwargs}")
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"LLM call completed in {end_time - start_time:.2f} seconds")
+        return result
+    return wrapper
 
+@log_llm_call
 async def acall_llm_model(
         llm_model: LLMModel,
         messages: List[Dict[str, str]],
