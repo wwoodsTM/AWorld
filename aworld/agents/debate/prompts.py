@@ -232,6 +232,6 @@ Please deeply understand Your Role and Current Situation. Strictly follow the Ou
 
 # ## Supportive Materials History
 # Jake (round1): url_1: 123, title_1: Jordan's data; 
-# Lucy (round1): url_1: 456, title_1: The diff between basketball's eras; 
+# Lucy (round1): url_1: 456, title_1: The diff between basketball's eras; url_2: 9999, title_2: which second-order wave forces on hydrodynamcis. 
 # Jake (round2): url_1: 123678aa, title_1: Who's got most champions? 
 # Lucy (round2): url_1: xxxbbbw45, title_1: The importance of teammates.
