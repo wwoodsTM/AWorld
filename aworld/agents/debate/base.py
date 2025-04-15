@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
 
 from aworld.output import Output
+import asyncio
+
+from aworld.output.base import OutputPart
 
 
 class DebateSpeech(Output, BaseModel):
@@ -9,7 +12,25 @@ class DebateSpeech(Output, BaseModel):
     stance: str = Field(default="", description="stance of the speech")
     content: str = Field(default="", description="content of the speech")
     round: int = Field(default=0, description="round of the speech")
+    finished: bool = Field(default=False, description="round of the speech")
     metadata: dict = Field(default_factory=dict, description="metadata of the speech")
+
+    async def wait_until_finished(self):
+        """
+        Wait until the speech is finished.
+        """
+        while not self.finished:
+            await asyncio.sleep(1)
+
+    async def convert_to_parts(self, message_output, after_call):
+        async def __convert_to_parts__():
+            async for content in message_output.response_generator:
+                if content:
+                    yield OutputPart(content=content)
+            if message_output.finished:
+                await after_call(message_output.response)
+
+        self.parts = __convert_to_parts__()
 
 
 

@@ -35,7 +35,6 @@ logs/
 logging/
 
 # Environment and virtual environments
-.env
 .venv
 env/
 venv/
@@ -101,6 +100,7 @@ data/processed/
 .*.swo
 *.webm
 *.mp4
+*.mp3
 *.avi
 *.mov
 *.flv

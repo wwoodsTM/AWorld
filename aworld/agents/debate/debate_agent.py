@@ -11,10 +11,11 @@ from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment
     user_debate_system_prompt, user_debate_prompt
 from aworld.agents.debate.search.search_engine import SearchEngine
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
+from aworld.agents.debate.stream_output_agent import StreamOutputAgent
 from aworld.config import AgentConfig
 from aworld.core.agent.base import Agent
 from aworld.core.common import Observation, ActionModel
-from aworld.output import SearchOutput, SearchItem
+from aworld.output import SearchOutput, SearchItem, MessageOutput
 from aworld.output.artifact import ArtifactType
 
 
@@ -25,7 +26,7 @@ def truncate_content(raw_content, char_limit):
         raw_content = raw_content[:char_limit] + "... [truncated]"
     return raw_content
 
-class DebateAgent(Agent, ABC):
+class DebateAgent(StreamOutputAgent, ABC):
 
     stance: Literal["affirmative", "negative"]
 
@@ -94,11 +95,28 @@ class DebateAgent(Agent, ABC):
 
         logging.info(f"user_response is {user_response}")
 
+        ## step3: gen speech
+        speech = DebateSpeech.from_dict({
+            "round": round,
+            "type": "speech",
+            "stance": self.stance,
+            "name": self.name(),
+        })
+
+        async def after_speech_call(message_output_response):
+            logging.info(f"{self.stance}#{self.name()}: after_speech_call")
+            speech.metadata = {}
+            speech.content = message_output_response
+            speech.finished = True
+
+        await speech.convert_to_parts(user_response, after_speech_call)
+
         action = ActionModel(
-            policy_info=DebateSpeech(name=self.name(), type="speech", stance=self.stance, content=user_response, round=round)
+            policy_info=speech
         )
 
         return [action]
+
 
     async def gen_keywords(self, topic, opinion, oppose_opinion, last_oppose_speech_content, history):
 
@@ -111,45 +129,19 @@ class DebateAgent(Agent, ABC):
                                                      limit=2
                                                      )
 
-        messages = [
-            SystemMessage(content=user_assignment_system_prompt),
-            HumanMessage(content=human_prompt)
-        ]
+        messages = [{'role': 'system', 'content': user_assignment_system_prompt},
+                    {'role': 'user', 'content': human_prompt}]
 
-        result = await self.async_call_llm(messages)
+        output = await self.async_call_llm(messages)
 
-        return result.split(",")
+        response = await output.get_finished_response()
 
-    async def async_call_llm(self, messages):
-        def _resolve_think(content):
-            import re
-            start_tag = 'think'
-            end_tag = '/think'
-            # 使用正则表达式提取标签内的内容
-            llm_think = ""
-            match = re.search(
-                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
-                content,
-                flags=re.DOTALL,
-            )
-            if match:
-                llm_think = match.group(0).replace("<think>", "").replace("</think>", "")
-            llm_result = re.sub(
-                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
-                "",
-                content,
-                flags=re.DOTALL,
-            )
-            return llm_think, llm_result
-
-        result = await self.llm.ainvoke(input=messages)
-        llm_think, llm_result = _resolve_think(result.content)
-        return llm_result
+        return response.split(",")
 
     async def search_webpages(self, keywords, max_results):
         return await self.search_engine.async_batch_search(queries=keywords, max_results=max_results)
 
-    async def gen_statement(self, topic, opinion, oppose_opinion, opponent_claim, history, search_results) -> str:
+    async def gen_statement(self, topic, opinion, oppose_opinion, opponent_claim, history, search_results) -> MessageOutput:
         search_results_content = ""
         for search_result in search_results:
             search_results_content += f"SearchQuery: {search_result['query']}"
@@ -183,6 +175,7 @@ class DebateAgent(Agent, ABC):
                         negative_chat_history = negative_chat_history + "Your Opponent: " + speech.content + "\n"
 
         few_shots = ""
+        chat_history = ""
 
         if self.stance == "affirmative":
             chat_history = affirmative_chat_history
@@ -201,13 +194,10 @@ class DebateAgent(Agent, ABC):
                                                 few_shots = few_shots 
                                                 )
 
-        messages = [
-            SystemMessage(content=user_debate_system_prompt),
-            HumanMessage(content=human_prompt)
-        ]
+        messages = [{'role': 'system', 'content': user_assignment_system_prompt},
+                    {'role': 'user', 'content': human_prompt}]
         
-        result = await self.async_call_llm(messages)
-        return result
+        return await self.async_call_llm(messages)
 
     def get_latest_speech(self, history: list[DebateSpeech]):
         """

@@ -1,16 +1,14 @@
-import json
 import logging
 from abc import ABC
 from datetime import datetime
-from typing import Dict, Any, Union, List, Literal
+from typing import Dict, Any, Union, List
 
-from langchain_core.messages import SystemMessage, HumanMessage
-
+from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.prompts import user_assignment_system_prompt
+from aworld.agents.debate.stream_output_agent import StreamOutputAgent
 from aworld.config import AgentConfig
-from aworld.core.agent.base import Agent
 from aworld.core.common import Observation, ActionModel
-from aworld.output import CommonOutput
+from aworld.output import MessageOutput
 
 
 def truncate_content(raw_content, char_limit):
@@ -21,7 +19,7 @@ def truncate_content(raw_content, char_limit):
     return raw_content
 
 
-class ModeratorAgent(Agent, ABC):
+class ModeratorAgent(StreamOutputAgent, ABC):
     stance: str = "moderator"
 
     def __init__(self, conf: AgentConfig, **kwargs
@@ -35,20 +33,38 @@ class ModeratorAgent(Agent, ABC):
 
 
         ## step2: gen opinions
-        opinions = await self.gen_opinions(topic)
-        logging.info(f"gen opinions = {opinions}")
+        output = await self.gen_opinions(topic)
 
-        if isinstance(opinions, str):
-            opinions = json.loads(opinions)
+        ## step3: gen speech
+        moderator_speech = DebateSpeech.from_dict({
+            "content": "",
+            "round": 0,
+            "type": "speech",
+            "stance": "moderator",
+            "name": self.name(),
+        })
 
+        async def after_speech_call(message_output_response):
+            logging.info("moderator: after_speech_call")
+            opinions = message_output_response
+            affirmative_opinion = opinions.get("positive_opinion")
+            negative_opinion = opinions.get("negative_opinion")
+            moderator_speech.metadata = {
+                "topic": topic,
+                "affirmative_opinion": affirmative_opinion,
+                "negative_opinion": negative_opinion,
+            }
+            moderator_speech.finished = True
+
+        await moderator_speech.convert_to_parts(output, after_speech_call)
 
         action = ActionModel(
-            policy_info=CommonOutput(data=opinions)
+            policy_info=moderator_speech
         )
 
         return [action]
 
-    async def gen_opinions(self, topic):
+    async def gen_opinions(self, topic) -> MessageOutput:
 
         current_time = datetime.now().strftime("%Y-%m-%d-%H")
         human_prompt = self.agent_prompt.format(topic=topic,
@@ -56,40 +72,10 @@ class ModeratorAgent(Agent, ABC):
                                                      )
 
         messages = [
-            SystemMessage(content=user_assignment_system_prompt),
-            HumanMessage(content=human_prompt)
+            {"role": "system", "content": user_assignment_system_prompt},
+            {"role": "user", "content": human_prompt}
         ]
 
-        result = await self.async_call_llm(messages, json_parse= True)
+        output = await self.async_call_llm(messages, json_parse=True)
 
-        return result
-
-    async def async_call_llm(self, messages, json_parse = False):
-        def _resolve_think(content):
-            import re
-            start_tag = 'think'
-            end_tag = '/think'
-            # 使用正则表达式提取标签内的内容
-            llm_think = ""
-            match = re.search(
-                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
-                content,
-                flags=re.DOTALL,
-            )
-            if match:
-                llm_think = match.group(0).replace("<think>", "").replace("</think>", "")
-            llm_result = re.sub(
-                rf"<{re.escape(start_tag)}(.*?)>(.|\n)*?<{re.escape(end_tag)}>",
-                "",
-                content,
-                flags=re.DOTALL,
-            )
-            if llm_result.__contains__("```json") and json_parse:
-                llm_result = llm_result.replace("```json", "").replace("```", "")
-                return llm_think, json.loads(llm_result)
-
-            return llm_think, llm_result
-
-        result = await self.llm.ainvoke(input=messages)
-        llm_think, llm_result = _resolve_think(result.content)
-        return llm_result
+        return output

@@ -18,8 +18,8 @@ if __name__ == '__main__':
     load_dotenv()
 
     base_config = {
-        "llm_provider": "chatopenai",
-        "llm_model_name": "DeepSeek-R1",
+        "llm_provider": "openai",
+        "llm_model_name": "QwQ-32B",
         "llm_base_url": os.environ['LLM_BASE_URL'],
         "llm_api_key": os.environ['LLM_API_KEY'],
     }
@@ -43,6 +43,10 @@ if __name__ == '__main__':
     async def start_debate(debate_arena, topic, rounds):
         speeches = debate_arena.async_run(topic=topic, rounds=rounds)
         async for speech in speeches:
+            if speech.parts:
+                async for part in speech.parts:
+                    print(part.content, flush=True, end="")
+
             print(f"{speech.name}: {speech.content}")
 
     asyncio.run(start_debate(debate_arena, topic="Who's GOAT? Jordan or Lebron", rounds=3))
