@@ -72,7 +72,7 @@ At this moment, you have obtained the following related materials, which may be 
 Reference materials: {search_results_content}
 
 
-Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way. Now, please directly output your response to your opponent.
+Please use your character's identity traits, skills, restrictions, and dialogue style examples, relying on your reference materials, to counter the opposing debater in a incisive and concise way. Never output "You:". Now, please directly output your response to your opponent without "You:".
 """
 
 
