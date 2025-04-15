@@ -164,7 +164,7 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -212,7 +212,7 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -255,7 +255,7 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 
@@ -301,7 +301,7 @@ class OpenAIProvider(LLMProviderBase):
             LLMResponseError: When LLM response error occurs.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         processed_messages = self.preprocess_messages(messages)
 

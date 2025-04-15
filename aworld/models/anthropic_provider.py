@@ -141,7 +141,7 @@ class AnthropicProvider(LLMProviderBase):
             ModelResponse object.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         try:
             processed_data = self.preprocess_messages(messages)
@@ -175,7 +175,7 @@ class AnthropicProvider(LLMProviderBase):
             Generator yielding ModelResponse chunks.
         """
         if not self.provider:
-            raise RuntimeError("Sync provider not initialized. Make sure 'sync_able' parameter is set to True in initialization.")
+            raise RuntimeError("Sync provider not initialized. Make sure 'sync_enabled' parameter is set to True in initialization.")
 
         try:
             processed_data = self.preprocess_messages(messages)
@@ -215,7 +215,7 @@ class AnthropicProvider(LLMProviderBase):
             AsyncGenerator yielding ModelResponse chunks.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         try:
             processed_data = self.preprocess_messages(messages)
@@ -255,7 +255,7 @@ class AnthropicProvider(LLMProviderBase):
             ModelResponse object.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         try:
             processed_data = self.preprocess_messages(messages)

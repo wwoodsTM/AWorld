@@ -119,7 +119,7 @@ class LLMProviderBase(abc.ABC):
             RuntimeError: When async provider is not initialized.
         """
         if not self.async_provider:
-            raise RuntimeError("Async provider not initialized. Make sure 'async_able' parameter is set to True in initialization.")
+            raise RuntimeError("Async provider not initialized. Make sure 'async_enabled' parameter is set to True in initialization.")
 
         return None
 
