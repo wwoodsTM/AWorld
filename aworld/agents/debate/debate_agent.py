@@ -7,8 +7,9 @@ import uuid
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from aworld.agents.debate.base import DebateSpeech
-from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment_system_prompt, affirmative_few_shots, negative_few_shots, \
-    user_debate_system_prompt, user_debate_prompt
+from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment_system_prompt, affirmative_few_shots, \
+    negative_few_shots, \
+    user_debate_system_prompt, user_debate_prompt, summary_system_prompt
 from aworld.agents.debate.search.search_engine import SearchEngine
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 from aworld.agents.debate.stream_output_agent import StreamOutputAgent
@@ -72,7 +73,7 @@ class DebateAgent(StreamOutputAgent, ABC):
             logging.info(f"keyword#{search_result['query']}-> result size is {len(search_result['results'])}")
             search_item = {
                 "query": search_result.get("query", ""),
-                "results": [SearchItem(title=result["title"],url=result["url"], metadata={}) for result in search_result["results"]]
+                "results": [SearchItem(title=result["title"],url=result["url"], content=result['content'], raw_content=result['raw_content'], metadata={}) for result in search_result["results"]]
             }
             search_output = SearchOutput.from_dict(search_item)
             await self.workspace.create_artifact(

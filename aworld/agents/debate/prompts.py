@@ -151,7 +151,7 @@ You are a reliable assistant to make summary. Your responsibility is to read peo
    2.1 For the details of the conversation between these two sides, please refer to Conversation History below.
 3. Each time one side is giving the conversation, he/she would like to cite the supportive materials searched on the website, in form of the urls, title, descritpion. 
    3.1 For the details of the supportive materials between these two sides for each conversation round, please refer to Supportive Materials History below.
-4. Now you are supposed to make a concise, brief summary for each round converation between the two sides, in terms of the viewpoint, citation.
+4. Now you are supposed to make a concise, brief summary for each round conversation between the two sides, in terms of the viewpoint, citation.
    4.1 'viewpoint' is the main point for each side in each conversation round;
    4.2 'citation' is the formatted structure in terms of the urls, title of the supportive materials that is indeed cited in each conversation round.
 

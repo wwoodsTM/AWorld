@@ -11,6 +11,8 @@ from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
+from aworld.memory.base import MemoryItem
+from aworld.memory.main import Memory
 from aworld.models.llm import get_llm_model, call_llm_model
 from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
@@ -157,7 +159,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
-        self.memory = []
+        self.memory = Memory.from_config({"memory_store": kwargs.pop("memory_store") if kwargs.get("memory_store") else "inmemory"})
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
@@ -242,13 +244,13 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             content += output_prompt
 
         cur_msg = {'role': 'user', 'content': content}
-        # query from memory, TODO: memory.query()
-        histories = self.memory[-max_step:]
+        # query from memory,
+        histories = self.memory.get_last_n(max_step)
         if histories:
             for history in histories:
                 messages.append(history.message)
                 if history.tool_calls:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': history.tool_calls})
+                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': history.content})
                 else:
                     messages.append({'role': 'assistant', 'content': history.content})
 
@@ -443,9 +445,14 @@ class AgentExecutor(object):
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
+                        agent.memory.add(MemoryItem(
+                            content=llm_response.content,
+                            metadata= {
+                                "agent_name": agent.name(),
+                                "tool_calls": llm_response.tool_calls,
+                                "message": messages
+                            }
+                        ))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
@@ -503,9 +510,12 @@ class AgentExecutor(object):
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
+                        agent.memory.add(MemoryItem(content=llm_response.content,
+                                                    metadata={
+                                                        "agent": agent.name(),
+                                                        "message": messages[-1],
+                                                        "tool_calls": llm_response.tool_calls
+                                                    }))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
