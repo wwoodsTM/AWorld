@@ -29,7 +29,7 @@ def agent_desc_transform(agent_dict: Dict[str, Any],
                 continue
 
             for action in agent_info["abilities"]:
-                # 构建参数属性
+                # Build parameter properties
                 properties = {}
                 required = []
                 for param_name, param_info in action["params"].items():
@@ -81,7 +81,7 @@ def tool_desc_transform(tool_dict: Dict[str, Any],
                 continue
 
             for action in tool_info["actions"]:
-                # 构建参数属性
+                # Build parameter properties
                 properties = {}
                 required = []
                 for param_name, param_info in action["params"].items():

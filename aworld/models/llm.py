@@ -10,8 +10,9 @@ from typing import (
     AsyncGenerator,
 )
 from langchain_openai import ChatOpenAI
+
 from aworld.config import ConfigDict
-from aworld.config.conf import AgentConfig
+from aworld.config.conf import AgentConfig, ClientType
 from aworld.env_secrets import secrets
 from aworld.logs.util import logger
 
@@ -25,6 +26,8 @@ MODEL_NAMES = {
     "anthropic": ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229"],
     "openai": ["gpt-4o", "gpt-4", "gpt-3.5-turbo", "o3-mini", "gpt-4o-mini"],
     "azure_openai": ["gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-35-turbo"],
+    "deepseek": ["deepseek-chat", "deepseek-reasoner"],
+    "qwen": ["qwq-plus", "qwen-plus", "qwen-max"]
 }
 
 # Endpoint patterns for identifying providers
@@ -67,7 +70,6 @@ class LLMModel:
             self.provider = custom_provider
             return
 
-        conf = conf.llm_config if conf.llm_config.llm_api_key or conf.llm_config.llm_base_url else conf
         # Get basic parameters
         base_url = kwargs.get("base_url") or (conf.llm_base_url if conf else None)
         model_name = kwargs.get("model_name") or (conf.llm_model_name if conf else None)
@@ -83,6 +85,11 @@ class LLMModel:
         # Fill basic parameters
         kwargs['base_url'] = base_url
         kwargs['model_name'] = model_name
+
+        # Fill parameters for llm provider
+        kwargs['sync_enabled'] = conf.llm_sync_enabled if conf else True
+        kwargs['async_enabled'] = conf.llm_async_enabled if conf else True
+        kwargs['client_type'] = conf.llm_client_type if conf else ClientType.SDK
 
         # Create model provider based on provider_name
         self._create_provider(**kwargs)
@@ -123,7 +130,7 @@ class LLMModel:
                     logger.info(f"Identified provider: {identified_provider} based on model_name: {model_name}")
                     break
 
-        if identified_provider and provider and identified_provider != provider:
+        if provider and provider in PROVIDER_CLASSES and identified_provider and identified_provider != provider:
             logger.warning(f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider")
             identified_provider = provider
 
@@ -143,22 +150,16 @@ class LLMModel:
         """
         self.provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
 
-    def update_provider(self, base_url: str = None, api_key: str = None, **kwargs):
-        """Update current provider instance.
+    @classmethod
+    def supported_providers(cls) -> list[str]:
+        return list(PROVIDER_CLASSES.keys())
 
-        Args:
-            base_url: Model endpoint.
-            api_key: API key.
-            **kwargs: Other parameters.
+    def supported_models(self) -> list[str]:
+        """Get supported models for the current provider.
+        Returns:
+            list: Supported models.
         """
-        if base_url:
-            kwargs["base_url"] = base_url
-        if api_key:
-            kwargs["api_key"] = api_key
-
-        if kwargs:
-            kwargs["model_name"] = kwargs.get("model_name", self.provider.model_name)
-            self.provider = PROVIDER_CLASSES[self.provider_name](**kwargs)
+        return self.provider.supported_models() if self.provider else []
 
     async def acompletion(self,
                           messages: List[Dict[str, str]],
@@ -308,7 +309,7 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: 
         api_key = kwargs.get("api_key") or (conf.llm_api_key if conf else None)
 
         return ChatOpenAI(
-            model=kwargs.get("model_name", "gpt-4o"),
+            model=model_name,
             temperature=kwargs.get("temperature", 0.0),
             base_url=base_url,
             api_key=api_key,
