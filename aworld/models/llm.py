@@ -309,7 +309,7 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: 
         api_key = kwargs.get("api_key") or (conf.llm_api_key if conf else None)
 
         return ChatOpenAI(
-            model=kwargs.get("model_name", "gpt-4o"),
+            model=model_name,
             temperature=kwargs.get("temperature", 0.0),
             base_url=base_url,
             api_key=api_key,
