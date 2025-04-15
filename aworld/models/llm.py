@@ -130,7 +130,7 @@ class LLMModel:
                     logger.info(f"Identified provider: {identified_provider} based on model_name: {model_name}")
                     break
 
-        if identified_provider and provider and identified_provider != provider:
+        if provider and provider in PROVIDER_CLASSES and identified_provider and identified_provider != provider:
             logger.warning(f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider")
             identified_provider = provider
 
