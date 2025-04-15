@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Union
 from aworld.config.common import Agents
 from aworld.core.agent.base import Agent, AgentFactory
 from aworld.models.utils import tool_desc_transform
+from aworld.models.llm import call_llm_model
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.logs.util import logger
@@ -45,11 +46,11 @@ class ExecuteAgent(Agent):
         ]
         for traj in self.trajectory:
             input_content.append(traj[0].content)
-            if traj[-1].choices[0].message.tool_calls is not None:
+            if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].choices[0].message.tool_calls})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
             else:
-                input_content.append({'role': 'assistant', 'content': traj[-1].choices[0].message.content})
+                input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
         if content is None:
             content = observation.action_result[0].error
@@ -57,8 +58,8 @@ class ExecuteAgent(Agent):
             message = {'role': 'user', 'content': content}
         else:
             tool_id = None
-            if self.trajectory[-1][-1].choices[0].message.tool_calls:
-                tool_id = self.trajectory[-1][-1].choices[0].message.tool_calls[0].id
+            if self.trajectory[-1][-1].tool_calls:
+                tool_id = self.trajectory[-1][-1].tool_calls[0].id
             if tool_id:
                 message = {'role': 'tool', 'content': content, 'tool_call_id': tool_id}
             else:
@@ -67,21 +68,16 @@ class ExecuteAgent(Agent):
 
         tool_calls = []
         try:
-            llm_result = self.llm.chat.completions.create(
-                messages=input_content,
-                model=self.model_name,
-                **{'temperature': 0, 'tools': self.tools},
-            )
-            logger.info(f"Execute response: {llm_result.choices[0].message}")
-            content = llm_result.choices[0].message.content
-            tool_calls = llm_result.choices[0].message.tool_calls
+            llm_result = call_llm_model(self.llm, input_content, model=self.model_name,
+                                        tools=self.tools, temperature=0)
+            logger.info(f"Execute response: {llm_result.message}")
+            content = llm_result.content
+            tool_calls = llm_result.tool_calls
         except Exception as e:
             logger.warn(traceback.format_exc())
             raise e
         finally:
             if llm_result:
-                if llm_result.choices is None:
-                    logger.info(f"llm result is None, info: {llm_result.model_extra}")
                 ob = copy.deepcopy(observation)
                 ob.content = message
                 self.trajectory.append((ob, info, llm_result))
@@ -145,11 +141,11 @@ class PlanAgent(Agent):
         # build input of llm based history
         for traj in self.trajectory:
             input_content.append({'role': 'user', 'content': traj[0].content})
-            if traj[-1].choices[0].message.tool_calls is not None:
+            if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].choices[0].message.tool_calls})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
             else:
-                input_content.append({'role': 'assistant', 'content': traj[-1].choices[0].message.content})
+                input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
         message = observation.content
         if self.first_prompt:
@@ -158,24 +154,19 @@ class PlanAgent(Agent):
 
         input_content.append({'role': 'user', 'content': message})
         try:
-            llm_result = self.llm.chat.completions.create(
-                messages=input_content,
-                model=self.model_name,
-            )
-            logger.info(f"Plan response: {llm_result.choices[0].message}")
+            llm_result = call_llm_model(self.llm, messages=input_content, model=self.model_name)
+            logger.info(f"Plan response: {llm_result.message}")
         except Exception as e:
             logger.warn(traceback.format_exc())
             raise e
         finally:
             if llm_result:
-                if llm_result.choices is None:
-                    logger.info(f"llm result is None, info: {llm_result.model_extra}")
                 ob = copy.deepcopy(observation)
                 ob.content = message
                 self.trajectory.append((ob, info, llm_result))
             else:
                 logger.warn("no result to record!")
-        content = llm_result.choices[0].message.content
+        content = llm_result.content
         if "TASK_DONE" not in content:
             content += self.done_prompt
         else:
