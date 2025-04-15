@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from types import Optional, Any, Iterator, Type
+from types import Optional, Any, Iterator, Union, Sequence
 from enum import Enum
-
 
 class TraceProvider(ABC):
 
@@ -33,8 +32,24 @@ class TraceProvider(ABC):
                 instrumenting library.  Usually this should be the same as
                 ``importlib.metadata.version(instrumenting_library_name)``
         """
+    
+    @abstractmethod
+    def shutdown(self) -> None:
+        """Shuts down the provider and all its resources.
+        This method should be called when the application is shutting down.
+        """
+    
+    @abstractmethod
+    def force_flush(self, timeout: Optional[float] = None) -> bool:
+        """Forces all the data to be sent to the backend.
+        This method should be called when the application is shutting down.
+        Args:
+            timeout: The maximum time to wait for the data to be sent.
+        Returns:
+            True if the data was sent successfully, False otherwise.
+        """
 
-class SpanKind(Enum):
+class SpanType(Enum):
     """Specifies additional details on how this span relates to its parent span.
     """
 
@@ -59,7 +74,7 @@ class SpanKind(Enum):
     #: path latency relationship between producer and consumer spans.
     CONSUMER = 4
 
-class Trace(ABC):
+class Tracer(ABC):
     """Handles span creation and in-process context propagation.
     """
 
@@ -67,8 +82,8 @@ class Trace(ABC):
     def start_span(
         self,
         name: str,
-        kind: SpanKind = SpanKind.INTERNAL,
-        attributes: dict[str, Any] = None,
+        span_type: SpanType = SpanType.INTERNAL,
+        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -93,8 +108,8 @@ class Trace(ABC):
     def start_as_current_span(
         self,
         name: str,
-        kind: SpanKind = SpanKind.INTERNAL,
-        attributes: dict[str, Any] = None,
+        span_type: SpanType = SpanType.INTERNAL,
+        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -162,25 +177,68 @@ class Span(ABC):
             attributes: A dictionary of attributes to set.
         """
 
+    @abstractmethod
     def is_recording(self) -> bool:
         """Returns whether this span will be recorded.
         Returns true if this Span is active and recording information like attributes using set_attribute.
         """
 
     @abstractmethod
-    def __enter__(self) -> "Span":
-        """Invoked when `Span` is used as a context manager.
-
-        Returns the `Span` itself.
-        """
-        return self
-
-    def __exit__(
+    def record_exception(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        traceback: Optional[Any],
+        exception: BaseException,
+        attributes: dict[str, Any] = None,
+        timestamp: Optional[int] = None,
+        escaped: bool = False,
     ) -> None:
-        """Ends context manager and calls `end` on the `Span`."""
+        """Records an exception in the span.
+        Args:
+            exception: The exception to record.
+            attributes: A dictionary of attributes to set on the exception event.
+            timestamp: The timestamp of the exception.
+            escaped: Whether the exception was escaped.
+        """
 
-        self.end()
+class NoOpSpan(Span):
+    """No-op implementation of `Span`."""
+    def end(self, end_time: Optional[int] = None) -> None:
+        pass
+    def set_attribute(self, key: str, value: Any) -> None:
+        pass
+    def set_attributes(self, attributes: dict[str, Any]) -> None:
+        pass
+    def is_recording(self) -> bool:
+        return False
+    def record_exception(
+        self,
+        exception: BaseException,
+        attributes: dict[str, Any] = None,
+        timestamp: Optional[int] = None,
+        escaped: bool = False,
+    ) -> None:
+        pass
+
+class NoOpTracer(Tracer):
+    """No-op implementation of `Tracer`."""
+    def start_span(
+        self,
+        name: str,
+        span_type: SpanType = SpanType.INTERNAL,
+        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        start_time: Optional[int] = None,
+        record_exception: bool = True,
+        set_status_on_exception: bool = True,
+    ) -> Span:
+        return NoOpSpan()
+
+    def start_as_current_span(
+        self,
+        name: str,
+        span_type: SpanType = SpanType.INTERNAL,
+        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        start_time: Optional[int] = None,
+        record_exception: bool = True,
+        set_status_on_exception: bool = True,
+        end_on_exit: bool = True,
+    ) -> Iterator[Span]:
+        yield NoOpSpan()
