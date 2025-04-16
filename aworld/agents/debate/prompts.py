@@ -219,7 +219,7 @@ Jerry (round 1): id1: url: cccc, title: Steve's story. description: dddd.
 Tom (round 2): id1: url: eeee, title: The invention of light bulb. description: ffff.
 Jerry (round 2): id1: url: gggg, title: Some interesting things during the war. description: hhhh.
 
-Your Output:
+Your Summary:
 Tom's summary (round 1): Hard working improves people's skills and thus leads to personal sucess. 
 Tom's citation (round 1): url_1: aaaa, title_1: Why is Kim?
 
