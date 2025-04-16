@@ -7,19 +7,19 @@ import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
+from pydantic import BaseModel
+
+from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.agent.agent_desc import get_agent_desc
+from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool_desc import get_tool_desc
+from aworld.core.factory import Factory
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.models.llm import get_llm_model, call_llm_model
 from aworld.models.model_response import ModelResponse
-from pydantic import BaseModel
-
-from aworld.config.conf import AgentConfig, load_config, ConfigDict
-from aworld.core.common import Observation, ActionModel
-from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
@@ -175,7 +175,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)
-        self.memory = []
+        self.memory = Memory.from_config({"memory_store": options.pop("memory_store") if options.get("memory_store") else "inmemory"})
 
     @property
     def llm(self):
@@ -259,14 +259,14 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         if histories:
             # default use the first tool call
             for history in histories:
-                messages.append(history.message)
-                if history.tool_calls:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.tool_calls[0]]})
+                messages.append(history.metadata['message'])
+                if "tool_calls" in history.metadata:
+                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
                     messages.append({'role': 'assistant', 'content': history.content})
 
-            if histories[-1].tool_calls:
-                tool_id = histories[-1].tool_calls[0].id
+            if "tool_calls" in histories[-1].metadata:
+                tool_id = histories[-1].metadata["tool_calls"][0].id
                 if tool_id:
                     cur_msg['role'] = 'tool'
                     cur_msg['tool_call_id'] = tool_id
@@ -507,7 +507,7 @@ class AgentExecutor(object):
                             metadata= {
                                 "agent_name": agent.name(),
                                 "tool_calls": llm_response.tool_calls,
-                                "message": messages
+                                "message": messages[-1]
                             }
                         ))
                 else:
