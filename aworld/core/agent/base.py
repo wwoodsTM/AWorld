@@ -259,11 +259,10 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         if histories:
             # default use the first tool call
             for history in histories:
-                messages.append(history.metadata['message'])
                 if "tool_calls" in history.metadata:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.metadata["tool_calls"][0]]})
+                    messages.append({'role':history.metadata['role'], 'content': '', 'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
-                    messages.append({'role': 'assistant', 'content': history.content})
+                    messages.append({'role': history.metadata['role'], 'content': history.content})
 
             if "tool_calls" in histories[-1].metadata:
                 tool_id = histories[-1].metadata["tool_calls"][0].id
@@ -483,6 +482,13 @@ class AgentExecutor(object):
                                                 output_prompt=agent.output_prompt)
 
             self._log_messages(messages)
+            agent.memory.add(MemoryItem(
+                content=messages[-1]['content'],
+                metadata={
+                    "role": messages[-1]['role'],
+                    "agent_name": agent.name(),
+                }
+            ))
 
             llm_response = None
             try:
@@ -505,9 +511,9 @@ class AgentExecutor(object):
                         agent.memory.add(MemoryItem(
                             content=llm_response.content,
                             metadata= {
+                                "role": "assistant",
                                 "agent_name": agent.name(),
                                 "tool_calls": llm_response.tool_calls,
-                                "message": messages[-1]
                             }
                         ))
                 else:
@@ -548,6 +554,14 @@ class AgentExecutor(object):
                                                 sys_prompt=agent.system_prompt,
                                                 agent_prompt=agent.agent_prompt,
                                                 output_prompt=agent.output_prompt)
+
+            agent.memory.add(MemoryItem(
+                content=messages[-1]['content'],
+                metadata={
+                    "role": messages[-1]['role'],
+                    "agent_name": agent.name(),
+                }
+            ))
             llm_response = None
             try:
                 # TODO: models interface update
