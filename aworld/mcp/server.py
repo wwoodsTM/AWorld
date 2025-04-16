@@ -73,7 +73,7 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
 
     @abc.abstractmethod
     def create_streams(
-        self,
+            self,
     ) -> AbstractAsyncContextManager[
         tuple[
             MemoryObjectReceiveStream[JSONRPCMessage | Exception],
@@ -97,7 +97,16 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
     async def connect(self):
         """Connect to the server."""
         try:
+            # Ensure closing previous exit_stack to avoid nested async contexts
+            if hasattr(self, 'exit_stack') and self.exit_stack:
+                try:
+                    await self.exit_stack.aclose()
+                except Exception as e:
+                    logging.error(f"Error closing previous exit stack: {e}")
+
             self.exit_stack = AsyncExitStack()
+
+            # Use a single task context to create the connection
             transport = await self.exit_stack.enter_async_context(self.create_streams())
             read, write = transport
             session = await self.exit_stack.enter_async_context(ClientSession(read, write))
@@ -105,6 +114,7 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
             self.session = session
         except Exception as e:
             logging.error(f"Error initializing MCP server: {e}")
+            # Ensure resources are cleaned up if connection fails
             await self.cleanup()
             raise
 
@@ -135,11 +145,26 @@ class _MCPServerWithClientSession(MCPServer, abc.ABC):
         """Cleanup the server."""
         async with self._cleanup_lock:
             try:
-                await asyncio.sleep(0.1)
-                await self.exit_stack.aclose()
-                self.session = None
+                # Ensure cleanup operations occur in the same task context
+                session = self.session
+                self.session = None  # Remove reference first
+
+                # Wait briefly to ensure any pending operations complete
+                try:
+                    await asyncio.sleep(0.1)
+                except asyncio.CancelledError:
+                    # Ignore cancellation exceptions, continue cleaning resources
+                    pass
+
+                # Clean up exit_stack, ensuring all resources are properly closed
+                exit_stack = self.exit_stack
+                if exit_stack:
+                    try:
+                        await exit_stack.aclose()
+                    except Exception as e:
+                        logging.error(f"Error closing exit stack during cleanup: {e}")
             except Exception as e:
-                logging.error(f"Error cleaning up server: {e}")
+                logging.error(f"Error during server cleanup: {e}")
 
 
 class MCPServerStdioParams(TypedDict):
@@ -178,10 +203,10 @@ class MCPServerStdio(_MCPServerWithClientSession):
     """
 
     def __init__(
-        self,
-        params: MCPServerStdioParams,
-        cache_tools_list: bool = False,
-        name: str | None = None,
+            self,
+            params: MCPServerStdioParams,
+            cache_tools_list: bool = False,
+            name: str | None = None,
     ):
         """Create a new MCP server based on the stdio transport.
 
@@ -213,7 +238,7 @@ class MCPServerStdio(_MCPServerWithClientSession):
         self._name = name or f"stdio: {self.params.command}"
 
     def create_streams(
-        self,
+            self,
     ) -> AbstractAsyncContextManager[
         tuple[
             MemoryObjectReceiveStream[JSONRPCMessage | Exception],
@@ -252,10 +277,10 @@ class MCPServerSse(_MCPServerWithClientSession):
     """
 
     def __init__(
-        self,
-        params: MCPServerSseParams,
-        cache_tools_list: bool = False,
-        name: str | None = None,
+            self,
+            params: MCPServerSseParams,
+            cache_tools_list: bool = False,
+            name: str | None = None,
     ):
         """Create a new MCP server based on the HTTP with SSE transport.
 
@@ -280,7 +305,7 @@ class MCPServerSse(_MCPServerWithClientSession):
         self._name = name or f"sse: {self.params['url']}"
 
     def create_streams(
-        self,
+            self,
     ) -> AbstractAsyncContextManager[
         tuple[
             MemoryObjectReceiveStream[JSONRPCMessage | Exception],
