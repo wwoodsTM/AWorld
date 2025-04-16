@@ -4,10 +4,8 @@ from typing import Optional, AsyncGenerator
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.debate_agent import DebateAgent
 from aworld.agents.debate.moderator_agent import ModeratorAgent
-from aworld.core.agent.base import Agent
 from aworld.core.common import Observation
 from aworld.memory.base import MemoryItem
-from aworld.memory.main import Memory
 from aworld.output import Output, WorkSpace
 
 
@@ -83,12 +81,41 @@ class DebateArena:
         ## 2. Alternating speeches
         for i in range(1, rounds+1):
             logging.info(f"✈️==================================== round#{i} start =============================================")
+            loading_speech = DebateSpeech.from_dict({
+                "content": f"\n\n**round#{i} start** \n\n",
+                "round": i,
+                "type": "loading",
+                "stance": "stage",
+                "name": "stage",
+                "finished": True
+            })
+            yield loading_speech
+
+            loading_speech = DebateSpeech.from_dict({
+                "content": f"\n\n【affirmative】✅：{self.affirmative_speaker.name()}\n Searching ....\n",
+                "round": i,
+                "type": "loading",
+                "stance": "stage",
+                "name": "stage",
+                "finished": True
+            })
+            yield loading_speech
 
             # affirmative_speech
             speech = await self.affirmative_speech(i, topic, affirmative_opinion, negative_opinion)
             yield speech
             await speech.wait_until_finished()
             self.store_speech(speech)
+
+            loading_speech = DebateSpeech.from_dict({
+                "content": f"\n\n【negative】❌：{self.negative_speaker.name()}\n Searching ....\n",
+                "round": i,
+                "type": "loading",
+                "stance": "stage",
+                "name": "stage",
+                "finished": True
+            })
+            yield loading_speech
 
             # negative_speech
             speech = await self.negative_speech(i, topic, negative_opinion, affirmative_opinion)
