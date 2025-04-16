@@ -4,8 +4,6 @@ from typing import Dict, Any, Union, List, Literal, Optional
 from datetime import datetime
 import uuid
 
-from langchain_core.messages import SystemMessage, HumanMessage
-
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.prompts import user_assignment_prompt, user_assignment_system_prompt, affirmative_few_shots, negative_few_shots, \
     user_debate_system_prompt, user_debate_prompt

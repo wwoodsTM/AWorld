@@ -10,10 +10,8 @@ from typing import (
     AsyncGenerator,
 )
 from langchain_openai import ChatOpenAI
-
 from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig, ClientType
-from aworld.env_secrets import secrets
 from aworld.logs.util import logger
 
 from aworld.models.llm_provider_base import LLMProviderBase
@@ -310,7 +308,7 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: 
 
         return ChatOpenAI(
             model=model_name,
-            temperature=kwargs.get("temperature", 0.0),
+            temperature=kwargs.get("temperature", conf.llm_temperature),
             base_url=base_url,
             api_key=api_key,
         )

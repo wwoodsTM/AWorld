@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Generator, AsyncGenerator
 from openai import OpenAI, AsyncOpenAI
 from langchain_openai import AzureChatOpenAI
 
-from aworld.config.conf import AgentConfig, ClientType
+from aworld.config.conf import ClientType
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse, LLMResponseError

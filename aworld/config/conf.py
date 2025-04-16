@@ -100,6 +100,9 @@ class AgentConfig(BaseModel):
     llm_sync_enabled: bool = True
     llm_async_enabled: bool = True
 
+    # default reset init in first
+    need_reset: bool = True
+    # use vision model
     use_vision: bool = True
     max_steps: int = 10
     max_input_tokens: int = 128000

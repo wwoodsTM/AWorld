@@ -1,5 +1,5 @@
 import json
-import logging
+
 import os
 import traceback
 import asyncio
@@ -10,8 +10,9 @@ from mcp.types import TextContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
 from aworld.core.envs.tool import ToolActionExecutor, Tool
+from aworld.logs.util import logger
 from aworld.mcp.server import MCPServer, MCPServerSse
-from aworld.utils.common import sync_exec
+from aworld.utils.common import sync_exec, find_file
 
 
 class MCPToolExecutor(ToolActionExecutor):
@@ -28,12 +29,12 @@ class MCPToolExecutor(ToolActionExecutor):
         """Load MCP server configurations from config file."""
         try:
             # Priority given to the running path.
-            if os.path.exists(os.path.join(os.getcwd(), "mcp.json")):
-                config_path = os.path.join(os.getcwd(), "mcp.json")
-            else:
+            config_path = find_file(filename='mcp.json')
+            if not os.path.exists(config_path):
                 # Use relative path for config file
                 current_dir = os.path.dirname(os.path.abspath(__file__))
                 config_path = os.path.normpath(os.path.join(current_dir, "../../config/mcp.json"))
+            logger.info(f"mcp conf path: {config_path}")
 
             with open(config_path, "r") as f:
                 config_data = json.load(f)
@@ -69,7 +70,7 @@ class MCPToolExecutor(ToolActionExecutor):
 
             self.initialized = True
         except Exception as e:
-            logging.error(f"Failed to load MCP config: {traceback.format_exc()}")
+            logger.error(f"Failed to load MCP config: {traceback.format_exc()}")
 
     async def _get_or_create_server(self, server_name: str) -> MCPServer:
         """Get an existing MCP server instance or create a new one."""
@@ -116,7 +117,7 @@ class MCPToolExecutor(ToolActionExecutor):
                 await server.connect()
             except asyncio.CancelledError:
                 # When the task is cancelled, ensure resources are cleaned up
-                logging.warning(f"Connection to server '{server_name}' was cancelled")
+                logger.warning(f"Connection to server '{server_name}' was cancelled")
                 await server.cleanup()
                 raise
 
@@ -127,7 +128,7 @@ class MCPToolExecutor(ToolActionExecutor):
             # Pass cancellation exceptions up to be handled by the caller
             raise
         except Exception as e:
-            logging.error(f"Failed to connect to MCP server '{server_name}': {e}")
+            logger.error(f"Failed to connect to MCP server '{server_name}': {e}")
             raise
 
     async def async_execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
@@ -177,25 +178,25 @@ class MCPToolExecutor(ToolActionExecutor):
                             results.append(action_result)
                 except asyncio.CancelledError:
                     # Log cancellation exception, reset server connection to avoid async context confusion
-                    logging.warning(f"Tool call to {action_name} on {server_name} was cancelled")
+                    logger.warning(f"Tool call to {action_name} on {server_name} was cancelled")
                     if server_name in self.mcp_servers and self.mcp_servers[server_name].get("instance"):
                         try:
                             await self.mcp_servers[server_name]["instance"].cleanup()
                             self.mcp_servers[server_name]["instance"] = None
                         except Exception as cleanup_error:
-                            logging.error(f"Error cleaning up server after cancellation: {cleanup_error}")
+                            logger.error(f"Error cleaning up server after cancellation: {cleanup_error}")
                     # Re-raise exception to notify upper level caller
                     raise
 
             except asyncio.CancelledError:
                 # Pass cancellation exception
-                logging.warning("Async execution was cancelled")
+                logger.warning("Async execution was cancelled")
                 raise
 
             except Exception as e:
                 # Handle general errors
                 error_msg = str(e)
-                logging.error(f"Error executing MCP action: {error_msg}")
+                logger.error(f"Error executing MCP action: {error_msg}")
                 action_result = ActionResult(
                     content=f"Error executing tool: {error_msg}",
                     keep=True
@@ -211,7 +212,7 @@ class MCPToolExecutor(ToolActionExecutor):
                 try:
                     await server_info["instance"].cleanup()
                 except Exception as e:
-                    logging.error(f"Error cleaning up MCP server {server_name}: {e}")
+                    logger.error(f"Error cleaning up MCP server {server_name}: {e}")
 
     def execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[
         List[ActionResult], Any]:
