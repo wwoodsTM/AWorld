@@ -95,7 +95,7 @@ class ExecuteAgent(Agent):
 
                 names = tool_action_name.split("__")
                 tool_name = names[0]
-                action_name = '__'.join(tool_action_name[1:]) if len(names) > 1 else ''
+                action_name = '__'.join(names[1:]) if len(names) > 1 else ''
                 params = json.loads(tool_call.function.arguments)
                 res.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
 
