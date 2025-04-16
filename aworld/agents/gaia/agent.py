@@ -37,6 +37,7 @@ class ExecuteAgent(Agent):
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
         start_time = time.time()
+        self.desc_transform()
         content = observation.content
 
         llm_result = None
@@ -91,8 +92,10 @@ class ExecuteAgent(Agent):
                 tool_action_name: str = tool_call.function.name
                 if not tool_action_name:
                     continue
-                tool_name = tool_action_name.split("__")[0]
-                action_name = tool_action_name.split("__")[1]
+
+                names = tool_action_name.split("__")
+                tool_name = names[0]
+                action_name = '__'.join(tool_action_name[1:]) if len(names) > 1 else ''
                 params = json.loads(tool_call.function.arguments)
                 res.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
 
@@ -136,6 +139,7 @@ class PlanAgent(Agent):
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
         llm_result = None
+        self.desc_transform()
         input_content = [
             {'role': 'system', 'content': self.system_prompt},
         ]
