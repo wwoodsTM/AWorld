@@ -1,11 +1,16 @@
-import re
 import ast
+import re
 import sys
 import warnings
-from importlib.abc import MetaPathFinder
+from importlib.abc import Loader, MetaPathFinder
 from importlib.machinery import ModuleSpec
+from importlib.util import spec_from_loader
 from types import ModuleType
-from typing import Sequence, Union, Callable, Iterator, cast
+from typing import TYPE_CHECKING, Sequence, Union, Callable, Iterator, TypeVar, Any, cast
+from .rewrite_ast import compile_source
+
+if TYPE_CHECKING:
+    from .context_manager import TraceManager
 
 class AutoTraceModule:
     """
@@ -30,7 +35,8 @@ class TraceImportFinder(MetaPathFinder):
     """
     A class that implements the `find_spec` method of the `MetaPathFinder` protocol.
     """
-    def __init__(self, module_funcs: Callable[[AutoTraceModule], bool], min_duration_ns: int) -> None:
+    def __init__(self, trace_manager: "TraceManager", module_funcs: Callable[[AutoTraceModule], bool], min_duration_ns: int) -> None:
+        self._trace_manager = trace_manager
         self._module_funcs = module_funcs
         self._min_duration_ns = min_duration_ns
         self._modules_filter: Callable[[AutoTraceModule], bool]
@@ -75,6 +81,7 @@ class TraceImportFinder(MetaPathFinder):
                     filename = cast('str | None', plain_spec.loader.get_filename(fullname))
                 except Exception:
                     pass
+            filename = filename or f'<{fullname}>'
 
             if not self._modules_filter(AutoTraceModule(fullname)):
                 return None
@@ -86,10 +93,44 @@ class TraceImportFinder(MetaPathFinder):
                 continue
 
             try:
-                execute = compile_source(tree, filename, fullname, self.logfire, self.min_duration)
+                execute = compile_source(tree, filename, fullname, self._trace_manager, self._min_duration_ns)
             except Exception:  # pragma: no cover
                 # TODO: Log the error.
                 return None
+            
+            loader = AutoTraceLoader(plain_spec, execute)
+            return spec_from_loader(fullname, loader)
+
+class AutoTraceLoader(Loader):
+    """
+    A class that implements the `exec_module` method of the `Loader` protocol.
+    """
+    def __init__(self, plain_spec: ModuleSpec, execute: Callable[[dict[str, Any]], None]) -> None:
+        self._plain_spec = plain_spec
+        self._execute = execute
+
+    def exec_module(self, module: ModuleType):
+        """Execute a modified AST of the module's source code in the module's namespace.
+        """
+        self._execute(module.__dict__)
+    
+    def create_module(self, spec: ModuleSpec):
+        return None
+
+    def get_code(self, _name: str):
+        """`python -m` uses the `runpy` module which calls this method instead of going through the normal protocol.
+        So return some code which can be executed with the module namespace.
+        Here `__loader__` will be this object, i.e. `self`.
+        source = '__loader__.execute(globals())'
+        return compile(source, '<string>', 'exec', dont_inherit=True)
+        """
+
+    def __getattr__(self, item: str):
+        """Forward some methods to the plain spec's loader (likely a `SourceFileLoader`) if they exist."""
+        if item in {'get_filename', 'is_package'}:
+            return getattr(self.plain_spec.loader, item)
+        raise AttributeError(item)
+
 
 def convert_to_modules_func(modules: Sequence[str]) -> Callable[[AutoTraceModule], bool]:
     """Convert a sequence of module names to a function that checks if a module name starts with any of the given module names.
@@ -108,7 +149,8 @@ def get_module_pattern(module: str):
     return rf'{module}($|\.)'
 
 
-def install_auto_tracing(modules: Union[Sequence[str],
+def install_auto_tracing(trace_manager: "TraceManager",
+                         modules: Union[Sequence[str],
                          Callable[[AutoTraceModule], bool]],
                          min_duration_seconds: float
 ) -> None:
@@ -136,3 +178,13 @@ def install_auto_tracing(modules: Union[Sequence[str],
             )
 
     min_duration_ns = int(min_duration_seconds * 1_000_000_000)
+    trace_manager = trace_manager.new_manager('auto_tracing')
+    finder = TraceImportFinder(trace_manager, module_funcs, min_duration_ns)
+    sys.meta_path.insert(0, finder)
+
+
+T = TypeVar('T')
+
+def not_auto_trace(x: T) -> T:
+    """Decorator to prevent a function/class from being traced by `auto_tracing`"""
+    return x 

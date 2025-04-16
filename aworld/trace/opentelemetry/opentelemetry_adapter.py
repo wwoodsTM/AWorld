@@ -1,4 +1,3 @@
-from re import S
 import sys
 import traceback
 import time
@@ -7,48 +6,20 @@ from typing import Union, Optional, Sequence, Any, TYPE_CHECKING, Iterator
 from contextvars import Token
 from weakref import WeakKeyDictionary, WeakSet
 import opentelemetry.context as otlp_context_api
+from opentelemetry.trace import SpanKind, set_span_in_context
 from opentelemetry.sdk.trace import (
     ReadableSpan,
     SpanProcessor,
     Tracer as SDKTracer,
     Span as SDKSpan,
-    TracerProvider as SDKTracerProvider,
-    SpanKind
+    TracerProvider as SDKTracerProvider
 )
 from opentelemetry.context import Context as OTLPContext
 from opentelemetry.semconv.trace import SpanAttributes
-from opentelemetry.util import types as otel_types
-from aworld.trace.trace import NoOpTracer, SpanType, TraceProvider, Tracer, Span
-from .constants import ATTRIBUTES_MESSAGE_KEY
+from aworld.trace.trace import AttributeValueType, NoOpTracer, SpanType, TraceProvider, Tracer, Span
+from ..constants import ATTRIBUTES_MESSAGE_KEY
 from typing import Optional
 from typing import TYPE_CHECKING
-
-def convert_to_otlp_attributes(attr: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]]):
-    """Converts a dictionary of attributes to a dictionary of OTLP attributes.
-    Args:
-        attr: The dictionary of attributes to convert.
-    Returns:
-        A dictionary of OTLP attributes.
-    """
-
-    attributes: dict[str, otel_types.AttributeValue] = {}
-
-    for key, value in attr.items():
-        if isinstance(value, (str, bool, int, float)):
-            attributes[key] = value
-        elif isinstance(value, (list, tuple)):
-            if not value:
-                attributes[key] = list(value)
-            else:
-                first_type = type(value[0])
-                if all(isinstance(item, first_type) for item in value):
-                    attributes[key] = list(value)
-                else:
-                    raise ValueError(f"Mixed types in list for key {key}")
-        else:
-            raise ValueError(f"Unsupported type: {type(value)}")
-
-    return attributes
 
 
 class OTLPTraceProvider(TraceProvider):
@@ -104,7 +75,7 @@ class OTLPTracer(Tracer):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -112,12 +83,11 @@ class OTLPTracer(Tracer):
         start_time = start_time or time.time_ns()
         attributes = {**(attributes or {})}
         attributes.setdefault(ATTRIBUTES_MESSAGE_KEY, name)
-        otlp_attributes = convert_to_otlp_attributes(attributes)
 
         span_kind = self._convert_to_span_kind(span_type) if span_type else SpanKind.INTERNAL
         span = self._tracer.start_span(name=name,
                                       kind=span_kind,
-                                      attributes=otlp_attributes,
+                                      attributes=attributes,
                                       start_time=start_time,
                                       record_exception=record_exception,
                                       set_status_on_exception=set_status_on_exception)
@@ -127,7 +97,7 @@ class OTLPTracer(Tracer):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -137,12 +107,11 @@ class OTLPTracer(Tracer):
         start_time = start_time or time.time_ns()
         attributes = {**(attributes or {})}
         attributes.setdefault(ATTRIBUTES_MESSAGE_KEY, name)
-        otlp_attributes = convert_to_otlp_attributes(attributes)
         span_kind = self._convert_to_span_kind(span_type) if span_type else SpanKind.INTERNAL
 
         with self._tracer.start_as_current_span(name=name,
                                                 kind=span_kind,
-                                                attributes=otlp_attributes,
+                                                attributes=attributes,
                                                 start_time=start_time,
                                                 record_exception=record_exception,
                                                 set_status_on_exception=set_status_on_exception,
@@ -204,23 +173,22 @@ class OTLPSpan(Span, ReadableSpan):
         timestamp = timestamp or time.time_ns()
         attributes = {**(attributes or {})}
 
-        otlp_attributes = convert_to_otlp_attributes(attributes)
         if exception is not sys.exc_info()[1]:
             # OTEL's record_exception uses `traceback.format_exc()` which is for the current exception,
             # ignoring the passed exception.
             # So we override the stacktrace attribute with the correct one.
             stacktrace = ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__))
-            otlp_attributes[SpanAttributes.EXCEPTION_STACKTRACE] = stacktrace
+            attributes[SpanAttributes.EXCEPTION_STACKTRACE] = stacktrace
         
         self._span.record_exception(exception=exception,
-                                   attributes=otlp_attributes,
+                                   attributes=attributes,
                                    timestamp=timestamp,
                                    escaped=escaped)
 
     def _attach(self):
         if self._token is not None:
             return
-        self._token = otlp_context_api.attach(otlp_context_api.set_span_in_context(self))
+        self._token = otlp_context_api.attach(set_span_in_context(self))
 
     def _detach(self):
         if self._token is None:

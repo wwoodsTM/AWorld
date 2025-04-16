@@ -1,6 +1,10 @@
+import sys
 from abc import ABC, abstractmethod
-from types import Optional, Any, Iterator, Union, Sequence
+from typing import Optional, Any, Iterator, Union, Sequence
 from enum import Enum
+import logging
+
+logger = logging.getLogger("trace")
 
 class TraceProvider(ABC):
 
@@ -74,6 +78,17 @@ class SpanType(Enum):
     #: path latency relationship between producer and consumer spans.
     CONSUMER = 4
 
+AttributeValueType = Union[
+    str,
+    bool,
+    int,
+    float,
+    Sequence[str],
+    Sequence[bool],
+    Sequence[int],
+    Sequence[float],
+]
+
 class Tracer(ABC):
     """Handles span creation and in-process context propagation.
     """
@@ -83,7 +98,7 @@ class Tracer(ABC):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -109,7 +124,7 @@ class Tracer(ABC):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -224,7 +239,7 @@ class NoOpTracer(Tracer):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
@@ -235,10 +250,39 @@ class NoOpTracer(Tracer):
         self,
         name: str,
         span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, Union[str,bool,int,float,Sequence[str],Sequence[bool],Sequence[int],Sequence[float],]] = None,
+        attributes: dict[str, AttributeValueType] = None,
         start_time: Optional[int] = None,
         record_exception: bool = True,
         set_status_on_exception: bool = True,
         end_on_exit: bool = True,
     ) -> Iterator[Span]:
         yield NoOpSpan()
+
+_GLOBAL_TRACER_PROVIDER: Optional[TraceProvider] = None
+
+
+def set_tracer_provider(provider: TraceProvider):
+    """
+    Set the global tracer provider.
+    """
+    global _GLOBAL_TRACER_PROVIDER
+    _GLOBAL_TRACER_PROVIDER = provider
+
+
+def get_tracer_provider() -> TraceProvider:
+    """
+    Get the global tracer provider.
+    """
+    global _GLOBAL_TRACER_PROVIDER
+    if _GLOBAL_TRACER_PROVIDER is None:
+        raise ValueError("No tracer provider has been set.")
+    return _GLOBAL_TRACER_PROVIDER
+
+def log_trace_error():
+    """
+    Log an error with traceback information.
+    """
+    logger.exception(
+        'This is logging the trace internal error.',
+        exc_info=sys.exc_info(),
+    )

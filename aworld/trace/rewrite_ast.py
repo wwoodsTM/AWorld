@@ -2,47 +2,43 @@ from __future__ import annotations
 
 import ast
 import uuid
+import time
+from pathlib import Path
 from collections import deque
-from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, cast
 
-import logfire
-
-from ..ast_utils import BaseTransformer, LogfireArgs
+from aworld.trace.trace import AttributeValueType
+from aworld.trace.constants import ATTRIBUTES_MESSAGE_TEMPLATE_KEY
 
 if TYPE_CHECKING:
-    from ..main import Logfire
+    from .context_manager import TraceManager
+    from .auto_trace import not_auto_trace
 
 
 def compile_source(
-    tree: ast.AST, filename: str, module_name: str, logfire_instance: Logfire, min_duration: int
+    tree: ast.AST, filename: str, module_name: str, trace_manager: TraceManager, min_duration_ns: int
 ) -> Callable[[dict[str, Any]], None]:
     """Compile a modified AST of the module's source code in the module's namespace.
 
     Returns a function which accepts module globals and executes the compiled code.
 
     The modified AST wraps the body of every function definition in `with context_factories[index]():`.
-    `context_factories` is added to the module's namespace as `logfire_<uuid>`.
+    `context_factories` is added to the module's namespace as `aworld_<uuid>`.
     `index` is a different constant number for each function definition.
-    `context_factories[index]` is one of these:
-        - `partial(logfire_instance._fast_span, name, attributes)` where the name and attributes
-            are constructed from `filename`, `module_name`, attributes of `logfire_instance`,
-            and the qualified name and line number of the current function.
-        - `MeasureTime`, a class that measures the time elapsed. If it exceeds `min_duration`,
-            then `context_factories[index]` is replaced with the `partial` above.
-    If `min_duration` is greater than 0, then `context_factories[index]` is initially `MeasureTime`.
-    Otherwise, it's initially the `partial` above.
     """
-    logfire_name = f'aworld_{uuid.uuid4().hex}'
+
+    context_factories_var_name = f'aworld_{uuid.uuid4().hex}'
+    # The variable name for storing context_factors in the module's namespace.
+
     context_factories: list[Callable[[], ContextManager[Any]]] = []
-    tree = rewrite_ast(tree, filename, logfire_name, module_name, logfire_instance, context_factories, min_duration)
+    tree = rewrite_ast(tree, filename, context_factories_var_name, module_name, trace_manager, context_factories, min_duration_ns)
     assert isinstance(tree, ast.Module)  # for type checking
     # dont_inherit=True is necessary to prevent the module from inheriting the __future__ import from this module.
     code = compile(tree, filename, 'exec', dont_inherit=True)
 
     def execute(globs: dict[str, Any]):
-        globs[logfire_name] = context_factories
+        globs[context_factories_var_name] = context_factories
         exec(code, globs, globs)
 
     return execute
@@ -51,74 +47,144 @@ def compile_source(
 def rewrite_ast(
     tree: ast.AST,
     filename: str,
-    logfire_name: str,
+    context_factories_var_name: str,
     module_name: str,
-    logfire_instance: Logfire,
+    trace_manager: TraceManager,
     context_factories: list[Callable[[], ContextManager[Any]]],
-    min_duration: int,
+    min_duration_ns: int,
 ) -> ast.AST:
-    logfire_args = LogfireArgs(logfire_instance._tags, logfire_instance._sample_rate)  # type: ignore
     transformer = AutoTraceTransformer(
-        logfire_args, logfire_name, filename, module_name, logfire_instance, context_factories, min_duration
+        context_factories_var_name, filename, module_name, trace_manager, context_factories, min_duration_ns
     )
     return transformer.visit(tree)
 
-
-@dataclass
-class AutoTraceTransformer(BaseTransformer):
+class AutoTraceTransformer(ast.NodeTransformer):
     """Trace all encountered functions except those explicitly marked with `@no_auto_trace`."""
 
-    logfire_instance: Logfire
-    context_factories: list[Callable[[], ContextManager[Any]]]
-    min_duration: int
+    def __init__(
+        self,
+        context_factories_var_name: str,
+        filename: str,
+        module_name: str,
+        trace_manager: TraceManager,
+        context_factories: list[Callable[[], ContextManager[Any]]],
+        min_duration_ns: int,
+    ):
+        self._context_factories_var_name = context_factories_var_name
+        self._filename = filename
+        self._module_name = module_name
+        self._trace_manager = trace_manager
+        self._context_factories = context_factories
+        self._min_duration_ns = min_duration_ns
+        self._qualname_stack: list[str] = []
 
-    def check_no_auto_trace(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> bool:
-        """Return true if the node has a `@no_auto_trace` or `@logfire.no_auto_trace` decorator."""
+
+    def visit_ClassDef(self, node: ast.ClassDef):
+        """Visit a class definition and rewrite its methods."""
+
+        if self.check_not_auto_trace(node):
+            return node
+
+        self._qualname_stack.append(node.name)
+        node = cast(ast.ClassDef, self.generic_visit(node))
+        self._qualname_stack.pop()
+        return node
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+        """Visit a function definition and rewrite it."""
+
+        if self.check_not_auto_trace(node):
+            return node
+
+        self._qualname_stack.append(node.name)
+        qualname = '.'.join(self._qualname_stack)
+        self._qualname_stack.append('<locals>')
+        self.generic_visit(node)
+        self._qualname_stack.pop()  # <locals>
+        self._qualname_stack.pop()  # node.name
+        return self.rewrite_function(node, qualname)
+
+
+    def check_not_auto_trace(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> bool:
+        """Return true if the node has a `@not_auto_trace` decorator."""
         return any(
             (
                 isinstance(node, ast.Name)
-                and node.id == no_auto_trace.__name__
-                or (
-                    isinstance(node, ast.Attribute)
-                    and node.attr == no_auto_trace.__name__
-                    and isinstance(node.value, ast.Name)
-                    and node.value.id == logfire.__name__
-                )
+                and node.id == not_auto_trace.__name__
+                # or (
+                #     isinstance(node, ast.Attribute)
+                #     and node.attr == not_auto_trace.__name__
+                #     and isinstance(node.value, ast.Name)
+                #     and node.value.id == xxx.__name__
+                # )
             )
             for node in node.decorator_list
         )
 
-    def visit_ClassDef(self, node: ast.ClassDef):
-        if self.check_no_auto_trace(node):
-            return node
-
-        return super().visit_ClassDef(node)
-
-    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef):
-        if self.check_no_auto_trace(node):
-            return node
-
-        return super().visit_FunctionDef(node)
 
     def rewrite_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, qualname: str) -> ast.AST:
+        """Rewrite a function definition to trace its execution."""
+
         if has_yield(node):
             return node
 
-        return super().rewrite_function(node, qualname)
+        body = node.body.copy()
+        new_body: list[ast.stmt] = []
+        if (
+            body
+            and isinstance(body[0], ast.Expr)
+            and isinstance(body[0].value, ast.Constant)
+            and isinstance(body[0].value.value, str)
+        ):
+            new_body.append(body.pop(0))
 
-    def logfire_method_call_node(self, node: ast.FunctionDef | ast.AsyncFunctionDef, qualname: str) -> ast.Call:
-        # See the exec_source docstring
-        index = len(self.context_factories)
-        span_factory = partial(
-            self.logfire_instance._fast_span,  # type: ignore
-            *self.logfire_method_arg_values(qualname, node.lineno),
+        if not body or (
+            len(body) == 1
+            and (
+                isinstance(body[0], ast.Pass)
+                or (isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant))
+            )
+        ):
+            return node
+        
+        span = ast.With(
+            items=[
+                ast.withitem(
+                    context_expr=self.trace_context_method_call_node(node, qualname),
+                )
+            ],
+            body=body,
+            type_comment=node.type_comment,
         )
-        if self.min_duration > 0:
-            config = self.logfire_instance._config  # type: ignore
+        new_body.append(span)
 
-            # Local vars for fast access
-            timer = config.advanced.ns_timestamp_generator
-            min_duration = self.min_duration
+        return ast.fix_missing_locations(
+            ast.copy_location(
+                type(node)(  # type: ignore
+                    name=node.name,
+                    args=node.args,
+                    body=new_body,
+                    decorator_list=node.decorator_list,
+                    returns=node.returns,
+                    type_comment=node.type_comment,
+                ),
+                node,
+            )
+        )
+
+
+    def trace_context_method_call_node(self, node: ast.FunctionDef | ast.AsyncFunctionDef, qualname: str) -> ast.Call:
+        """Return a method call to `context_factories[index]()`."""
+
+        index = len(self._context_factories)
+        span_factory = partial(
+            self._trace_manager._create_auto_span,  # type: ignore
+            *self.build_create_auto_span_args(qualname, node.lineno),
+        )
+        if self._min_duration_ns > 0:
+
+            timer =  time.time_ns
+            min_duration = self._min_duration_ns
 
             # This needs to be as fast as possible since it's the cost of auto-tracing a function
             # that never actually gets instrumented because its calls are all faster than `min_duration`.
@@ -130,19 +196,19 @@ class AutoTraceTransformer(BaseTransformer):
 
                 def __exit__(_self, *_):
                     if timer() - _self.start >= min_duration:
-                        self.context_factories[index] = span_factory
+                        self._context_factories[index] = span_factory
 
-            self.context_factories.append(MeasureTime)
+            self._context_factories.append(MeasureTime)
         else:
-            self.context_factories.append(span_factory)
+            self._context_factories.append(span_factory)
 
         # This node means:
         #   context_factories[index]()
-        # where `context_factories` is a global variable with the name `self.logfire_method_name`
+        # where `context_factories` is a global variable with the name `self._context_factories_var_name`
         # pointing to the `self.context_factories` list.
         return ast.Call(
             func=ast.Subscript(
-                value=ast.Name(id=self.logfire_method_name, ctx=ast.Load()),
+                value=ast.Name(id=self._context_factories_var_name, ctx=ast.Load()),
                 slice=ast.Index(value=ast.Constant(value=index)),  # type: ignore
                 ctx=ast.Load(),
             ),
@@ -150,29 +216,27 @@ class AutoTraceTransformer(BaseTransformer):
             keywords=[],
         )
 
+    def build_create_auto_span_args(self, qualname: str, lineno: int) -> tuple[str, dict[str, AttributeValueType]]:
+        """Build the arguments for `create_auto_span`."""
 
-T = TypeVar('T')
+        stack_info = {
+            'code.filepath': get_filepath(self._filename),
+            'code.lineno': lineno,
+            'code.function': qualname,
+        }
+        attributes: dict[str, AttributeValueType] = {**stack_info}  # type: ignore
 
+        msg_template = f'Calling {self._module_name}.{qualname}'
+        attributes[ATTRIBUTES_MESSAGE_TEMPLATE_KEY] = msg_template
 
-def no_auto_trace(x: T) -> T:
-    """Decorator to prevent a function/class from being traced by `logfire.install_auto_tracing`.
+        span_name = msg_template
 
-    This is useful for small functions that are called very frequently and would generate too much noise.
-
-    The decorator is detected at import time.
-    Only `@no_auto_trace` or `@logfire.no_auto_trace` are supported.
-    Renaming/aliasing either the function or module won't work.
-    Neither will calling this indirectly via another function.
-
-    Any decorated function, or any function defined anywhere inside a decorated function/class,
-    will be completely ignored by `logfire.install_auto_tracing`.
-
-    This decorator simply returns the argument unchanged, so there is zero runtime overhead.
-    """
-    return x  # pragma: no cover
+        return span_name, attributes
 
 
 def has_yield(node: ast.AST):
+    """Return true if the node has a yield statement."""
+
     queue = deque([node])
     while queue:
         node = queue.popleft()
@@ -181,3 +245,16 @@ def has_yield(node: ast.AST):
                 return True
             if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
                 queue.append(child)
+
+
+def get_filepath(file: str):
+    """Return a dict with the filepath attribute."""
+
+    path = Path(file)
+    if path.is_absolute():
+        try:
+            path = path.relative_to(Path('.').resolve())
+        except ValueError:  # pragma: no cover
+            # happens if filename path is not within CWD
+            pass
+    return str(path)
