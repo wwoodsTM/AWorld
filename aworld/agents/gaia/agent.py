@@ -22,9 +22,6 @@ from aworld.agents.gaia.utils import extract_pattern
 class ExecuteAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
-        self.has_summary = False
-        self.tools = tool_desc_transform(get_tool_desc(),
-                                         tools=self.tool_names if self.tool_names else [])
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -102,18 +99,13 @@ class ExecuteAgent(Agent):
         if res:
             res[0].policy_info = content
             self._finished = False
-            self.has_summary = False
         elif content:
-            if self.has_summary:
-                policy_info = extract_pattern(content, "final_answer")
-                if policy_info:
-                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
-                    self._finished = True
-                else:
-                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
+            policy_info = extract_pattern(content, "final_answer")
+            if policy_info:
+                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
+                self._finished = True
             else:
                 res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
-                self.has_summary = True
 
         logger.info(f">>> execute result: {res}")
         return res
