@@ -195,6 +195,7 @@ class AutoTraceTransformer(ast.NodeTransformer):
                     _self.start = timer()
 
                 def __exit__(_self, *_):
+                    # the first call exceeding min_ruration will not be tracked, and subsequent calls will only be tracked
                     if timer() - _self.start >= min_duration:
                         self._context_factories[index] = span_factory
 

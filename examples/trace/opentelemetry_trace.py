@@ -1,32 +1,31 @@
-import requests
-from opentelemetry.exporter.otlp.proto.http import Compression
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace import SynchronousMultiSpanProcessor, TracerProvider as SDKTracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+import aworld.trace as trace
 
-from aworld.trace.trace import set_tracer_provider
-from aworld.trace.opentelemetry.opentelemetry_adapter import OTLPTraceProvider
-from aworld.trace.context_manager import TraceManager
+def main():
+    trace.trace_configure(
+        backends=["logfire"],
+        write_token="Your logfire write token, create guide refer to https://logfire.pydantic.dev/docs/how-to-guides/create-write-tokens/"
+    )
 
+    trace.auto_tracing("examples.trace.*", 0.01)
 
-logfire_api_url = "https://logfire-us.pydantic.dev/v1/traces" 
-logfire_token = ""
-headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': logfire_token}
-session = requests.Session()
-session.headers.update(headers)
-span_exporter = OTLPSpanExporter(
-                        endpoint=logfire_api_url,
-                        session=session,
-                        compression=Compression.Gzip,
-                    )
-
-processor = SynchronousMultiSpanProcessor()
-processor.add_span_processor(SimpleSpanProcessor(span_exporter))
-set_tracer_provider(OTLPTraceProvider(SDKTracerProvider(active_span_processor=processor)))
-trace = TraceManager()
-
-with trace.span("hello") as span:
-    span.set_attribute("hello", "aworld")
-    print("hello aworld")
+    with trace.span("hello") as span:
+        span.set_attribute("parent_test_attr", "pppppp")
+        print("hello aworld")
+        with trace.span("child hello") as span2:
+            span2.set_attribute("child_test_attr", "cccccc")
+            print("child hello aworld")
+            current_span = trace.get_current_span()
+            print("trace_id=", current_span.get_trace_id())
 
 
+
+    from .autotrace_demo import TestClassB
+
+    b = TestClassB()
+    b.classb_function_1()
+    b.classb_function_2()
+    b.classb_function_1()
+    b.classb_function_2()
+
+if __name__ == "__main__":
+    main()

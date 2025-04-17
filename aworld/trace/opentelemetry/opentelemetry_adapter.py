@@ -1,22 +1,36 @@
 import sys
 import traceback
 import time
+import requests
 from threading import Lock
-from typing import Union, Optional, Sequence, Any, TYPE_CHECKING, Iterator
+from typing import Optional, Any, TYPE_CHECKING, Iterator, Sequence
 from contextvars import Token
-from weakref import WeakKeyDictionary, WeakSet
+from urllib.parse import urljoin
 import opentelemetry.context as otlp_context_api
-from opentelemetry.trace import SpanKind, set_span_in_context
+from opentelemetry.trace import SpanKind, set_span_in_context, get_current_span as get_current_otlp_span
 from opentelemetry.sdk.trace import (
     ReadableSpan,
-    SpanProcessor,
+    SynchronousMultiSpanProcessor,
     Tracer as SDKTracer,
     Span as SDKSpan,
     TracerProvider as SDKTracerProvider
 )
 from opentelemetry.context import Context as OTLPContext
 from opentelemetry.semconv.trace import SpanAttributes
-from aworld.trace.trace import AttributeValueType, NoOpTracer, SpanType, TraceProvider, Tracer, Span
+from opentelemetry.exporter.otlp.proto.http import Compression
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from aworld.trace.trace import (
+    AttributeValueType,
+    NoOpTracer,
+    SpanType,
+    TraceProvider,
+    Tracer,
+    Span,
+    set_tracer_provider
+)
+
 from ..constants import ATTRIBUTES_MESSAGE_KEY
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -61,6 +75,10 @@ class OTLPTraceProvider(TraceProvider):
                 return self._provider.force_flush(timeout)
             else:
                 return False
+
+    def get_current_span(self) -> Optional["Span"]:
+        otlp_span = get_current_otlp_span()
+        return OTLPSpan(otlp_span)
 
 class OTLPTracer(Tracer):
     """A Tracer represents a collection of Spans.
@@ -140,16 +158,16 @@ class OTLPSpan(Span, ReadableSpan):
 
     def __init__(self, span: SDKSpan):
         self._span = span
-        OPEN_SPANS.add(self)
         self._token: Optional[Token[OTLPContext]] = None
         self._attach()
+        self._add_to_open_spans()
 
     if not TYPE_CHECKING:  # pragma: no branch
         def __getattr__(self, name: str) -> Any:
             return getattr(self._span, name)
 
     def end(self, end_time: Optional[int] = None) -> None:
-        OPEN_SPANS.discard(self)
+        self._remove_from_open_spans()
         end_time = end_time or time.time_ns()
         self._span.end(end_time=end_time)
         self._detach()
@@ -185,10 +203,17 @@ class OTLPSpan(Span, ReadableSpan):
                                    timestamp=timestamp,
                                    escaped=escaped)
 
+    def get_trace_id(self) -> str:
+        """Get the trace ID of the span.
+        Returns:
+            The trace ID of the span.
+        """
+        return f"{self._span.get_span_context().trace_id:032x}"
+    
     def _attach(self):
         if self._token is not None:
             return
-        self._token = otlp_context_api.attach(set_span_in_context(self))
+        self._token = otlp_context_api.attach(set_span_in_context(self._span))
 
     def _detach(self):
         if self._token is None:
@@ -196,5 +221,43 @@ class OTLPSpan(Span, ReadableSpan):
         otlp_context_api.detach(self._token)
         self._token = None
 
+def configure_otlp_provider(
+    backends: Sequence[str] = None,
+    base_url: str = None,
+    write_token: str = None,
+    **kwargs
+) -> None:
+    """Configure the OTLP provider.
+    Args:
+        backend: The backend to use.
+        write_token: The write token to use.
+        **kwargs: Additional keyword arguments to pass to the provider.
+    """
+    backends = backends or ["logfire"]
+    processor = SynchronousMultiSpanProcessor()
+    for backend in backends:
+        if backend == "logfire":
+            span_exporter = _configure_logfire_exporter(write_token=write_token, base_url=base_url, **kwargs)
+            processor.add_span_processor(BatchSpanProcessor(span_exporter))
+        elif backend == "console":
+            from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+            processor.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+    set_tracer_provider(OTLPTraceProvider(SDKTracerProvider(active_span_processor=processor)))
 
-OPEN_SPANS: WeakSet[OTLPSpan] = WeakSet()
+
+def _configure_logfire_exporter(write_token: str, base_url: str = None) -> None:
+    """Configure the Logfire exporter.
+    Args:
+        write_token: The write token to use.
+        base_url: The base URL to use.
+        **kwargs: Additional keyword arguments to pass to the exporter.
+    """
+    base_url = base_url or "https://logfire-us.pydantic.dev"
+    headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': write_token}
+    session = requests.Session()
+    session.headers.update(headers)
+    return OTLPSpanExporter(
+                        endpoint=urljoin(base_url, '/v1/traces'),
+                        session=session,
+                        compression=Compression.Gzip,
+                    )

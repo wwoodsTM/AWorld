@@ -82,7 +82,6 @@ class ChunksFormatter(Formatter):
         # called_code = frame.f_code
         frame = frame.f_back or frame  # type: ignore
         assert frame is not None
-
         # This is where the magic happens. It has caching.
         ex = executing.Source.executing(frame)
 

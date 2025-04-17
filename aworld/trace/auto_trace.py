@@ -1,4 +1,5 @@
 import ast
+from math import log
 import re
 import sys
 import warnings
@@ -7,6 +8,8 @@ from importlib.machinery import ModuleSpec
 from importlib.util import spec_from_loader
 from types import ModuleType
 from typing import TYPE_CHECKING, Sequence, Union, Callable, Iterator, TypeVar, Any, cast
+
+from aworld.trace.trace import log_trace_error
 from .rewrite_ast import compile_source
 
 if TYPE_CHECKING:
@@ -37,9 +40,8 @@ class TraceImportFinder(MetaPathFinder):
     """
     def __init__(self, trace_manager: "TraceManager", module_funcs: Callable[[AutoTraceModule], bool], min_duration_ns: int) -> None:
         self._trace_manager = trace_manager
-        self._module_funcs = module_funcs
+        self._modules_filter= module_funcs
         self._min_duration_ns = min_duration_ns
-        self._modules_filter: Callable[[AutoTraceModule], bool]
     
     def _find_plain_specs(
         self, fullname: str, path: Sequence[str] = None, target: ModuleType = None
@@ -62,6 +64,7 @@ class TraceImportFinder(MetaPathFinder):
         """     
         Find the spec for the given module name.
         """
+
         for plain_spec in self._find_plain_specs(fullname, path, target):
             #Get module specs returned by other finders on `sys.meta_path`
             get_source = getattr(plain_spec.loader, 'get_source', None)
@@ -95,7 +98,7 @@ class TraceImportFinder(MetaPathFinder):
             try:
                 execute = compile_source(tree, filename, fullname, self._trace_manager, self._min_duration_ns)
             except Exception:  # pragma: no cover
-                # TODO: Log the error.
+                log_trace_error()
                 return None
             
             loader = AutoTraceLoader(plain_spec, execute)

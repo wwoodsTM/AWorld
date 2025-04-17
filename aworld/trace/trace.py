@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any, Iterator, Union, Sequence
 from enum import Enum
 import logging
+from weakref import WeakSet
 
 logger = logging.getLogger("trace")
 
@@ -51,6 +52,13 @@ class TraceProvider(ABC):
             timeout: The maximum time to wait for the data to be sent.
         Returns:
             True if the data was sent successfully, False otherwise.
+        """
+    
+    @abstractmethod
+    def get_current_span(self) -> Optional["Span"]:
+        """Returns the current span from the current context.
+        Returns:
+            The current span from the current context.
         """
 
 class SpanType(Enum):
@@ -214,6 +222,21 @@ class Span(ABC):
             escaped: Whether the exception was escaped.
         """
 
+    @abstractmethod
+    def get_trace_id( self) -> str:
+        """Returns the trace ID of the span.
+        Returns:
+            The trace ID of the span.
+        """
+
+    def _add_to_open_spans(self) -> None:
+        """Add the current span to OPEN_SPANS."""
+        _OPEN_SPANS.add(self)
+
+    def _remove_from_open_spans(self) -> None:
+        """Remove the current span from OPEN_SPANS."""
+        _OPEN_SPANS.discard(self)
+
 class NoOpSpan(Span):
     """No-op implementation of `Span`."""
     def end(self, end_time: Optional[int] = None) -> None:
@@ -259,7 +282,7 @@ class NoOpTracer(Tracer):
         yield NoOpSpan()
 
 _GLOBAL_TRACER_PROVIDER: Optional[TraceProvider] = None
-
+_OPEN_SPANS: WeakSet[Span] = WeakSet()
 
 def set_tracer_provider(provider: TraceProvider):
     """
