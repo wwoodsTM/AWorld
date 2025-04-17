@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     base_config = {
         "llm_provider": "openai",
-        "llm_model_name": "QwQ-32B",
+        "llm_model_name": "gpt-4o",
         "llm_base_url": os.environ['LLM_BASE_URL'],
         "llm_api_key": os.environ['LLM_API_KEY'],
     }

@@ -20,7 +20,7 @@ class Memory(MemoryBase):
             Memory: Memory instance.
         """
         if config.get("memory_store") == "inmemory":    
-            return Memory(InMemoryMemoryStore())
+            return cls(memory_store=InMemoryMemoryStore())
         else:
             raise ValueError(f"Invalid memory store type: {config.get('memory_store')}")
         
@@ -39,6 +39,18 @@ class Memory(MemoryBase):
 
     def get_all(self) -> list[MemoryItem]:
         return self.memory_store.get_all()
+
+    def get_last_n(self, last_rounds) -> list[MemoryItem]:
+        """
+        Get last n memories.
+
+        Args:
+            last_rounds (int): Number of memories to retrieve.
+
+        Returns:
+            list[MemoryItem]: List of latest memories.
+        """
+        return self.memory_store.get_last_n(last_rounds)
 
     def retrieve(self, query, filters: dict) -> list[MemoryItem]:
         return self.memory_store.retrieve(query, filters)
