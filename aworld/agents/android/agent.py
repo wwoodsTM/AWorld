@@ -33,12 +33,16 @@ class AndroidAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(AndroidAgent, self).__init__(conf, **kwargs)
         provider = self.conf.llm_config.llm_provider if self.conf.llm_config.llm_provider else self.conf.llm_provider
-        if provider == 'openai':
-            self.conf.llm_config.llm_provider = 'chatopenai'
-        self._build_prompt()
+        if self.conf.llm_config.llm_provider:
+            self.conf.llm_config.llm_provider = "chat" + provider
+        else:
+            self.conf.llm_provider = "chat" + provider
         self.available_actions_desc = self._build_action_prompt()
         # Settings
         self.settings = AgentSettings(**conf)
+
+    def reset(self, options: Dict[str, Any]):
+        super(AndroidAgent, self).__init__(options)
         # State
         self.state = AgentState()
         # History
@@ -58,15 +62,11 @@ class AndroidAgent(Agent):
         val = "\n".join([_prompt(v.value) for k, v in AndroidAction.__members__.items()])
         return val
 
-    def _build_prompt(self):
-        # If additional system prompt building is required for the android agent, implement here.
-        pass
-
     def policy(self,
                observation: Observation,
                info: Dict[str, Any] = None,
                **kwargs) -> Union[List[ActionModel], None]:
-
+        self._finished = False
         step_info = AgentStepInfo(number=self.state.n_steps, max_steps=self.conf.max_steps)
         last_step_msg = None
         if step_info and step_info.is_last_step():
@@ -193,7 +193,7 @@ class AndroidAgent(Agent):
         if not actions:
             actions = action_data.get("actions")
 
-        # 打印actions
+        # print actions
         logger.info(f"[agent] VLM Output actions: {actions}")
         for action in actions:
             action_type = action.get('type')

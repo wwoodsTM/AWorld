@@ -18,7 +18,7 @@ from aworld.logs.util import logger
 from aworld.virtual_environments.browsers.action.utils import DomUtil
 from aworld.virtual_environments.action import ExecutableAction
 from aworld.utils import import_packages
-from aworld.models.llm import get_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model
 
 
 def get_page(**kwargs):
@@ -455,44 +455,53 @@ class ExtractContent(ExecutableAction):
             return ActionResult(content="extract content no page", keep=True), page
 
         goal = action.params.get("goal")
-        llm_config=kwargs.get("llm_config")
-        if llm_config:
+        llm_config = kwargs.get("llm_config")
+        if llm_config and llm_config.llm_api_key:
             llm = get_llm_model(llm_config)
         max_extract_content_output_tokens = kwargs.get("max_extract_content_output_tokens")
         max_extract_content_input_tokens = kwargs.get("max_extract_content_input_tokens")
-        
+
         content = markdownify.markdownify(page.content())
-        
+
         # Truncate content if it exceeds max input tokens
         if max_extract_content_input_tokens and len(content) > max_extract_content_input_tokens:
-            logger.warning(f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
+            logger.warning(
+                f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
             content = content[:max_extract_content_input_tokens]
 
         prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}'
         prompt_with_outputlimit = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page} \n\n#The length of the returned result must be less than {max_extract_content_output_tokens} characters.'
         template = PromptTemplate(input_variables=['goal', 'page'], template=prompt)
-        
+
+        messages = [{'role': 'user', 'content': template.format(goal=goal, page=content)}]
         try:
-            # extract content without length limit to maintain the original content
-            output = llm.invoke(template.format(goal=goal, page=content))
+            output = call_llm_model(llm,
+                                    messages=messages,
+                                    model=llm_config.llm_model_name,
+                                    temperature=llm_config.llm_temperature)
             result_content = output.content
-            
+
             # Check if output exceeds the token limit and retry with length-limited prompt if needed
             if max_extract_content_output_tokens and len(result_content) > max_extract_content_output_tokens:
-                logger.warning(f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
+                logger.warning(
+                    f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
                 template_with_limit = PromptTemplate(
-                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'], 
+                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'],
                     template=prompt_with_outputlimit
                 )
-                # extract content with length limit
-                output = llm.invoke(template_with_limit.format(
-                    goal=goal, 
-                    page=content, 
+                messages = [{'role': 'user', 'content': template_with_limit.format(
+                    goal=goal,
+                    page=content,
                     max_extract_content_output_tokens=max_extract_content_output_tokens,
                     max_tokens=max_extract_content_output_tokens
-                ))
+                )}]
+                # extract content with length limit
+                output = call_llm_model(llm,
+                                        messages=messages,
+                                        model=llm_config.llm_model_name,
+                                        temperature=llm_config.llm_temperature)
                 result_content = output.content
-                
+
             msg = f'Extracted from page\n: {result_content}\n'
             logger.info(msg)
             return ActionResult(content=msg, keep=True), page
@@ -513,40 +522,51 @@ class ExtractContent(ExecutableAction):
 
         goal = action.params.get("goal")
         llm_config = kwargs.get("llm_config")
-        if llm_config:
+        if llm_config and llm_config.llm_api_key:
             llm = get_llm_model(llm_config)
         content = markdownify.markdownify(page.content())
         max_extract_content_output_tokens = kwargs.get("max_extract_content_output_tokens")
         max_extract_content_input_tokens = kwargs.get("max_extract_content_input_tokens")
-        
+
         # Truncate content if it exceeds max input tokens
         if max_extract_content_input_tokens and len(content) > max_extract_content_input_tokens:
-            logger.warning(f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
+            logger.warning(
+                f"Content length ({len(content)}) exceeds max input tokens ({max_extract_content_input_tokens}). Truncating content.")
             content = content[:max_extract_content_input_tokens]
 
         prompt = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page}'
         prompt_with_outputlimit = 'Your task is to extract the content of the page. You will be given a page and a goal and you should extract all relevant information around this goal from the page. If the goal is vague, summarize the page. Respond in json format. Extraction goal: {goal}, Page: {page} \n\n#The length of the returned result must be less than {max_extract_content_output_tokens} characters.'
         template = PromptTemplate(input_variables=['goal', 'page'], template=prompt)
-        
+
+        messages = [{'role': 'user', 'content': template.format(goal=goal, page=content)}]
         try:
-            output = llm.invoke(template.format(goal=goal, page=content))
+            output = call_llm_model(llm,
+                                    messages=messages,
+                                    model=llm_config.llm_model_name,
+                                    temperature=llm_config.llm_temperature)
             result_content = output.content
-            
+
             # Check if output exceeds the token limit and retry with length-limited prompt if needed
             if max_extract_content_output_tokens and len(result_content) > max_extract_content_output_tokens:
-                logger.info(f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
+                logger.info(
+                    f"Output exceeds maximum length ({len(result_content)} > {max_extract_content_output_tokens}). Retrying with limited prompt.")
                 template_with_limit = PromptTemplate(
-                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'], 
+                    input_variables=['goal', 'page', 'max_extract_content_output_tokens'],
                     template=prompt_with_outputlimit
                 )
-                output = llm.invoke(template_with_limit.format(
-                    goal=goal, 
-                    page=content, 
+                messages = [{'role': 'user', 'content': template_with_limit.format(
+                    goal=goal,
+                    page=content,
                     max_extract_content_output_tokens=max_extract_content_output_tokens,
                     max_tokens=max_extract_content_output_tokens
-                ))
+                )}]
+                # extract content with length limit
+                output = call_llm_model(llm,
+                                        messages=messages,
+                                        model=llm_config.llm_model_name,
+                                        temperature=llm_config.llm_temperature)
                 result_content = output.content
-                
+
             msg = f'Extracted from page\n: {result_content}\n'
             logger.info(msg)
             return ActionResult(content=msg, keep=True), page
@@ -572,6 +592,7 @@ class ScrollDown(ExecutableAction):
         if not amount:
             page.evaluate('window.scrollBy(0, window.innerHeight);')
         else:
+            amount = int(amount)
             page.evaluate(f'window.scrollBy(0, {amount});')
 
         amount = f'{amount} pixels' if amount else 'one page'
@@ -590,6 +611,7 @@ class ScrollDown(ExecutableAction):
         if not amount:
             await page.evaluate('window.scrollBy(0, window.innerHeight);')
         else:
+            amount = int(amount)
             await page.evaluate(f'window.scrollBy(0, {amount});')
 
         amount = f'{amount} pixels' if amount else 'one page'
@@ -613,6 +635,7 @@ class ScrollUp(ExecutableAction):
         if not amount:
             page.evaluate('window.scrollBy(0, -window.innerHeight);')
         else:
+            amount = int(amount)
             page.evaluate(f'window.scrollBy(0, -{amount});')
 
         amount = f'{amount} pixels' if amount else 'one page'
@@ -631,6 +654,7 @@ class ScrollUp(ExecutableAction):
         if not amount:
             await page.evaluate('window.scrollBy(0, -window.innerHeight);')
         else:
+            amount = int(amount)
             await page.evaluate(f'window.scrollBy(0, -{amount});')
 
         amount = f'{amount} pixels' if amount else 'one page'
@@ -673,6 +697,7 @@ class SwitchTab(ExecutableAction):
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
         page_id = action.params.get("page_id", 0)
+        page_id = int(page_id)
         pages = browser.pages
 
         if page_id >= len(pages):
@@ -693,6 +718,7 @@ class SwitchTab(ExecutableAction):
             return ActionResult(content="switch tab no browser context", keep=True), get_page(**kwargs)
 
         page_id = action.params.get("page_id", 0)
+        page_id = int(page_id)
         pages = browser.pages
 
         if page_id >= len(pages):

@@ -2,28 +2,24 @@
 # Copyright (c) 2025 inclusionAI.
 
 import abc
-import asyncio
-import copy
 import json
 import traceback
 import uuid
-from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union
-
-from openai import Stream
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
+from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
-from aworld.models.llm import get_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
-from aworld.utils.common import convert_to_snake, is_abstract_method, asyncio_loop, ReturnThread, sync_exec
+from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
@@ -79,7 +75,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             logger.warning(f"Unknown conf type: {type(conf)}")
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
-        self._desc = kwargs.pop("desc") if kwargs.get("desc") else ' '.join(self._name.split('_'))
+        self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get('desc', '')
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -93,7 +89,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         # all tools that the agent can use. note: string name/id only
         self._tools = []
         self.state = AgentStatus.START
-        self._finished = False
+        self._finished = True
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -131,7 +127,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.handoffs = options.get("agent_names", [])
         self.mcp_servers = options.get("mcp_servers", [])
         self.trajectory = []
-        self._finished = False
+        self._finished = True
 
     async def async_reset(self, options: Dict[str, Any]):
         """Clean agent instance state and reset."""
@@ -143,10 +139,21 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         return self._finished
 
 
-class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
+class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
     """Basic agent for unified protocol within the framework."""
 
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
+    def __init__(self,
+                 conf: Union[Dict[str, Any], ConfigDict, AgentConfig],
+                 executor: Callable[..., Any] = None,
+                 resp_parse_func: Callable[..., Any] = None,
+                 **kwargs):
+        """A base class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
+
+        Args:
+            conf: Agent config, supported AgentConfig, ConfigDict or dict.
+            executor: The agent special executor.
+            resp_parse_func: Response parse function for the agent standard output.
+        """
         super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
@@ -154,20 +161,35 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+
+        self.need_reset = kwargs.get('need_reset') if kwargs.get('need_reset') else conf.need_reset
+        # whether to keep contextual information, False means keep, True means reset in every step by the agent call
+        self.step_reset = kwargs.get('step_reset') if kwargs.get('step_reset') else True
+        # tool_name: [tool_action1, tool_action2, ...]
+        self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
+            "black_tool_actions") else self.conf.get('black_tool_actions', {})
+        self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
+        self.executor = executor if executor else agent_executor
         agent_executor.register(self.name(), self)
+
+    def reset(self, options: Dict[str, Any]):
+        super().reset(options)
+        self.memory = []
 
     @property
     def llm(self):
         # lazy
         if self._llm is None:
-            conf = self.conf.llm_config if self.conf.llm_config.llm_provider else self.conf
+            llm_config = self.conf.llm_config or None
+            conf = llm_config if llm_config and (llm_config.llm_provider or llm_config.llm_base_url or llm_config.llm_api_key or llm_config.llm_model_name) else self.conf
             self._llm = get_llm_model(conf)
         return self._llm
 
     def env_tool(self):
         """Description of agent as tool."""
         return tool_desc_transform(get_tool_desc(),
-                                   tools=self.tool_names if self.tool_names else [])
+                                   tools=self.tool_names if self.tool_names else [],
+                                   black_tool_actions=self.black_tool_actions)
 
     def handoffs_agent_as_tool(self):
         """Description of agent as tool."""
@@ -186,12 +208,12 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
         # Stateless tool
-        self.tools = tool_desc_transform(get_tool_desc(),
-                                         tools=self.tool_names if self.tool_names else [])
+        self.tools = self.env_tool()
         # Agents as tool
         self.tools.extend(self.handoffs_agent_as_tool())
         # MCP servers are tools
         self.tools.extend(self.mcp_is_tool())
+        return self.tools
 
     async def async_desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
@@ -235,10 +257,11 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         # query from memory, TODO: memory.query()
         histories = self.memory[-max_step:]
         if histories:
+            # default use the first tool call
             for history in histories:
                 messages.append(history.message)
                 if history.tool_calls:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': history.tool_calls})
+                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.tool_calls[0]]})
                 else:
                     messages.append({'role': 'assistant', 'content': history.content})
 
@@ -257,18 +280,18 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
         messages.append(cur_msg)
         return messages
 
-    def response_parse(self, resp: ChatCompletion | Stream[ChatCompletionChunk]) -> AgentResult:
+    def response_parse(self, resp: ModelResponse) -> AgentResult:
         """Default parse response by LLM."""
         results = []
-        if not resp or not resp.choices:
+        if not resp:
             logger.warning("LLM no valid response!")
             return AgentResult(actions=[], current_state=None)
 
         is_call_tool = False
-        content = resp.choices[0].message.content
-        if resp.choices[0].message.tool_calls:
+        content = '' if resp.content is None else resp.content
+        if resp.tool_calls:
             is_call_tool = True
-            for tool_call in resp.choices[0].message.tool_calls:
+            for tool_call in resp.tool_calls:
                 full_name: str = tool_call.function.name
                 if not full_name:
                     logger.warning("tool call response no tool name.")
@@ -278,9 +301,12 @@ class Agent(BaseAgent[Observation, Union[Observation, List[ActionModel]]]):
                 names = full_name.split("__")
                 tool_name = names[0]
                 if is_agent_by_name(tool_name):
-                    results.append(ActionModel(agent_name=tool_name, params=params, policy_info=content))
+                    param_info = params.get('content', "") + ' ' + params.get('info', '')
+                    results.append(ActionModel(agent_name=tool_name,
+                                               params=params,
+                                               policy_info=content + param_info))
                 else:
-                    action_name = '__'.join(names[1:]) if len(names) > 1 else None
+                    action_name = '__'.join(names[1:]) if len(names) > 1 else ''
                     results.append(ActionModel(tool_name=tool_name,
                                                action_name=action_name,
                                                params=params,
@@ -323,6 +349,7 @@ class AgentManager(Factory):
     def __init__(self, type_name: str = None):
         super(AgentManager, self).__init__(type_name)
         self._agent_conf = {}
+        self._agent_instance = {}
 
     def __call__(self, name: str = None, *args, **kwargs):
         if name is None:
@@ -348,9 +375,16 @@ class AgentManager(Factory):
         conf = ConfigDict(conf)
         if name in self._cls:
             agent = self._cls[name](conf=conf, **kwargs)
+            self._agent_instance[name] = agent
         else:
             raise ValueError(f"Can not find {name} agent!")
         return agent
+
+    def desc(self, name: str) -> str:
+        if self._agent_instance.get(name, None) and self._agent_instance[name].desc:
+            print("------------", self._agent_instance[name].desc)
+            return self._agent_instance[name].desc
+        return self._desc.get(name, "")
 
     def register(self, name: str, desc: str, conf_file_name: str = None, **kwargs):
         """Register a tool to tool factory.
@@ -393,6 +427,38 @@ class AgentExecutor(object):
         """"""
         return await self.async_execute_agent(observation, self.agent, **kwargs)
 
+    def _log_messages(self, messages: List[Dict[str, Any]]) -> None:
+        """Log the sequence of messages for debugging purposes"""
+        logger.info(f"[agent] Invoking LLM with {len(messages)} messages:")
+        for i, msg in enumerate(messages):
+            prefix = msg.get('role')
+            logger.info(f"[agent] Message {i + 1}: {prefix} ===================================")
+            if isinstance(msg['content'], list):
+                for item in msg['content']:
+                    if item.get('type') == 'text':
+                        logger.info(f"[agent] Text content: {item.get('text')}")
+                    elif item.get('type') == 'image_url':
+                        image_url = item.get('image_url', {}).get('url', '')
+                        if image_url.startswith('data:image'):
+                            logger.info(f"[agent] Image: [Base64 image data]")
+                        else:
+                            logger.info(f"[agent] Image URL: {image_url[:30]}...")
+            else:
+                content = str(msg['content'])
+                chunk_size = 500
+                for j in range(0, len(content), chunk_size):
+                    chunk = content[j:j + chunk_size]
+                    if j == 0:
+                        logger.info(f"[agent] Content: {chunk}")
+                    else:
+                        logger.info(f"[agent] Content (continued): {chunk}")
+
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                for tool_call in msg.get('tool_calls'):
+                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
+                    args = str(tool_call.get('args', {}))[:1000]
+                    logger.info(f"[agent] Tool args: {args}...")
+
     def execute_agent(self,
                       observation: Observation,
                       agent: Agent,
@@ -404,7 +470,7 @@ class AgentExecutor(object):
             agent: The special agent instance.
         """
         agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
-
+        agent._finished = False
         if is_abstract_method(agent, 'policy'):
             agent.desc_transform()
             images = observation.images if agent.conf.use_vision else None
@@ -415,31 +481,35 @@ class AgentExecutor(object):
                                                 sys_prompt=agent.system_prompt,
                                                 agent_prompt=agent.agent_prompt,
                                                 output_prompt=agent.output_prompt)
+
+            self._log_messages(messages)
+
             llm_response = None
             try:
-                llm_response = agent.llm.chat.completions.create(
+                llm_response = call_llm_model(
+                    agent.llm,
                     messages=messages,
                     model=agent.model_name,
                     temperature=agent.conf.llm_config.llm_temperature,
                     tools=agent.tools if agent.tools else None
                 )
-                logger.info(f"Execute response: {llm_response.choices[0].message}")
+                logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
-                    if not llm_response.choices:
-                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
                     else:
                         agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.choices[0].message.tool_calls,
-                                                        content=llm_response.choices[0].message.content))
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            agent_result = agent.response_parse(llm_response)
+            agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True
             return agent_result.actions
@@ -462,7 +532,7 @@ class AgentExecutor(object):
             agent: The special agent instance.
         """
         agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
-
+        agent._finished = False
         if is_abstract_method(agent, 'async_policy'):
             await agent.async_desc_transform()
             images = observation.images
@@ -476,29 +546,30 @@ class AgentExecutor(object):
             llm_response = None
             try:
                 # TODO: models interface update
-                llm_response = agent.llm.chat.completions.create(
+                llm_response = call_llm_model(
+                    agent.llm,
                     messages=messages,
                     model=agent.model_name,
                     temperature=agent.conf.llm_config.llm_temperature,
                     tools=agent.tools if agent.tools else None
                 )
-                logger.info(f"Execute response: {llm_response.choices[0].message}")
+                logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
-                    if not llm_response.choices:
-                        logger.info(f"llm result is None, info: {llm_response.model_extra}")
+                    if llm_response.error:
+                        logger.info(f"llm result error: {llm_response.error}")
                     else:
                         agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.choices[0].message.tool_calls,
-                                                        content=llm_response.choices[0].message.content))
+                                                        tool_calls=llm_response.tool_calls,
+                                                        content=llm_response.content))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            agent_result = agent.response_parse(llm_response)
+            agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True
             return agent_result.actions
