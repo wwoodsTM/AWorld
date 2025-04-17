@@ -140,11 +140,14 @@ class PlanAgent(Agent):
         # build input of llm based history
         for traj in self.trajectory:
             input_content.append({'role': 'user', 'content': traj[0].content})
-            if traj[-1].tool_calls is not None:
-                input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
-            else:
-                input_content.append({'role': 'assistant', 'content': traj[-1].content})
+            # if traj[-1].tool_calls is not None:
+            #     input_content.append(
+            #         {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
+            # else:
+            #     input_content.append({'role': 'assistant', 'content': traj[-1].content})
+
+            # plan agent no tool to call, use content
+            input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
         message = observation.content
         if self.first_prompt:
