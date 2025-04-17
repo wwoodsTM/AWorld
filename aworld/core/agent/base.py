@@ -260,9 +260,9 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             # default use the first tool call
             for history in histories:
                 if "tool_calls" in history.metadata:
-                    messages.append({'role':history.metadata['role'], 'content': '', 'tool_calls': [history.metadata["tool_calls"][0]]})
+                    messages.append({'role': history.metadata['role'], 'content': history.content, 'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
-                    messages.append({'role': history.metadata['role'], 'content': history.content})
+                    messages.append({'role': history.metadata['role'], 'content': history.content, "tool_call_id": history.metadata.get("tool_call_id")})
 
             if "tool_calls" in histories[-1].metadata:
                 tool_id = histories[-1].metadata["tool_calls"][0].id
@@ -487,6 +487,7 @@ class AgentExecutor(object):
                 metadata={
                     "role": messages[-1]['role'],
                     "agent_name": agent.name(),
+                    "tool_call_id": messages[-1].get("tool_call_id")
                 }
             ))
 
@@ -560,6 +561,7 @@ class AgentExecutor(object):
                 metadata={
                     "role": messages[-1]['role'],
                     "agent_name": agent.name(),
+                    "tool_call_id":  messages[-1].get("tool_call_id")
                 }
             ))
             llm_response = None
