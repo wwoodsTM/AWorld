@@ -19,7 +19,7 @@ from aworld.core.common import Observation, ActionModel
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
 from aworld.core.envs.tool_desc import is_tool_by_name
-from aworld.logs.util import logger, color_log
+from aworld.logs.util import logger, color_log, Color
 
 
 @dataclass
@@ -288,9 +288,12 @@ class Task(object):
             logger.info(f'{action} state: {observation}; reward: {reward}')
             # Check if there's an exception in info
             if info.get("exception"):
-                color_log(f"Step {step} failed with exception: {info['exception']}")
+                color_log(f"Step {step} failed with exception: {info['exception']}", color=Color.red)
                 msg = f"Step {step} failed with exception: {info['exception']}"
             logger.info(f"step: {step} finished by tool action.")
+            log_ob = Observation(content='' if observation.content is None else observation.content,
+                                 action_result=observation.action_result)
+            color_log(f"{tool_name} observation: {log_ob}", color=Color.green)
         return msg, terminated
 
     def _loop_detect(self):
@@ -563,11 +566,13 @@ class Task(object):
             # Execute action using browser tool and unpack all return values
             observation, reward, terminated, _, info = self.tools[tool_name].step(action)
 
-            logger.info(f'{action} state: {observation}; reward: {reward}')
             # Check if there's an exception in info
             if info.get("exception"):
-                color_log(f"Step {step} failed with exception: {info['exception']}")
-            logger.info(f"step: {step} finished by tool action.")
+                color_log(f"Step {step} failed with exception: {info['exception']}", color=Color.red)
+            logger.info(f"step: {step} finished by tool action {action}.")
+            log_ob = Observation(content='' if observation.content is None else observation.content,
+                                 action_result=observation.action_result)
+            color_log(f"{tool_name} observation: {log_ob}", color=Color.green)
 
         # The tool results give itself, exit; give to other agents, continue
         tmp_name = policy[0].agent_name

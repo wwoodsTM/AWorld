@@ -22,9 +22,6 @@ from aworld.agents.gaia.utils import extract_pattern
 class ExecuteAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
-        self.has_summary = False
-        self.tools = tool_desc_transform(get_tool_desc(),
-                                         tools=self.tool_names if self.tool_names else [])
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -37,6 +34,7 @@ class ExecuteAgent(Agent):
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
         start_time = time.time()
+        self.desc_transform()
         content = observation.content
 
         llm_result = None
@@ -48,7 +46,7 @@ class ExecuteAgent(Agent):
             input_content.append(traj[0].content)
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
             else:
                 input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
@@ -91,26 +89,23 @@ class ExecuteAgent(Agent):
                 tool_action_name: str = tool_call.function.name
                 if not tool_action_name:
                     continue
-                tool_name = tool_action_name.split("__")[0]
-                action_name = tool_action_name.split("__")[1]
+
+                names = tool_action_name.split("__")
+                tool_name = names[0]
+                action_name = '__'.join(names[1:]) if len(names) > 1 else ''
                 params = json.loads(tool_call.function.arguments)
                 res.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
 
         if res:
             res[0].policy_info = content
             self._finished = False
-            self.has_summary = False
         elif content:
-            if self.has_summary:
-                policy_info = extract_pattern(content, "final_answer")
-                if policy_info:
-                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
-                    self._finished = True
-                else:
-                    res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
+            policy_info = extract_pattern(content, "final_answer")
+            if policy_info:
+                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
+                self._finished = True
             else:
                 res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
-                self.has_summary = True
 
         logger.info(f">>> execute result: {res}")
         return res
@@ -136,6 +131,7 @@ class PlanAgent(Agent):
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
         llm_result = None
+        self.desc_transform()
         input_content = [
             {'role': 'system', 'content': self.system_prompt},
         ]
@@ -144,7 +140,7 @@ class PlanAgent(Agent):
             input_content.append({'role': 'user', 'content': traj[0].content})
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].serialize_tool_calls()})
+                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
             else:
                 input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
