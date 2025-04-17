@@ -6,7 +6,7 @@ import asyncio
 
 from typing import Any, Dict, List, Tuple
 
-from mcp.types import TextContent
+from mcp.types import TextContent, ImageContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
 from aworld.core.envs.tool import ToolActionExecutor, Tool
@@ -175,7 +175,25 @@ class MCPToolExecutor(ToolActionExecutor):
                                 content=result.content[0].text,
                                 keep=True
                             )
-                            results.append(action_result)
+                        elif isinstance(result.content[0], ImageContent):
+                            action_result = ActionResult(
+                                content=f"data:image/jpeg;base64,{result.content[0].data}",
+                                keep=True
+                            )
+                        else:
+                            action_result = ActionResult(
+                                content="",
+                                keep=True
+                            )
+                            logger.warning("Unsupported content type is error:")
+                    else:
+                        action_result = ActionResult(
+                            content="",
+                            keep=True
+                        )
+                        logger.warning("mcp result is null")
+
+                    results.append(action_result)
                 except asyncio.CancelledError:
                     # Log cancellation exception, reset server connection to avoid async context confusion
                     logger.warning(f"Tool call to {action_name} on {server_name} was cancelled")
