@@ -14,9 +14,9 @@ If you want to search something that is sensitive to the time, espcially some ma
 
 
 Format Requirements (query seperated by , ), limit {limit}:
-query1, query2, query3...
+aaa, bbb, ccc...
 
-Now, you could output your assignment queries (strictly follow the Format Requirements) to your assistant.
+Now, you could output your assignment queries (strictly follow the Format Requirements: seperated by ,) to your assistant.
 """
 
 
@@ -142,7 +142,8 @@ negative_opinion:No
 summary_system_prompt = "You are a good assistant to make summary."
 summary_debate_prompt = """
 ## Your Role
-You are a reliable assistant to make summary. Your responsibility is to read people's conversation and make summary on this conversation. 
+You are a reliable assistant to make summary and skilled in information architecture and visual storytelling, capable of transforming any content into stunning cards using a webpage format. 
+Your responsibility is: 1. read people's conversation and make summary on this conversation; 2. translate your summary into the HTML code. 
 
 
 ## Current Situation
@@ -151,7 +152,7 @@ You are a reliable assistant to make summary. Your responsibility is to read peo
    2.1 For the details of the conversation between these two sides, please refer to Conversation History below.
 3. Each time one side is giving the conversation, he/she would like to cite the supportive materials searched on the website, in form of the urls, title, descritpion. 
    3.1 For the details of the supportive materials between these two sides for each conversation round, please refer to Supportive Materials History below.
-4. Now you are supposed to make a concise, brief summary for each round converation between the two sides, in terms of the viewpoint, citation.
+4. Now you are supposed to make a concise, brief summary for each round conversation between the two sides, in terms of the viewpoint, citation.
    4.1 'viewpoint' is the main point for each side in each conversation round;
    4.2 'citation' is the formatted structure in terms of the urls, title of the supportive materials that is indeed cited in each conversation round.
 
@@ -164,7 +165,7 @@ You are a reliable assistant to make summary. Your responsibility is to read peo
 {search_results_content_history}
 
 
-## Output Format
+## Summary Format
 debater_name1's summary (round 1): xxxx
 debater_name1's citation(round 1): url_1: xxxx, title_1: xxxx; url_2: xxxx, title_2: xxxx
 
@@ -177,6 +178,30 @@ debater_name1's citation(round 2): url_1: pppp, title_1: pppp; url_2: pppp, titl
 debater_name2's summary (round 2): qqqq
 debater_name2's citation(round 2): url_1: qqqq, title_1: qqqq; url_2: qqqq, title_2: qqqq...
 ...
+
+
+## Write HTML Requirements
+1. You should only present using HTML code, including basic HTML, CSS, and JavaScript. This should encompass text, visualization, and structured results.
+2. Provide complete HTML code; CSS and JavaScript should also be included within the code to ensure the user can open a single file.
+3. Do not arbitrarily omit the core viewpoints from the original text; core viewpoints and summaries must be preserved.
+
+
+## Write HTML Technical Implementation
+1. Utilize modern CSS techniques (such as flex/grid layouts, variables, gradients)
+2. Ensure the code is clean and efficient, without redundant elements
+3. Add a save button that does not interfere with the design
+4. Implement a one-click save as image feature using html2canvas
+5. The saved image should only contain the cover design, excluding interface elements
+6. Use Google Fonts or other CDNs to load appropriate modern fonts
+7. Online icon resources can be used (such as Font Awesome)
+
+
+## Write HTML Professional Typography Techniques
+1. Apply the designer's common "negative space" technique to create focal points
+2. Maintain harmonious proportion between text and decorative elements
+3. Ensure a clear visual flow to guide the reader’s eye movement
+4. Use subtle shadow or light effects to increase depth
+5. For webpage URL addresses and their corresponding titles, use hyperlinks.
 
 
 ## Example
@@ -194,7 +219,7 @@ Jerry (round 1): id1: url: cccc, title: Steve's story. description: dddd.
 Tom (round 2): id1: url: eeee, title: The invention of light bulb. description: ffff.
 Jerry (round 2): id1: url: gggg, title: Some interesting things during the war. description: hhhh.
 
-Your Output:
+Your Summary:
 Tom's summary (round 1): Hard working improves people's skills and thus leads to personal sucess. 
 Tom's citation (round 1): url_1: aaaa, title_1: Why is Kim?
 
@@ -215,10 +240,12 @@ Jerry's citation (round 2): url_1:gggg, title_1: Some interesting things during 
 - Only the supportive materials that has been indeed referred by the debater can appear in the citation, in terms of their urls and the titles. Ignore the materials that have not been referred by the debater.
 - You are not allowed to output your inner thinking chain.
 - DO NOT output your response starting with 'You:', JUST DIRECTLY output your response without "You:".
+- Please output your summary in the HTML form directly in one step.
 
 
 
-Please deeply understand Your Role and Current Situation. Strictly follow the Output Format, Attention with Example, output your summary, according to the Conversation History and Supportive Materials History.
+Please deeply understand Your Role and Current Situation. Strictly follow the Summary Format, Attention with Example, output your summary, according to the Conversation History and Supportive Materials History. 
+Then transfer your summary according to the Write HTML Requirements, Write HTML Technical Implementation, Write HTML Professional Typography Techniques.
 """
 
 
