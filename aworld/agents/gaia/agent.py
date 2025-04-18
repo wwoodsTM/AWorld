@@ -12,16 +12,42 @@ from aworld.config.common import Agents
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.base import Agent, AgentFactory
 from aworld.core.common import ActionModel, Observation
-from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.models.llm import call_llm_model
-from aworld.models.utils import tool_desc_transform
+
+
+def check_log_level(level_name):
+    try:
+        level_value = logger.level(level_name).no
+        return True
+    except ValueError:
+        return False
 
 
 @AgentFactory.register(name=Agents.EXECUTE.value, desc="execute agent")
 class ExecuteAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
+        # Initialize logger context
+        self.logger_context = logger.bind(agent="ExecuteAgent", method="policy")
+        if not check_log_level("EXECUTE"):
+            self.logger_context.level(
+                "EXECUTE", no=25, color="<bold><fg #FC753F>", icon="🚀"
+            )
+        self.logger_context.execute = (
+            lambda message, *message_args, **message_kwargs: self.logger_context.log(
+                "EXECUTE",
+                message,
+                *message_args,
+                **message_kwargs,
+            )
+        )
+        self.logger_context.add(
+            "./agent-running–details.log",
+            rotation="1 week",
+            compression="zip",
+            format="{time} - {level} - {message}",
+        )
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -49,12 +75,19 @@ class ExecuteAgent(Agent):
                 input_content.extend(traj[0].content)
             else:
                 input_content.append(traj[0].content)
-                
+
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": traj[-1].tool_calls,
+                    }
+                )
             else:
                 input_content.append({"role": "assistant", "content": traj[-1].content})
+
+        self.logger_context.execute(f"Input content prepared: {input_content}")
 
         if content is None:
             content = observation.action_result[0].error
@@ -64,10 +97,11 @@ class ExecuteAgent(Agent):
         else:
             # Collect existing tool_call_ids from input_content
             existing_tool_call_ids = {
-                msg.get("tool_call_id") for msg in input_content 
+                msg.get("tool_call_id")
+                for msg in input_content
                 if msg.get("role") == "tool" and msg.get("tool_call_id")
             }
-            
+
             new_messages = []
             for traj in self.trajectory:
                 if traj[-1].tool_calls is not None:
@@ -75,11 +109,13 @@ class ExecuteAgent(Agent):
                     for tool_call in traj[-1].tool_calls:
                         # Only add if this tool_call_id doesn't exist in input_content
                         if tool_call.id not in existing_tool_call_ids:
-                            new_messages.append({
-                                "role": "tool",
-                                "content": content,
-                                "tool_call_id": tool_call.id
-                            })
+                            new_messages.append(
+                                {
+                                    "role": "tool",
+                                    "content": content,
+                                    "tool_call_id": tool_call.id,
+                                }
+                            )
             if new_messages:
                 input_content.extend(new_messages)
             else:
@@ -101,7 +137,7 @@ class ExecuteAgent(Agent):
                 missing_calls = tool_call_ids - tool_response_ids
                 extra_responses = tool_response_ids - tool_call_ids
                 error_msg = f"Tool calls and responses mismatch. Missing responses for tool_calls: {missing_calls}, Extra responses: {extra_responses}"
-                logger.error(error_msg)
+                self.logger_context.error(error_msg)
                 raise ValueError(error_msg)
 
         tool_calls = []
@@ -113,12 +149,12 @@ class ExecuteAgent(Agent):
                 tools=self.tools,
                 temperature=0,
             )
-            logger.info(f"Execute response: {llm_result.message}")
+            self.logger_context.execute(f"Execute response: {llm_result.message}")
             res = self.response_parse(llm_result)
             content = res.actions[0].policy_info
             tool_calls = llm_result.tool_calls
         except Exception as e:
-            logger.warning(traceback.format_exc())
+            self.logger_context.warning(traceback.format_exc())
             # raise e
         finally:
             if llm_result:
@@ -126,7 +162,7 @@ class ExecuteAgent(Agent):
                 ob.content = new_messages
                 self.trajectory.append((ob, info, llm_result))
             else:
-                logger.warning("no result to record!")
+                self.logger_context.warning("no result to record!")
 
         res = []
         if tool_calls:
@@ -137,7 +173,7 @@ class ExecuteAgent(Agent):
 
                 names = tool_action_name.split("__")
                 tool_name = names[0]
-                action_name = '__'.join(names[1:]) if len(names) > 1 else ''
+                action_name = "__".join(names[1:]) if len(names) > 1 else ""
                 params = json.loads(tool_call.function.arguments)
                 res.append(
                     ActionModel(
@@ -150,12 +186,16 @@ class ExecuteAgent(Agent):
         elif content:
             policy_info = extract_pattern(content, "final_answer")
             if policy_info:
-                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
+                res.append(
+                    ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info)
+                )
                 self._finished = True
             else:
-                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
+                res.append(
+                    ActionModel(agent_name=Agents.PLAN.value, policy_info=content)
+                )
 
-        logger.info(f">>> execute result: {res}")
+        self.logger_context.execute(f">>> execute result: {res}")
         return res
 
 
@@ -163,6 +203,26 @@ class ExecuteAgent(Agent):
 class PlanAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(PlanAgent, self).__init__(conf, **kwargs)
+        # Initialize logger context
+        self.logger_context = logger.bind(agent="PlanAgent", method="policy")
+        if not check_log_level("PLAN"):
+            self.logger_context.level(
+                "PLAN", no=25, color="<bold><fg #6837F4>", icon="🤔"
+            )
+        self.logger_context.plan = (
+            lambda message, *message_args, **message_kwargs: self.logger_context.log(
+                "PLAN",
+                message,
+                *message_args,
+                **message_kwargs,
+            )
+        )
+        self.logger_context.add(
+            "./agent-running–details.log",
+            rotation="1 week",
+            compression="zip",
+            format="{time} - {level} - {message}",
+        )
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -181,6 +241,7 @@ class PlanAgent(Agent):
         llm_result = None
         self._finished = False
         self.desc_transform()
+
         input_content = [
             {"role": "system", "content": self.system_prompt},
         ]
@@ -189,9 +250,16 @@ class PlanAgent(Agent):
             input_content.append({"role": "user", "content": traj[0].content})
             if traj[-1].tool_calls is not None:
                 input_content.append(
-                    {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": traj[-1].tool_calls,
+                    }
+                )
             else:
                 input_content.append({"role": "assistant", "content": traj[-1].content})
+
+        self.logger_context.plan(f"Input content prepared: {input_content}")
 
         message = observation.content
         if self.first_prompt:
@@ -203,9 +271,9 @@ class PlanAgent(Agent):
             llm_result = call_llm_model(
                 self.llm, messages=input_content, model=self.model_name
             )
-            logger.info(f"Plan response: {llm_result.message}")
+            self.logger_context.plan(f"Plan response: {llm_result.message}")
         except Exception as e:
-            logger.warning(traceback.format_exc())
+            self.logger_context.warning(traceback.format_exc())
             raise e
         finally:
             if llm_result:
@@ -213,7 +281,7 @@ class PlanAgent(Agent):
                 ob.content = message
                 self.trajectory.append((ob, info, llm_result))
             else:
-                logger.warning("no result to record!")
+                self.logger_context.warning("no result to record!")
         res = self.response_parse(llm_result)
         content = res.actions[0].policy_info
         if "TASK_DONE" not in content:
@@ -225,5 +293,5 @@ class PlanAgent(Agent):
                 self._finished = True
 
         self.first = False
-        logger.info(f">>> plan result: {content}")
+        self.logger_context.plan(f">>> plan result: {content}")
         return [ActionModel(agent_name=Agents.EXECUTE.value, policy_info=content)]

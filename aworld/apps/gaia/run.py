@@ -6,7 +6,6 @@ import os
 
 from aworld.agents.browser.agent import BrowserAgent
 from aworld.agents.browser.config import BrowserAgentConfig
-
 from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
 from aworld.apps.gaia.utils import (
     _check_task_completed,
@@ -14,7 +13,7 @@ from aworld.apps.gaia.utils import (
     question_scorer,
 )
 from aworld.config.common import Agents, Tools
-from aworld.config.conf import AgentConfig, ModelConfig, TaskConfig
+from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.client import Client
 from aworld.core.task import Task
@@ -32,19 +31,16 @@ if __name__ == "__main__":
     # Create agents
     llm_api_key = os.getenv("LLM_API_KEY", "")
     llm_base_url = os.getenv("LLM_BASE_URL", "")
-    logger.success(
-        f"\n>>> llm_api_key: {llm_api_key}\n>>> llm_base_url: {llm_base_url}"
-    )
 
     # Define a task
-    save_path = os.path.expanduser("~/Desktop/gaia/result.json")
-    save_score_path = os.path.expanduser("~/Desktop/gaia/score.json")
+    save_path = os.path.expanduser("~/Desktop/gaia/v4/result.json")
+    save_score_path = os.path.expanduser("~/Desktop/gaia/v4/score.json")
     if os.path.exists(save_path):
         with open(save_path, "r") as f:
             _results = json.load(f)
     else:
         _results = []
-    for idx, sample in enumerate(dataset):
+    for idx, sample in enumerate(dataset[:100]):
         logger.info(
             f">>> Progress bar: {str(idx)}/{len(dataset)}. Current task {sample['task_id']}. "
         )
@@ -67,9 +63,9 @@ if __name__ == "__main__":
                 llm_api_key="dummy-key",
                 # llm_api_key=llm_api_key,
                 # llm_base_url=llm_base_url,
-                llm_temperature=0.1,
+                llm_temperature=0.3,
             ),
-            step_reset=False
+            step_reset=False,
         )
         executor = ExecuteAgent(
             conf=AgentConfig(
@@ -80,7 +76,7 @@ if __name__ == "__main__":
                 llm_api_key="dummy-key",
                 # llm_base_url=llm_base_url,D
                 # llm_api_key=llm_api_key,
-                llm_temperature=0.1,
+                llm_temperature=0.3,
             ),
             step_reset=False,
             tool_names=[],
@@ -90,18 +86,16 @@ if __name__ == "__main__":
                 "code",
                 "document",
                 "download",
-                "filesystem",
                 "github",
                 "googlemaps",
+                "playwright",
                 "image",
                 "math",
                 "reddit",
                 "search",
-                # "sympy",
                 "video",
-                "playwright",
-                "wikipedia",
-                "orcid",
+                "reasoning",
+                # "wayback",
             ],
         )
 
@@ -112,15 +106,14 @@ if __name__ == "__main__":
                 llm_model_name="gpt-4o",
                 llm_base_url="http://localhost:3456",
                 llm_api_key="dummy-key",
-                # llm_base_url=llm_base_url,D
-                # llm_api_key=llm_api_key,
-                llm_temperature=0.1,
             ),
             tool_names=[Tools.BROWSER.value],
         )
 
-        swarm = Swarm((planner, executor), (executor, browser), sequence=False)
-        task = Task(input=question, swarm=swarm, conf=TaskConfig(), endless_threshold=10)
+        swarm = Swarm((planner, executor), sequence=False)
+        task = Task(
+            input=question, swarm=swarm, conf=TaskConfig(), endless_threshold=10
+        )
         result = client.submit(task=[task])
 
         answer = result["task_0"]["answer"]

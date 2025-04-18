@@ -28,208 +28,237 @@ from aworld.mcp_servers.utils import (
     get_file_from_source,
     get_llm_config_from_os_environ,
     handle_llm_response,
+    parse_port,
     run_mcp_server,
 )
 from aworld.models.llm import get_llm_model
 
-llm_config = get_llm_config_from_os_environ(
-    llm_model_name="gpt-4o", server_name="Image Server"
-)
 
-IMAGE_OCR = (
-    "Input is a base64 encoded image. Read text from image if present. "
-    "Return a json string with the following format: "
-    '{{"image_text": "text from image"}}'
-)
-
-IMAGE_REASONING = (
-    "Input is a base64 encoded image. Given user's task: {task}, "
-    "solve it following the guide line:\n"
-    "1. Careful visual inspection\n"
-    "2. Contextual reasoning\n"
-    "3. Text transcription where relevant\n"
-    "4. Logical deduction from visual evidence\n"
-    "Return a json string with the following format: "
-    '{{"image_reasoning_result": "reasoning result given task and image"}}'
-)
-
-
-def optimize_image(image_data: bytes, max_size: int = 1024) -> bytes:
+class ImageServer:
     """
-    Optimize image by resizing if needed
+    Image Server class for image processing and analysis.
 
-    Args:
-        image_data: Raw image data
-        max_size: Maximum dimension size in pixels
-
-    Returns:
-        bytes: Optimized image data
-
-    Raises:
-        ValueError: When image cannot be processed
+    This class provides methods for image encoding, optimization, and various
+    image analysis tasks such as OCR and visual reasoning.
     """
-    try:
-        image = Image.open(BytesIO(image_data))
 
-        # Resize if image is too large
-        if max(image.size) > max_size:
-            ratio = max_size / max(image.size)
-            new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
-            image = image.resize(new_size, Image.Resampling.LANCZOS)
+    _instance = None
+    _llm_config = None
+    _image_ocr_prompt = None
+    _image_reasoning_prompt = None
 
-        # Save to buffer
-        buffered = BytesIO()
-        image_format = image.format if image.format else "JPEG"
-        image.save(buffered, format=image_format)
-        return buffered.getvalue()
+    def __new__(cls):
+        """Implement singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super(ImageServer, cls).__new__(cls)
+            cls._instance._init_server()
+        return cls._instance
 
-    except Exception as e:
-        logger.warning(f"Failed to optimize image: {str(e)}")
-        return image_data  # Return original data if optimization fails
+    def _init_server(self):
+        """Initialize the Image server and configuration"""
+        self._llm_config = get_llm_config_from_os_environ(
+            llm_model_name="gpt-4o", server_name="Image Server"
+        )
+        
+        self._image_ocr_prompt = (
+            "Input is a base64 encoded image. Read text from image if present. "
+            "Return a json string with the following format: "
+            '{{"image_text": "text from image"}}'
+        )
+        
+        self._image_reasoning_prompt = (
+            "Input is a base64 encoded image. Given user's task: {task}, "
+            "solve it following the guide line:\n"
+            "1. Careful visual inspection\n"
+            "2. Contextual reasoning\n"
+            "3. Text transcription where relevant\n"
+            "4. Logical deduction from visual evidence\n"
+            "Return a json string with the following format: "
+            '{{"image_reasoning_result": "reasoning result given task and image"}}'
+        )
+        
+        logger.info("ImageServer initialized")
 
+    @classmethod
+    def get_instance(cls):
+        """Get the singleton instance of ImageServer"""
+        if cls._instance is None:
+            return cls()
+        return cls._instance
 
-def encode_images(image_sources: List[str], with_header: bool = True) -> List[str]:
-    """
-    Encode images to base64 format with robust file handling
+    @staticmethod
+    def optimize_image(image_data: bytes, max_size: int = 1024) -> bytes:
+        """
+        Optimize image by resizing if needed
 
-    Args:
-        image_sources: List of URLs or local file paths of images
-        with_header: Whether to include MIME type header
+        Args:
+            image_data: Raw image data
+            max_size: Maximum dimension size in pixels
 
-    Returns:
-        List[str]: Base64 encoded image strings, with MIME type prefix if with_header is True
+        Returns:
+            bytes: Optimized image data
 
-    Raises:
-        ValueError: When image source is invalid or image format is not supported
-    """
-    if not image_sources:
-        raise ValueError("Image sources cannot be empty")
-
-    images = []
-    for image_source in image_sources:
+        Raises:
+            ValueError: When image cannot be processed
+        """
         try:
-            # Get file with validation (only image files allowed)
-            file_path, mime_type, content = get_file_from_source(
-                image_source,
-                allowed_mime_prefixes=["image/"],
-                max_size_mb=10.0,  # 10MB limit for images
-            )
+            image = Image.open(BytesIO(image_data))
 
-            # Optimize image
-            optimized_content = optimize_image(content)
+            # Resize if image is too large
+            if max(image.size) > max_size:
+                ratio = max_size / max(image.size)
+                new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+                image = image.resize(new_size, Image.Resampling.LANCZOS)
 
-            # Encode to base64
-            image_base64 = base64.b64encode(optimized_content).decode()
-
-            # Format with header if requested
-            final_image = (
-                f"data:{mime_type};base64,{image_base64}"
-                if with_header
-                else image_base64
-            )
-
-            images.append(final_image)
-
-            # Clean up temporary file if it was created for a URL
-            if file_path != os.path.abspath(image_source) and os.path.exists(file_path):
-                os.unlink(file_path)
+            # Save to buffer
+            buffered = BytesIO()
+            image_format = image.format if image.format else "JPEG"
+            image.save(buffered, format=image_format)
+            return buffered.getvalue()
 
         except Exception as e:
-            logger.error(f"Error encoding image from {image_source}: {str(e)}")
-            raise
+            logger.warning(f"Failed to optimize image: {str(e)}")
+            return image_data  # Return original data if optimization fails
 
-    return images
+    @classmethod
+    def encode_images(cls, image_sources: List[str], with_header: bool = True) -> List[str]:
+        """
+        Encode images to base64 format with robust file handling
 
+        Args:
+            image_sources: List of URLs or local file paths of images
+            with_header: Whether to include MIME type header
 
-def create_image_contents(prompt: str, image_base64: List[str]) -> List[Dict[str, Any]]:
-    """Create uniform image format for querying llm."""
-    content = [
-        {"type": "text", "text": prompt},
-    ]
-    content.extend(
-        [{"type": "image_url", "image_url": {"url": url}} for url in image_base64]
-    )
-    return content
+        Returns:
+            List[str]: Base64 encoded image strings, with MIME type prefix if with_header is True
 
+        Raises:
+            ValueError: When image source is invalid or image format is not supported
+        """
+        if not image_sources:
+            raise ValueError("Image sources cannot be empty")
 
-def mcpocr(
-    image_urls: List[str] = Field(
-        description="The input image in given a list of filepaths or urls."
-    ),
-) -> str:
-    """read text (if present) from the given image in given a list of filepaths or urls."""
-    llm = get_llm_model(llm_config)
+        images = []
+        for image_source in image_sources:
+            try:
+                # Get file with validation (only image files allowed)
+                file_path, mime_type, content = get_file_from_source(
+                    image_source,
+                    allowed_mime_prefixes=["image/"],
+                    max_size_mb=10.0,  # 10MB limit for images
+                )
 
-    inputs = []
-    try:
-        image_base64 = encode_images(image_urls)
-        content = create_image_contents(IMAGE_OCR, image_base64)
-        inputs.append({"role": "user", "content": content})
+                # Optimize image
+                optimized_content = cls.optimize_image(content)
 
-        response = llm.completion(
-            messages=inputs,
-            temperature=0,
+                # Encode to base64
+                image_base64 = base64.b64encode(optimized_content).decode()
+
+                # Format with header if requested
+                final_image = (
+                    f"data:{mime_type};base64,{image_base64}"
+                    if with_header
+                    else image_base64
+                )
+
+                images.append(final_image)
+
+                # Clean up temporary file if it was created for a URL
+                if file_path != os.path.abspath(image_source) and os.path.exists(file_path):
+                    os.unlink(file_path)
+
+            except Exception as e:
+                logger.error(f"Error encoding image from {image_source}: {str(e)}")
+                raise
+
+        return images
+
+    @staticmethod
+    def create_image_contents(prompt: str, image_base64: List[str]) -> List[Dict[str, Any]]:
+        """Create uniform image format for querying llm."""
+        content = [
+            {"type": "text", "text": prompt},
+        ]
+        content.extend(
+            [{"type": "image_url", "image_url": {"url": url}} for url in image_base64]
         )
-        image_text = handle_llm_response(response.content, "image_text")
-    except (ValueError, IOError, RuntimeError) as e:
-        logger.error(f"image_text-Execute error: {traceback.format_exc()}")
-        image_text = ""
+        return content
 
-    logger.info(f"---get_text_by_ocr-image_text:{image_text}")
+    @classmethod
+    def ocr(
+        cls,
+        image_urls: List[str] = Field(
+            description="The input image in given a list of filepaths or urls."
+        ),
+    ) -> str:
+        """Read text (if present) from the given image in given a list of filepaths or urls."""
+        instance = cls.get_instance()
+        llm = get_llm_model(instance._llm_config)
 
-    return image_text
+        inputs = []
+        try:
+            image_base64 = cls.encode_images(image_urls)
+            content = cls.create_image_contents(instance._image_ocr_prompt, image_base64)
+            inputs.append({"role": "user", "content": content})
+
+            response = llm.completion(
+                messages=inputs,
+                temperature=0,
+            )
+            image_text = handle_llm_response(response.content, "image_text")
+        except (ValueError, IOError, RuntimeError) as e:
+            logger.error(f"image_text-Execute error: {traceback.format_exc()}")
+            image_text = ""
+
+        logger.info(f"---get_text_by_ocr-image_text:{image_text}")
+
+        return image_text
+
+    @classmethod
+    def reasoning_image(
+        cls,
+        image_urls: List[str] = Field(
+            description="The input image(s) in given a list of filepaths or urls."
+        ),
+        question: str = Field(description="The question to ask."),
+    ) -> str:
+        """Solve the question by careful reasoning given the image(s) in given filepath or url."""
+        instance = cls.get_instance()
+        llm = get_llm_model(instance._llm_config)
+
+        inputs = []
+        try:
+            image_base64 = cls.encode_images(image_urls)
+            prompt = instance._image_reasoning_prompt.format(task=question)
+            content = cls.create_image_contents(prompt, image_base64)
+            inputs.append({"role": "user", "content": content})
+
+            response = llm.completion(
+                messages=inputs,
+                temperature=0,
+            )
+            reasoning_result = handle_llm_response(response.content, "image_reasoning_result")
+        except (ValueError, IOError, RuntimeError) as e:
+            logger.error(f"image_reasoning-Execute error: {traceback.format_exc()}")
+            reasoning_result = ""
+
+        logger.info(f"---reasoning_image-reasoning_result:{reasoning_result}")
+
+        return reasoning_result
 
 
-def mcpreasoningimage(
-    image_urls: List[str] = Field(
-        description="The input image(s) in given a list of filepaths or urls."
-    ),
-    question: str = Field(description="The question to ask."),
-) -> str:
-    """solve the question by careful reasoning given the image(s) in given filepath or url."""
-    llm = get_llm_model(llm_config)
-
-    inputs = []
-    try:
-        reasoning_prompt = IMAGE_REASONING.format(task=question)
-        image_base64 = encode_images(image_urls)
-        content = create_image_contents(reasoning_prompt, image_base64)
-        inputs.append({"role": "user", "content": content})
-        response = llm.completion(
-            messages=inputs,
-            temperature=0,
-        )
-        image_reasoning_result = handle_llm_response(
-            response.content, "image_reasoning_result"
-        )
-    except (ValueError, IOError, RuntimeError) as e:
-        image_reasoning_result = ""
-        logger.error(f"image_reasoning_result-Execute error: {traceback.format_exc()}")
-
-    logger.info(
-        f"---get_reasoning_by_image-image_reasoning_result:{image_reasoning_result}"
-    )
-
-    return image_reasoning_result
-
-
+# Main function
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Launch MCP servers with random port allocation"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        help=f"Listening to port. Must be specified.",
-    )
-    args = parser.parse_args()
+    port = parse_port()
+    
+    image_server = ImageServer.get_instance()
+    logger.info("ImageServer initialized and ready to handle requests")
+    
     run_mcp_server(
         "Image Server",
         funcs=[
-            # mcpocr,
-            mcpreasoningimage
+            image_server.ocr,
+            image_server.reasoning_image,
         ],
-        port=args.port,
+        port=port,
     )

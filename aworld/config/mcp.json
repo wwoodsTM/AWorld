@@ -51,6 +51,12 @@
     "orcid": {
       "url": "http://localhost:2016/sse"
     },
+    "reasoning": {
+      "url": "http://localhost:2017/sse"
+    },
+    "wayback": {
+      "url": "http://localhost:2018/sse"
+    },
     "amap-amap-sse": {
       "url": "https://mcp.amap.com/sse?key=YOUR_API_KEY",
       "timeout": 5.0,

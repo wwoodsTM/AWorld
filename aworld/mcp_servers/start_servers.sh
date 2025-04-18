@@ -20,8 +20,8 @@ python document_server.py --port 2003 &
 DOCUMENT_PID=$!
 python download_server.py --port 2004 &
 DOWNLOAD_PID=$!
-python filesystem_server.py --port 2005 &
-FILESYSTEM_PID=$!
+# python filesystem_server.py --port 2005 &
+# FILESYSTEM_PID=$!
 python github_server.py --port 2006 &
 GITHUB_PID=$!
 python googlemaps_server.py --port 2007 &
@@ -34,17 +34,21 @@ python reddit_server.py --port 2010 &
 REDDIT_PID=$!
 python search_server.py --port 2011 &
 SEARCH_PID=$!
-python sympy_server.py --port 2012 &
-SYMPY_PID=$!
+# python sympy_server.py --port 2012 &
+# SYMPY_PID=$!
 python video_server.py --port 2013 &
 VIDEO_PID=$!
-yes | npx @playwright/mcp@latest --port 2014 &
+yes | npx @playwright/mcp@latest --port 2014 --headless &
 PLAYWRIGHT_PID=$!
-python wikipedia_server.py --port 2015 &
-WIKIPEDIA_PID=$!
-python orcid_server.py --port 2016 &
-ORCID_PID=$!
+# python wikipedia_server.py --port 2015 &
+# WIKIPEDIA_PID=$!
+# python orcid_server.py --port 2016 &
+# ORCID_PID=$!
+python reasoning_server.py --port 2017 &
+REASONING_PID=$!
+# python wayback_server.py --port 2018 &
+# WAYBACK_PID=$!
 
-wait $ARXIV_PID $AUDIO_PID $CODE_PID $DOCUMENT_PID $DOWNLOAD_PID $FILESYSTEM_PID $GITHUB_PID $GOOGLEMAPS_PID $IMAGE_PID $MATH_PID $REDDIT_PID $SEARCH_PID $SYMPY_PID $VIDEO_PID $PLAYWRIGHT_PID $WIKIPEDIA_PID $ORCID_PID
+wait $ARXIV_PID $AUDIO_PID $CODE_PID $DOCUMENT_PID $DOWNLOAD_PID $GITHUB_PID $GOOGLEMAPS_PID $IMAGE_PID $MATH_PID $REDDIT_PID $SEARCH_PID $VIDEO_PID $PLAYWRIGHT_PID $REASONING_PID
 
 echo "All servers have been started."

@@ -3,17 +3,15 @@ import json
 import logging
 import os
 import traceback
-import asyncio
-
 from typing import Any, Dict, List, Tuple
 
 from mcp.types import TextContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
-from aworld.core.envs.tool import ToolActionExecutor, Tool
+from aworld.core.envs.tool import Tool, ToolActionExecutor
 from aworld.logs.util import logger
 from aworld.mcp.server import MCPServer, MCPServerSse
-from aworld.utils.common import sync_exec, find_file
+from aworld.utils.common import find_file, sync_exec
 
 
 class MCPToolExecutor(ToolActionExecutor):
@@ -30,12 +28,14 @@ class MCPToolExecutor(ToolActionExecutor):
         """Load MCP server configurations from config file."""
         try:
             # Priority given to the running path.
-            config_path = find_file(filename='mcp.json')
+            config_path = find_file(filename="mcp.json")
             if not os.path.exists(config_path):
                 # Use relative path for config file
                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                config_path = os.path.normpath(os.path.join(current_dir, "../../config/mcp.json"))
-            logger.info(f"mcp conf path: {config_path}")
+                config_path = os.path.normpath(
+                    os.path.join(current_dir, "../../config/mcp.json")
+                )
+            # logger.info(f"mcp conf path: {config_path}")
 
             with open(config_path, "r") as f:
                 config_data = json.load(f)
@@ -92,17 +92,23 @@ class MCPToolExecutor(ToolActionExecutor):
                 return server_info["instance"]
             except (asyncio.InvalidStateError, RuntimeError) as e:
                 # Connection might be closed or there's an event loop issue
-                logging.warning(f"Server '{server_name}' instance exists but has issues: {e}. Creating new instance.")
+                logging.warning(
+                    f"Server '{server_name}' instance exists but has issues: {e}. Creating new instance."
+                )
                 try:
                     # Try to clean up the existing instance
                     await server_info["instance"].cleanup()
                 except Exception as cleanup_error:
-                    logging.warning(f"Error cleaning up old server instance: {cleanup_error}")
+                    logging.warning(
+                        f"Error cleaning up old server instance: {cleanup_error}"
+                    )
 
                 # Remove existing instance reference, prepare to create a new one
                 server_info["instance"] = None
             except Exception as e:
-                logging.warning(f"Error checking server '{server_name}' availability: {e}")
+                logging.warning(
+                    f"Error checking server '{server_name}' availability: {e}"
+                )
                 # Continue using the existing instance, assuming it's still valid
                 return server_info["instance"]
 
@@ -113,12 +119,14 @@ class MCPToolExecutor(ToolActionExecutor):
                 # Create new SSE server instance
                 server_params = {
                     "url": server_info["url"],
-                    "timeout": server_info['timeout'],
-                    "sse_read_timeout": server_info['sse_read_timeout'],
-                    "headers": server_info['headers']
+                    "timeout": server_info["timeout"],
+                    "sse_read_timeout": server_info["sse_read_timeout"],
+                    "headers": server_info["headers"],
                 }
 
-                server = MCPServerSse(server_params, cache_tools_list=True, name=server_name)
+                server = MCPServerSse(
+                    server_params, cache_tools_list=True, name=server_name
+                )
             elif server_type == "stdio":
                 # Create new stdio server instance
                 server_params = {
@@ -146,12 +154,16 @@ class MCPToolExecutor(ToolActionExecutor):
                     break  # Connection successful, exit retry loop
                 except asyncio.CancelledError:
                     # When the task is cancelled, ensure resources are cleaned up
-                    logging.warning(f"Connection to server '{server_name}' was cancelled")
+                    logging.warning(
+                        f"Connection to server '{server_name}' was cancelled"
+                    )
                     await server.cleanup()
                     raise
                 except asyncio.InvalidStateError as e:
                     if retry < max_retries:
-                        logging.warning(f"Event loop issue during connection to '{server_name}'. Retrying... ({retry+1}/{max_retries})")
+                        logging.warning(
+                            f"Event loop issue during connection to '{server_name}'. Retrying... ({retry+1}/{max_retries})"
+                        )
                         # Try resetting the event loop
                         try:
                             # Create a new event loop
@@ -165,7 +177,9 @@ class MCPToolExecutor(ToolActionExecutor):
                         try:
                             await server.cleanup()
                         except Exception as cleanup_error:
-                            logging.warning(f"Error cleaning up during retry: {cleanup_error}")
+                            logging.warning(
+                                f"Error cleaning up during retry: {cleanup_error}"
+                            )
 
                         # For stdio servers, recreate the instance
                         if server_type == "stdio":
@@ -179,22 +193,30 @@ class MCPToolExecutor(ToolActionExecutor):
                             )
                     else:
                         # Maximum retries reached
-                        logging.error(f"Failed to connect to MCP server '{server_name}' after {max_retries} retries: {e}")
+                        logging.error(
+                            f"Failed to connect to MCP server '{server_name}' after {max_retries} retries: {e}"
+                        )
                         raise
                 except Exception as e:
                     if retry < max_retries:
-                        logging.warning(f"Error connecting to '{server_name}'. Retrying... ({retry+1}/{max_retries}): {e}")
+                        logging.warning(
+                            f"Error connecting to '{server_name}'. Retrying... ({retry+1}/{max_retries}): {e}"
+                        )
                         # Clean up resources from the previous attempt
                         try:
                             await server.cleanup()
                         except Exception as cleanup_error:
-                            logging.warning(f"Error cleaning up during retry: {cleanup_error}")
+                            logging.warning(
+                                f"Error cleaning up during retry: {cleanup_error}"
+                            )
 
                         # Brief delay before retrying
                         await asyncio.sleep(0.5)
                     else:
                         # Maximum retries reached
-                        logging.error(f"Failed to connect to MCP server '{server_name}' after {max_retries} retries: {e}")
+                        logging.error(
+                            f"Failed to connect to MCP server '{server_name}' after {max_retries} retries: {e}"
+                        )
                         raise
 
             server_info["instance"] = server
@@ -266,19 +288,24 @@ class MCPToolExecutor(ToolActionExecutor):
                     if result and result.content:
                         if isinstance(result.content[0], TextContent):
                             action_result = ActionResult(
-                                content=result.content[0].text,
-                                keep=True
+                                content=result.content[0].text, keep=True
                             )
                             results.append(action_result)
                 except asyncio.CancelledError:
                     # Log cancellation exception, reset server connection to avoid async context confusion
-                    logger.warning(f"Tool call to {action_name} on {server_name} was cancelled")
-                    if server_name in self.mcp_servers and self.mcp_servers[server_name].get("instance"):
+                    logger.warning(
+                        f"Tool call to {action_name} on {server_name} was cancelled"
+                    )
+                    if server_name in self.mcp_servers and self.mcp_servers[
+                        server_name
+                    ].get("instance"):
                         try:
                             await self.mcp_servers[server_name]["instance"].cleanup()
                             self.mcp_servers[server_name]["instance"] = None
                         except Exception as cleanup_error:
-                            logger.error(f"Error cleaning up server after cancellation: {cleanup_error}")
+                            logger.error(
+                                f"Error cleaning up server after cancellation: {cleanup_error}"
+                            )
                     # Re-raise exception to notify upper level caller
                     raise
                 except asyncio.InvalidStateError as e:
@@ -288,7 +315,9 @@ class MCPToolExecutor(ToolActionExecutor):
                     if server_name in self.mcp_servers:
                         try:
                             if self.mcp_servers[server_name].get("instance"):
-                                await self.mcp_servers[server_name]["instance"].cleanup()
+                                await self.mcp_servers[server_name][
+                                    "instance"
+                                ].cleanup()
                             self.mcp_servers[server_name]["instance"] = None
                             # Recreate server connection
                             server = await self._get_or_create_server(server_name)

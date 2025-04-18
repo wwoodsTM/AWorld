@@ -51,7 +51,7 @@ def get_llm_config_from_os_environ(llm_model_name="gpt-4o", **kwargs) -> AgentCo
         llm_model_name=llm_model_name,
         llm_base_url="http://localhost:3457",
         llm_api_key="dummy-key",
-        llm_temperature=0.0,
+        # llm_temperature=0.0,
     )
 
 
@@ -74,6 +74,21 @@ def run_mcp_server(
     mcp.settings.port = port
     mcp.run(transport="sse")
     return mcp
+
+
+def parse_port():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Launch MCP servers with random port allocation"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        help=f"Listening to port. Must be specified.",
+    )
+    args = parser.parse_args()
+    return args.port
 
 
 def handle_llm_response(response_content: str, result_key: str) -> str:
@@ -267,5 +282,30 @@ def get_file_from_source(
 
 
 if __name__ == "__main__":
-    mcp_tools = asyncio.run(mcp_tool_desc_transform(["search"]))
-    logger.success(f"{json.dumps(mcp_tools, indent=4, ensure_ascii=False)}")
+    from aworld.mcp_servers.search_server import SearchServer
+
+    search_server = SearchServer().get_instance()
+    result = search_server.search_google("hello world")
+    logger.success(f"{json.dumps(result, indent=4, ensure_ascii=False)}")
+    # mcp_tools = asyncio.run(
+    #     mcp_tool_desc_transform(
+    #         [
+    #             "arxiv",
+    #             "audio",
+    #             "code",
+    #             "document",
+    #             "download",
+    #             "github",
+    #             "googlemaps",
+    #             "playwright",
+    #             "image",
+    #             "math",
+    #             "reddit",
+    #             "search",
+    #             "video",
+    #             "reasoning",
+    #             "wayback",
+    #         ],
+    #     )
+    # )
+    # logger.success(f"{json.dumps(mcp_tools, indent=4, ensure_ascii=False)}")

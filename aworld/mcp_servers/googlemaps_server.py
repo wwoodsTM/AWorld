@@ -1,7 +1,7 @@
 """
 Google Maps MCP Server
 
-This module provides MCP server functionality for interacting with the Google Maps API.
+This module provides a microservice for interacting with the Google Maps API through MCP.
 It offers tools for geocoding, distance matrix calculations, directions, and place details.
 
 Key features:
@@ -11,29 +11,23 @@ Key features:
 - Access detailed place information
 
 Main functions:
-- mcpgeocode: Geocodes addresses using Google Maps API
-- mcpdistancematrix: Calculates distances and travel times
-- mcpdirections: Retrieves directions and route information
-- mcpplacedetails: Fetches detailed information about places
+- geocode: Geocodes addresses using Google Maps API
+- distance_matrix: Calculates distances and travel times
+- directions: Retrieves directions and route information
+- place_details: Fetches detailed information about places
 """
 
-import json
 import os
 import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+import googlemaps
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
-from aworld.mcp_servers.utils import run_mcp_server
+from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.utils import import_package
-
-# Import googlemaps package, install if not available
-import_package("googlemaps")
-import googlemaps
-
-API_KEY = os.environ.get("GOOGLE_MAPS_SECRET")
 
 
 # Define model classes for different Google Maps API responses
@@ -171,702 +165,733 @@ class GoogleMapsError(BaseModel):
     status: str
 
 
-def handle_error(e: Exception, error_type: str) -> str:
-    """Unified error handling and return standard format error message"""
-    error_msg = f"{error_type} error: {str(e)}"
-    logger.error(traceback.format_exc())
-
-    error = GoogleMapsError(error=error_msg, status="ERROR")
-
-    return error.model_dump_json()
-
-
-def mcpgeocode(
-    address: str = Field(description="Address or place name to geocode"),
-    language: str = Field(
-        default="en", description="Language for results (default: en)"
-    ),
-    region: Optional[str] = Field(default=None, description="Region bias (optional)"),
-) -> str:
+class GoogleMapsServer:
     """
-    Convert an address or place name to geographic coordinates (latitude and longitude).
+    Google Maps Server class for interacting with the Google Maps API.
 
-    Args:
-        address: The address or place name to geocode
-        language: Language code for results (e.g., 'en', 'zh-CN')
-        region: Region bias for results (e.g., 'us', 'cn')
-
-    Returns:
-        JSON string containing geocoding results
+    This class provides methods for geocoding, distance matrix calculations,
+    directions, and place details using the Google Maps API.
     """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
 
-        # Call geocoding API
-        geocode_result = gmaps.geocode(
-            address=address, language=language, region=region
-        )
+    _instance = None
+    _gmaps = None
+    _api_key = None
 
-        # Process results
-        results = []
-        for result in geocode_result:
-            # Extract location data
-            location = result.get("geometry", {}).get("location", {})
-            location_type = result.get("geometry", {}).get("location_type", "")
+    def __new__(cls):
+        """Implement singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super(GoogleMapsServer, cls).__new__(cls)
+            cls._instance._init_server()
+        return cls._instance
 
-            # Create result object
-            geocode_item = GeocodingResult(
-                formatted_address=result.get("formatted_address", ""),
-                place_id=result.get("place_id", ""),
-                location=location,
-                location_type=location_type,
-                types=result.get("types", []),
-                partial_match=result.get("partial_match", False),
+    def _init_server(self):
+        """Initialize the Google Maps server and client"""
+        # Import googlemaps package, install if not available
+        import_package("googlemaps")
+        self._api_key = os.environ.get("GOOGLE_MAPS_SECRET")
+        if not self._api_key:
+            logger.warning("No Google Maps API key found. API calls will fail.")
+        self._gmaps = googlemaps.Client(key=self._api_key)
+        logger.info("GoogleMapsServer initialized")
+
+    @classmethod
+    def get_instance(cls):
+        """Get the singleton instance of GoogleMapsServer"""
+        if cls._instance is None:
+            return cls()
+        return cls._instance
+
+    @staticmethod
+    def handle_error(e: Exception, error_type: str) -> str:
+        """Unified error handling and return standard format error message"""
+        error_msg = f"{error_type} error: {str(e)}"
+        logger.error(traceback.format_exc())
+
+        error = GoogleMapsError(error=error_msg, status="ERROR")
+
+        return error.model_dump_json()
+
+    @classmethod
+    def geocode(
+        cls,
+        address: str = Field(description="Address or place name to geocode"),
+        language: str = Field(
+            default="en", description="Language for results (default: en)"
+        ),
+        region: Optional[str] = Field(
+            default=None, description="Region bias (optional)"
+        ),
+    ) -> str:
+        """
+        Convert an address or place name to geographic coordinates (latitude and longitude).
+
+        Args:
+            address: The address or place name to geocode
+            language: Language code for results (e.g., 'en', 'zh-CN')
+            region: Region bias for results (e.g., 'us', 'cn')
+
+        Returns:
+            JSON string containing geocoding results
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(address, "default") and not isinstance(address, str):
+                address = address.default
+
+            if hasattr(language, "default") and not isinstance(language, str):
+                language = language.default
+
+            if (
+                hasattr(region, "default")
+                and not isinstance(region, str)
+                and region is not None
+            ):
+                region = region.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Call geocoding API
+            geocode_result = instance._gmaps.geocode(
+                address=address, language=language, region=region
             )
-            results.append(geocode_item)
 
-        # Create response
-        response = GeocodingResponse(
-            results=results, status="OK" if results else "ZERO_RESULTS"
-        )
+            # Process results
+            results = []
+            for result in geocode_result:
+                # Extract location data
+                location = result.get("geometry", {}).get("location", {})
+                location_type = result.get("geometry", {}).get("location_type", "")
 
-        return response.model_dump_json()
-
-    except Exception as e:
-        return handle_error(e, "Geocoding")
-
-
-def mcpdistancematrix(
-    origins: List[str] = Field(description="List of origin addresses or coordinates"),
-    destinations: List[str] = Field(
-        description="List of destination addresses or coordinates"
-    ),
-    mode: str = Field(
-        default="driving",
-        description="Travel mode (driving, walking, bicycling, transit)",
-    ),
-    language: str = Field(default="en", description="Language for results"),
-    units: str = Field(
-        default="metric", description="Units for distance (metric, imperial)"
-    ),
-    departure_time: Optional[str] = Field(
-        default=None,
-        description="Departure time (format: YYYY-MM-DD HH:MM:SS or 'now')",
-    ),
-    avoid: Optional[str] = Field(
-        default=None, description="Features to avoid (tolls, highways, ferries, indoor)"
-    ),
-) -> str:
-    """
-    Calculate distance and travel time between multiple origins and destinations.
-
-    Args:
-        origins: List of addresses or coordinates as origins
-        destinations: List of addresses or coordinates as destinations
-        mode: Travel mode (driving, walking, bicycling, transit)
-        language: Language code for results
-        units: Units system for distances (metric, imperial)
-        departure_time: Departure time for time-dependent calculations
-        avoid: Features to avoid in routes
-
-    Returns:
-        JSON string containing distance matrix results
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
-
-        # Process departure_time
-        departure_time_param = None
-        if departure_time:
-            if departure_time.lower() == "now":
-                departure_time_param = datetime.now()
-            else:
-                try:
-                    departure_time_param = datetime.strptime(
-                        departure_time, "%Y-%m-%d %H:%M:%S"
-                    )
-                except ValueError:
-                    logger.warning(
-                        f"Invalid departure_time format: {departure_time}. Using current time."
-                    )
-                    departure_time_param = datetime.now()
-
-        # Call distance matrix API
-        distance_result = gmaps.distance_matrix(
-            origins=origins,
-            destinations=destinations,
-            mode=mode,
-            language=language,
-            units=units,
-            departure_time=departure_time_param,
-            avoid=avoid,
-        )
-
-        # Process rows and elements
-        matrix_rows = []
-        for row in distance_result.get("rows", []):
-            elements = []
-            for element in row.get("elements", []):
-                element_obj = DistanceMatrixElement(
-                    status=element.get("status", ""),
-                    duration=element.get("duration"),
-                    distance=element.get("distance"),
-                    duration_in_traffic=element.get("duration_in_traffic"),
+                # Create result object
+                geocode_item = GeocodingResult(
+                    formatted_address=result.get("formatted_address", ""),
+                    place_id=result.get("place_id", ""),
+                    location=location,
+                    location_type=location_type,
+                    types=result.get("types", []),
+                    partial_match=result.get("partial_match", False),
                 )
-                elements.append(element_obj)
+                results.append(geocode_item)
 
-            matrix_rows.append(DistanceMatrixRow(elements=elements))
-
-        # Create response
-        response = DistanceMatrixResponse(
-            origin_addresses=distance_result.get("origin_addresses", []),
-            destination_addresses=distance_result.get("destination_addresses", []),
-            rows=matrix_rows,
-            status=distance_result.get("status", ""),
-        )
-
-        return response.model_dump_json()
-
-    except Exception as e:
-        return handle_error(e, "Distance Matrix")
-
-
-def mcpdirections(
-    origin: str = Field(description="Origin address or coordinates"),
-    destination: str = Field(description="Destination address or coordinates"),
-    mode: str = Field(
-        default="driving",
-        description="Travel mode (driving, walking, bicycling, transit)",
-    ),
-    waypoints: Optional[List[str]] = Field(
-        default=None, description="List of waypoints"
-    ),
-    alternatives: bool = Field(
-        default=False, description="Whether to return alternative routes"
-    ),
-    avoid: Optional[str] = Field(
-        default=None, description="Features to avoid (tolls, highways, ferries, indoor)"
-    ),
-    language: str = Field(default="en", description="Language for results"),
-    units: str = Field(
-        default="metric", description="Units for distance (metric, imperial)"
-    ),
-    departure_time: Optional[str] = Field(
-        default=None,
-        description="Departure time (format: YYYY-MM-DD HH:MM:SS or 'now')",
-    ),
-    optimize_waypoints: bool = Field(
-        default=False, description="Optimize the order of waypoints"
-    ),
-) -> str:
-    """
-    Get directions between an origin and destination, with optional waypoints.
-
-    Args:
-        origin: Starting point address or coordinates
-        destination: Ending point address or coordinates
-        mode: Travel mode (driving, walking, bicycling, transit)
-        waypoints: Optional list of waypoints
-        alternatives: Whether to return alternative routes
-        avoid: Features to avoid in routes
-        language: Language code for results
-        units: Units system for distances
-        departure_time: Departure time for time-dependent calculations
-        optimize_waypoints: Whether to optimize the order of waypoints
-
-    Returns:
-        JSON string containing directions results
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
-
-        # Process departure_time
-        departure_time_param = None
-        if departure_time:
-            if departure_time.lower() == "now":
-                departure_time_param = datetime.now()
-            else:
-                try:
-                    departure_time_param = datetime.strptime(
-                        departure_time, "%Y-%m-%d %H:%M:%S"
-                    )
-                except ValueError:
-                    logger.warning(
-                        f"Invalid departure_time format: {departure_time}. Using current time."
-                    )
-                    departure_time_param = datetime.now()
-
-        # Call directions API
-        directions_result = gmaps.directions(
-            origin=origin,
-            destination=destination,
-            mode=mode,
-            waypoints=waypoints,
-            alternatives=alternatives,
-            avoid=avoid,
-            language=language,
-            units=units,
-            departure_time=departure_time_param,
-            optimize_waypoints=optimize_waypoints,
-        )
-
-        # Process routes
-        routes = []
-        for route in directions_result:
-            # Process legs
-            legs = []
-            for leg in route.get("legs", []):
-                leg_obj = DirectionsLeg(
-                    start_address=leg.get("start_address", ""),
-                    end_address=leg.get("end_address", ""),
-                    distance=leg.get("distance", {}),
-                    duration=leg.get("duration", {}),
-                    steps=leg.get("steps", []),
-                )
-                legs.append(leg_obj)
-
-            # Create route object
-            route_obj = DirectionsRoute(
-                summary=route.get("summary", ""),
-                legs=legs,
-                warnings=route.get("warnings", []),
-                bounds=route.get("bounds", {"northeast": {}, "southwest": {}}),
-                copyrights=route.get("copyrights", ""),
-                overview_polyline=route.get("overview_polyline", {}),
+            # Create response
+            response = GeocodingResponse(
+                results=results,
+                status="OK" if results else "ZERO_RESULTS",
             )
-            routes.append(route_obj)
 
-        # Create response
-        response = DirectionsResponse(
-            routes=routes,
-            status="OK" if routes else "ZERO_RESULTS",
-            geocoded_waypoints=(
-                directions_result[0].get("geocoded_waypoints", [])
-                if directions_result
-                else []
-            ),
-        )
+            return response.model_dump_json()
 
-        return response.model_dump_json()
+        except Exception as e:
+            return cls.handle_error(e, "Geocoding")
 
-    except Exception as e:
-        return handle_error(e, "Directions")
+    @classmethod
+    def distance_matrix(
+        cls,
+        origins: List[str] = Field(description="List of origin addresses"),
+        destinations: List[str] = Field(description="List of destination addresses"),
+        mode: str = Field(
+            default="driving",
+            description="Travel mode (driving, walking, bicycling, transit)",
+        ),
+        language: str = Field(
+            default="en", description="Language for results (default: en)"
+        ),
+        units: str = Field(default="metric", description="Units (metric or imperial)"),
+        departure_time: Optional[str] = Field(
+            default=None,
+            description="Departure time (now or ISO datetime string)",
+        ),
+    ) -> str:
+        """
+        Calculate distance and travel time between multiple origins and destinations.
 
+        Args:
+            origins: List of origin addresses or coordinates
+            destinations: List of destination addresses or coordinates
+            mode: Travel mode (driving, walking, bicycling, transit)
+            language: Language code for results
+            units: Units system (metric or imperial)
+            departure_time: Departure time (now or ISO datetime string)
 
-def mcpplacesearch(
-    query: str = Field(description="Search query (e.g., 'restaurants in New York')"),
-    location: Optional[str] = Field(
-        default=None,
-        description="Location bias as 'lat,lng' (e.g., '40.7128,-74.0060')",
-    ),
-    radius: Optional[int] = Field(
-        default=None, description="Search radius in meters (max 50000)"
-    ),
-    language: str = Field(default="en", description="Language for results"),
-    type: Optional[str] = Field(
-        default=None, description="Place type (e.g., restaurant, cafe, park)"
-    ),
-    min_price: Optional[int] = Field(
-        default=None, description="Minimum price level (0-4)"
-    ),
-    max_price: Optional[int] = Field(
-        default=None, description="Maximum price level (0-4)"
-    ),
-    open_now: bool = Field(default=False, description="Whether place is open now"),
-) -> str:
-    """
-    Search for places based on a text query and location.
+        Returns:
+            JSON string containing distance matrix results
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(origins, "default") and not isinstance(origins, list):
+                origins = origins.default
 
-    Args:
-        query: Text search query
-        location: Location bias as 'lat,lng'
-        radius: Search radius in meters (max 50000)
-        language: Language code for results
-        type: Restricts results to places of specified type
-        min_price: Minimum price level (0-4)
-        max_price: Maximum price level (0-4)
-        open_now: Whether place is open at time of request
+            if hasattr(destinations, "default") and not isinstance(destinations, list):
+                destinations = destinations.default
 
-    Returns:
-        JSON string containing place search results
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
+            if hasattr(mode, "default") and not isinstance(mode, str):
+                mode = mode.default
 
-        # Process location parameter
-        location_param = None
-        if location:
-            try:
-                lat, lng = map(float, location.split(","))
-                location_param = (lat, lng)
-            except ValueError:
-                logger.warning(
-                    f"Invalid location format: {location}. Should be 'lat,lng'."
-                )
+            if hasattr(language, "default") and not isinstance(language, str):
+                language = language.default
 
-        # Call places API
-        places_result = gmaps.places(
-            query=query,
-            location=location_param,
-            radius=radius,
-            language=language,
-            min_price=min_price,
-            max_price=max_price,
-            open_now=open_now,
-            type=type,
-        )
+            if hasattr(units, "default") and not isinstance(units, str):
+                units = units.default
 
-        # Process results
-        results = []
-        for place in places_result.get("results", []):
-            place_obj = PlaceSearchResult(
-                place_id=place.get("place_id", ""),
-                name=place.get("name", ""),
-                geometry=place.get("geometry", {"location": {}}),
-                vicinity=place.get("vicinity", ""),
-                types=place.get("types", []),
-                rating=place.get("rating"),
-                user_ratings_total=place.get("user_ratings_total"),
-                photos=place.get("photos", []),
+            if (
+                hasattr(departure_time, "default")
+                and not isinstance(departure_time, str)
+                and departure_time is not None
+            ):
+                departure_time = departure_time.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Process departure time
+            departure_time_param = None
+            if departure_time:
+                if departure_time.lower() == "now":
+                    departure_time_param = "now"
+                else:
+                    try:
+                        dt = datetime.fromisoformat(departure_time)
+                        departure_time_param = int(dt.timestamp())
+                    except ValueError:
+                        return cls.handle_error(
+                            ValueError(
+                                "Invalid departure_time format. Use 'now' or ISO datetime string."
+                            ),
+                            "Distance Matrix",
+                        )
+
+            # Call distance matrix API
+            distance_result = instance._gmaps.distance_matrix(
+                origins=origins,
+                destinations=destinations,
+                mode=mode,
+                language=language,
+                units=units,
+                departure_time=departure_time_param,
             )
-            results.append(place_obj)
 
-        # Create response
-        response = PlaceSearchResponse(
-            results=results,
-            status=places_result.get("status", ""),
-            next_page_token=places_result.get("next_page_token"),
-        )
+            # Process rows and elements
+            rows = []
+            for row_data in distance_result.get("rows", []):
+                elements = []
+                for element_data in row_data.get("elements", []):
+                    element = DistanceMatrixElement(
+                        status=element_data.get("status", ""),
+                        duration=element_data.get("duration"),
+                        distance=element_data.get("distance"),
+                        duration_in_traffic=element_data.get("duration_in_traffic"),
+                    )
+                    elements.append(element)
+                row = DistanceMatrixRow(elements=elements)
+                rows.append(row)
 
-        return response.model_dump_json()
+            # Create response
+            response = DistanceMatrixResponse(
+                origin_addresses=distance_result.get("origin_addresses", []),
+                destination_addresses=distance_result.get("destination_addresses", []),
+                rows=rows,
+                status=distance_result.get("status", ""),
+            )
 
-    except Exception as e:
-        return handle_error(e, "Place Search")
+            return response.model_dump_json()
 
+        except Exception as e:
+            return cls.handle_error(e, "Distance Matrix")
 
-def mcpplacedetails(
-    place_id: str = Field(description="Google Place ID"),
-    language: str = Field(default="en", description="Language for results"),
-    fields: Optional[List[str]] = Field(
-        default=None, description="List of place data fields to return"
-    ),
-) -> str:
-    """
-    Get detailed information about a place using its Place ID.
+    @classmethod
+    def directions(
+        cls,
+        origin: str = Field(description="Origin address or coordinates"),
+        destination: str = Field(description="Destination address or coordinates"),
+        mode: str = Field(
+            default="driving",
+            description="Travel mode (driving, walking, bicycling, transit)",
+        ),
+        waypoints: List[str] = Field(
+            default=[], description="List of waypoint addresses (optional)"
+        ),
+        alternatives: bool = Field(
+            default=False, description="Request alternative routes"
+        ),
+        avoid: List[str] = Field(
+            default=[],
+            description="Features to avoid (tolls, highways, ferries, indoor)",
+        ),
+        language: str = Field(
+            default="en", description="Language for results (default: en)"
+        ),
+        units: str = Field(default="metric", description="Units (metric or imperial)"),
+        departure_time: Optional[str] = Field(
+            default=None,
+            description="Departure time (now or ISO datetime string)",
+        ),
+    ) -> str:
+        """
+        Get directions between an origin and destination.
 
-    Args:
-        place_id: Google Place ID
-        api_key: Your Google Maps API key
-        language: Language code for results
-        fields: List of place data fields to return
+        Args:
+            origin: Origin address or coordinates
+            destination: Destination address or coordinates
+            mode: Travel mode (driving, walking, bicycling, transit)
+            waypoints: List of waypoint addresses (optional)
+            alternatives: Request alternative routes
+            avoid: Features to avoid (tolls, highways, ferries, indoor)
+            language: Language code for results
+            units: Units system (metric or imperial)
+            departure_time: Departure time (now or ISO datetime string)
 
-    Returns:
-        JSON string containing place details
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
+        Returns:
+            JSON string containing directions results
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(origin, "default") and not isinstance(origin, str):
+                origin = origin.default
 
-        # Default fields if none provided
-        if not fields:
-            fields = [
-                "name",
-                "place_id",
-                "formatted_address",
-                "geometry",
-                "types",
-                "formatted_phone_number",
-                "website",
-                "rating",
-                "reviews",
-                "opening_hours",
-                "photos",
-            ]
+            if hasattr(destination, "default") and not isinstance(destination, str):
+                destination = destination.default
 
-        # Call place details API
-        place_result = gmaps.place(place_id=place_id, language=language, fields=fields)
+            if hasattr(mode, "default") and not isinstance(mode, str):
+                mode = mode.default
 
-        if place_result.get("status") == "OK":
-            result = place_result.get("result", {})
+            if hasattr(waypoints, "default") and not isinstance(waypoints, list):
+                waypoints = waypoints.default
+
+            if hasattr(alternatives, "default") and not isinstance(alternatives, bool):
+                alternatives = alternatives.default
+
+            if hasattr(avoid, "default") and not isinstance(avoid, list):
+                avoid = avoid.default
+
+            if hasattr(language, "default") and not isinstance(language, str):
+                language = language.default
+
+            if hasattr(units, "default") and not isinstance(units, str):
+                units = units.default
+
+            if (
+                hasattr(departure_time, "default")
+                and not isinstance(departure_time, str)
+                and departure_time is not None
+            ):
+                departure_time = departure_time.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Process departure time
+            departure_time_param = None
+            if departure_time:
+                if departure_time.lower() == "now":
+                    departure_time_param = "now"
+                else:
+                    try:
+                        dt = datetime.fromisoformat(departure_time)
+                        departure_time_param = int(dt.timestamp())
+                    except ValueError:
+                        return cls.handle_error(
+                            ValueError(
+                                "Invalid departure_time format. Use 'now' or ISO datetime string."
+                            ),
+                            "Directions",
+                        )
+
+            # Process avoid parameter
+            avoid_param = "|".join(avoid) if avoid else None
+
+            # Call directions API
+            directions_result = instance._gmaps.directions(
+                origin=origin,
+                destination=destination,
+                mode=mode,
+                waypoints=waypoints if waypoints else None,
+                alternatives=alternatives,
+                avoid=avoid_param,
+                language=language,
+                units=units,
+                departure_time=departure_time_param,
+            )
+
+            # Process routes
+            routes = []
+            for route_data in directions_result:
+                # Process legs
+                legs = []
+                for leg_data in route_data.get("legs", []):
+                    leg = DirectionsLeg(
+                        start_address=leg_data.get("start_address", ""),
+                        end_address=leg_data.get("end_address", ""),
+                        distance=leg_data.get("distance", {}),
+                        duration=leg_data.get("duration", {}),
+                        steps=leg_data.get("steps", []),
+                    )
+                    legs.append(leg)
+
+                # Create route object
+                route = DirectionsRoute(
+                    summary=route_data.get("summary", ""),
+                    legs=legs,
+                    warnings=route_data.get("warnings", []),
+                    bounds=route_data.get("bounds", {}),
+                    copyrights=route_data.get("copyrights", ""),
+                    overview_polyline=route_data.get("overview_polyline", {}),
+                )
+                routes.append(route)
+
+            # Create response
+            response = DirectionsResponse(
+                routes=routes,
+                status="OK" if routes else "ZERO_RESULTS",
+                geocoded_waypoints=(
+                    directions_result[0].get("geocoded_waypoints", [])
+                    if directions_result
+                    else []
+                ),
+            )
+
+            return response.model_dump_json()
+
+        except Exception as e:
+            return cls.handle_error(e, "Directions")
+
+    @classmethod
+    def place_details(
+        cls,
+        place_id: str = Field(description="Google Place ID"),
+        language: str = Field(
+            default="en", description="Language for results (default: en)"
+        ),
+        fields: List[str] = Field(
+            default=[],
+            description="Fields to include in the response (optional)",
+        ),
+    ) -> str:
+        """
+        Get detailed information about a place using its Place ID.
+
+        Args:
+            place_id: Google Place ID
+            language: Language code for results
+            fields: List of fields to include in the response
+
+        Returns:
+            JSON string containing place details
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(place_id, "default") and not isinstance(place_id, str):
+                place_id = place_id.default
+
+            if hasattr(language, "default") and not isinstance(language, str):
+                language = language.default
+
+            if hasattr(fields, "default") and not isinstance(fields, list):
+                fields = fields.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Call place details API
+            place_result = instance._gmaps.place(
+                place_id=place_id,
+                language=language,
+                fields=fields if fields else None,
+            )
+
+            # Extract place data
+            place_data = place_result.get("result", {})
 
             # Create place details object
             place_details = PlaceDetails(
-                place_id=result.get("place_id", ""),
-                name=result.get("name", ""),
-                formatted_address=result.get("formatted_address"),
-                formatted_phone_number=result.get("formatted_phone_number"),
-                geometry=result.get("geometry"),
-                rating=result.get("rating"),
-                types=result.get("types"),
-                website=result.get("website"),
-                opening_hours=result.get("opening_hours"),
-                photos=result.get("photos"),
+                place_id=place_data.get("place_id", ""),
+                name=place_data.get("name", ""),
+                formatted_address=place_data.get("formatted_address"),
+                formatted_phone_number=place_data.get("formatted_phone_number"),
+                geometry=place_data.get("geometry"),
+                rating=place_data.get("rating"),
+                types=place_data.get("types"),
+                website=place_data.get("website"),
+                opening_hours=place_data.get("opening_hours"),
+                photos=place_data.get("photos"),
+                reviews=place_data.get("reviews"),
             )
 
             return place_details.model_dump_json()
-        else:
-            # Return error if place not found
-            error = GoogleMapsError(
-                error=f"Place not found or API error: {place_result.get('status')}",
-                status=place_result.get("status", "ERROR"),
-            )
-            return error.model_dump_json()
 
-    except Exception as e:
-        return handle_error(e, "Place Details")
+        except Exception as e:
+            return cls.handle_error(e, "Place Details")
 
+    @classmethod
+    def place_search(
+        cls,
+        query: str = Field(description="Search query"),
+        location: Optional[str] = Field(
+            default=None, description="Location (lat,lng) to search around"
+        ),
+        radius: int = Field(
+            default=1000, description="Search radius in meters (max 50000)"
+        ),
+        language: str = Field(
+            default="en", description="Language for results (default: en)"
+        ),
+        type: Optional[str] = Field(
+            default=None, description="Place type (e.g., restaurant, cafe)"
+        ),
+        min_price: int = Field(default=0, description="Minimum price level (0-4)"),
+        max_price: int = Field(default=4, description="Maximum price level (0-4)"),
+        open_now: bool = Field(
+            default=False, description="Only return places that are open now"
+        ),
+    ) -> str:
+        """
+        Search for places based on a text query and/or location.
 
-def mcptimezone(
-    location: str = Field(
-        description="Location as 'lat,lng' (e.g., '40.7128,-74.0060')"
-    ),
-    timestamp: Optional[str] = Field(
-        default=None, description="Timestamp (format: YYYY-MM-DD HH:MM:SS or 'now')"
-    ),
-) -> str:
-    """
-    Get timezone information for a location.
+        Args:
+            query: Search query
+            location: Location (lat,lng) to search around
+            radius: Search radius in meters (max 50000)
+            language: Language code for results
+            type: Place type (e.g., restaurant, cafe)
+            min_price: Minimum price level (0-4)
+            max_price: Maximum price level (0-4)
+            open_now: Only return places that are open now
 
-    Args:
-        location: Location as 'lat,lng'
-        timestamp: Timestamp for timezone calculation
-
-    Returns:
-        JSON string containing timezone information
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
-
-        # Process location parameter
+        Returns:
+            JSON string containing place search results
+        """
         try:
-            lat, lng = map(float, location.split(","))
-        except ValueError:
-            return handle_error(
-                ValueError("Invalid location format. Should be 'lat,lng'."), "Timezone"
-            )
+            # Handle Field objects if they're passed directly
+            if hasattr(query, "default") and not isinstance(query, str):
+                query = query.default
 
-        # Process timestamp
-        timestamp_param = None
-        if timestamp:
-            if timestamp.lower() == "now":
-                timestamp_param = int(datetime.now().timestamp())
-            else:
+            if (
+                hasattr(location, "default")
+                and not isinstance(location, str)
+                and location is not None
+            ):
+                location = location.default
+
+            if hasattr(radius, "default") and not isinstance(radius, int):
+                radius = radius.default
+
+            if hasattr(language, "default") and not isinstance(language, str):
+                language = language.default
+
+            if (
+                hasattr(type, "default")
+                and not isinstance(type, str)
+                and type is not None
+            ):
+                type = type.default
+
+            if hasattr(min_price, "default") and not isinstance(min_price, int):
+                min_price = min_price.default
+
+            if hasattr(max_price, "default") and not isinstance(max_price, int):
+                max_price = max_price.default
+
+            if hasattr(open_now, "default") and not isinstance(open_now, bool):
+                open_now = open_now.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Process location parameter
+            location_param = None
+            if location:
                 try:
-                    dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-                    timestamp_param = int(dt.timestamp())
+                    lat, lng = map(float, location.split(","))
+                    location_param = (lat, lng)
                 except ValueError:
-                    logger.warning(
-                        f"Invalid timestamp format: {timestamp}. Using current time."
+                    return cls.handle_error(
+                        ValueError("Invalid location format. Use 'lat,lng'."),
+                        "Place Search",
                     )
-                    timestamp_param = int(datetime.now().timestamp())
-        else:
-            timestamp_param = int(datetime.now().timestamp())
 
-        # Call timezone API
-        timezone_result = gmaps.timezone(location=(lat, lng), timestamp=timestamp_param)
+            # Call places API
+            if location_param:
+                # Nearby search
+                search_result = instance._gmaps.places_nearby(
+                    location=location_param,
+                    radius=radius,
+                    keyword=query,
+                    language=language,
+                    type=type,
+                    min_price=min_price,
+                    max_price=max_price,
+                    open_now=open_now,
+                )
+            else:
+                # Text search
+                search_result = instance._gmaps.places(
+                    query=query,
+                    language=language,
+                    type=type,
+                    min_price=min_price,
+                    max_price=max_price,
+                    open_now=open_now,
+                )
 
-        # Return the result directly as it's already a simple structure
-        return json.dumps(timezone_result)
+            # Process results
+            results = []
+            for place_data in search_result.get("results", []):
+                place = PlaceSearchResult(
+                    place_id=place_data.get("place_id", ""),
+                    name=place_data.get("name", ""),
+                    geometry=place_data.get("geometry", {}),
+                    vicinity=place_data.get("vicinity"),
+                    types=place_data.get("types", []),
+                    rating=place_data.get("rating"),
+                    user_ratings_total=place_data.get("user_ratings_total"),
+                    photos=place_data.get("photos"),
+                )
+                results.append(place)
 
-    except Exception as e:
-        return handle_error(e, "Timezone")
+            # Create response
+            response = PlaceSearchResponse(
+                results=results,
+                status=search_result.get("status", ""),
+                next_page_token=search_result.get("next_page_token"),
+            )
 
+            return response.model_dump_json()
 
-def mcpelevation(
-    locations: List[str] = Field(description="List of locations as 'lat,lng'"),
-) -> str:
-    """
-    Get elevation data for locations.
+        except Exception as e:
+            return cls.handle_error(e, "Place Search")
 
-    Args:
-        locations: List of locations as 'lat,lng'
-        api_key: Your Google Maps API key
+    @classmethod
+    def get_latlng(
+        cls,
+        address: str = Field(description="Address to convert to coordinates"),
+    ) -> str:
+        """
+        Convert an address to latitude and longitude coordinates.
 
-    Returns:
-        JSON string containing elevation data
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
+        Args:
+            address: The address to convert
 
-        # Process locations
-        locations_param = []
-        for loc in locations:
-            try:
-                lat, lng = map(float, loc.split(","))
-                locations_param.append((lat, lng))
-            except ValueError:
-                logger.warning(f"Invalid location format: {loc}. Skipping.")
+        Returns:
+            JSON string containing latitude and longitude
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(address, "default") and not isinstance(address, str):
+                address = address.default
 
-        if not locations_param:
-            return handle_error(ValueError("No valid locations provided."), "Elevation")
+            # Get the singleton instance
+            instance = cls.get_instance()
 
-        # Call elevation API
-        elevation_result = gmaps.elevation(locations=locations_param)
+            # Call geocoding API
+            geocode_result = instance._gmaps.geocode(address=address)
 
-        # Return the result directly
-        return json.dumps(elevation_result)
+            # Extract coordinates
+            if geocode_result:
+                location = geocode_result[0].get("geometry", {}).get("location", {})
+                lat = location.get("lat")
+                lng = location.get("lng")
 
-    except Exception as e:
-        return handle_error(e, "Elevation")
+                if lat is not None and lng is not None:
+                    result = LatLngResult(
+                        address=address,
+                        latitude=lat,
+                        longitude=lng,
+                        status="OK",
+                    )
+                    return result.model_dump_json()
 
-
-def mcpgetlatlng(
-    address: str = Field(description="Address to convert to latitude and longitude"),
-    language: str = Field(default="en", description="Language for results"),
-    region: Optional[str] = Field(
-        default=None, description="Region bias (e.g., 'us', 'cn')"
-    ),
-) -> str:
-    """
-    Get latitude and longitude coordinates for a given address.
-
-    Args:
-        address: The address to convert to coordinates
-        language: Language code for results
-        region: Region bias for results
-
-    Returns:
-        JSON string containing latitude and longitude
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
-
-        # Call geocoding API
-        geocode_result = gmaps.geocode(
-            address=address, language=language, region=region
-        )
-
-        if geocode_result and len(geocode_result) > 0:
-            # Extract location data from first result
-            location = geocode_result[0].get("geometry", {}).get("location", {})
-
-            # Create result object
+            # No results found
             result = LatLngResult(
-                address=geocode_result[0].get("formatted_address", address),
-                latitude=location.get("lat", 0.0),
-                longitude=location.get("lng", 0.0),
-                status="OK",
-            )
-
-            return result.model_dump_json()
-        else:
-            # Return error if no results
-            return GoogleMapsError(
-                error="No results found for the given address", status="ZERO_RESULTS"
-            ).model_dump_json()
-
-    except Exception as e:
-        return handle_error(e, "Get LatLng")
-
-
-def mcpgetpostcode(
-    address: str = Field(
-        description="Address or 'lat,lng' coordinates to get postcode for"
-    ),
-    language: str = Field(default="en", description="Language for results"),
-) -> str:
-    """
-    Get postal code (zip code) for a given address or coordinates.
-
-    Args:
-        address: Address or 'lat,lng' coordinates
-        language: Language code for results
-
-    Returns:
-        JSON string containing postal code information
-    """
-    try:
-        # Initialize Google Maps client
-        gmaps = googlemaps.Client(key=API_KEY)
-
-        # Check if input is coordinates
-        is_coords = False
-        location_param = None
-
-        if "," in address:
-            try:
-                lat, lng = map(float, address.split(","))
-                location_param = (lat, lng)
-                is_coords = True
-            except ValueError:
-                # Not valid coordinates, treat as address
-                pass
-
-        # Call geocoding API
-        if is_coords:
-            geocode_result = gmaps.reverse_geocode(
-                location_param, language=language, result_type=["postal_code"]
-            )
-        else:
-            geocode_result = gmaps.geocode(
-                address=address, language=language, components={"postal_code": ""}
-            )
-
-        if geocode_result and len(geocode_result) > 0:
-            # Extract postal code from address components
-            postal_code = ""
-            country = ""
-            country_code = ""
-
-            for component in geocode_result[0].get("address_components", []):
-                if "postal_code" in component.get("types", []):
-                    postal_code = component.get("long_name", "")
-                if "country" in component.get("types", []):
-                    country = component.get("long_name", "")
-                    country_code = component.get("short_name", "")
-
-            # Create result object
-            result = PostcodeResult(
-                address=geocode_result[0].get("formatted_address", address),
-                postcode=postal_code,
-                country=country,
-                country_code=country_code,
-                status="OK" if postal_code else "NOT_FOUND",
-            )
-
-            return result.model_dump_json()
-        else:
-            # Return error if no results
-            return GoogleMapsError(
-                error="No postal code found for the given address",
+                address=address,
+                latitude=0.0,
+                longitude=0.0,
                 status="ZERO_RESULTS",
-            ).model_dump_json()
+            )
+            return result.model_dump_json()
 
-    except Exception as e:
-        return handle_error(e, "Get Postcode")
+        except Exception as e:
+            return cls.handle_error(e, "Get LatLng")
+
+    @classmethod
+    def get_postcode(
+        cls,
+        address: str = Field(description="Address to extract postcode from"),
+    ) -> str:
+        """
+        Extract postcode (zip code) from an address.
+
+        Args:
+            address: The address to extract postcode from
+
+        Returns:
+            JSON string containing postcode information
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(address, "default") and not isinstance(address, str):
+                address = address.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+
+            # Call geocoding API
+            geocode_result = instance._gmaps.geocode(address=address)
+
+            # Extract postcode
+            postcode = None
+            country = None
+            country_code = None
+
+            if geocode_result:
+                # Look for postal code in address components
+                for component in geocode_result[0].get("address_components", []):
+                    if "postal_code" in component.get("types", []):
+                        postcode = component.get("long_name")
+                    if "country" in component.get("types", []):
+                        country = component.get("long_name")
+                        country_code = component.get("short_name")
+
+            # Create result
+            if postcode:
+                result = PostcodeResult(
+                    address=address,
+                    postcode=postcode,
+                    country=country,
+                    country_code=country_code,
+                    status="OK",
+                )
+            else:
+                result = PostcodeResult(
+                    address=address,
+                    postcode="",
+                    country=country,
+                    country_code=country_code,
+                    status="NOT_FOUND",
+                )
+
+            return result.model_dump_json()
+
+        except Exception as e:
+            return cls.handle_error(e, "Get Postcode")
 
 
+# Main function
 if __name__ == "__main__":
-    import argparse
+    port = parse_port()
 
-    parser = argparse.ArgumentParser(
-        description="Launch MCP servers with random port allocation"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        help=f"Listening to port. Must be specified.",
-    )
-    args = parser.parse_args()
+    google_maps_server = GoogleMapsServer.get_instance()
+    logger.info("GoogleMapsServer initialized and ready to handle requests")
+
     run_mcp_server(
         "Google Maps Server",
         funcs=[
-            mcpgeocode,
-            mcpdistancematrix,
-            mcpdirections,
-            mcpplacesearch,
-            mcpplacedetails,
-            mcptimezone,
-            mcpelevation,
-            mcpgetlatlng,
-            mcpgetpostcode,
+            google_maps_server.geocode,
+            google_maps_server.distance_matrix,
+            google_maps_server.directions,
+            google_maps_server.place_details,
+            google_maps_server.place_search,
+            google_maps_server.get_latlng,
+            google_maps_server.get_postcode,
         ],
-        port=args.port,
+        port=port,
     )

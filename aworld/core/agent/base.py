@@ -74,8 +74,12 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         else:
             logger.warning(f"Unknown conf type: {type(conf)}")
 
-        self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
-        self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get('desc', '')
+        self._name = kwargs.pop(
+            "name", self.conf.get("name", convert_to_snake(self.__class__.__name__))
+        )
+        self._desc = (
+            kwargs.pop("desc") if kwargs.get("desc") else self.conf.get("desc", "")
+        )
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
@@ -184,13 +188,20 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             else conf.output_prompt
         )
 
-        self.need_reset = kwargs.get('need_reset') if kwargs.get('need_reset') else conf.need_reset
+        self.need_reset = (
+            kwargs.get("need_reset") if kwargs.get("need_reset") else conf.need_reset
+        )
         # whether to keep contextual information, False means keep, True means reset in every step by the agent call
-        self.step_reset = kwargs.get('step_reset') if kwargs.get('step_reset') else True
+        self.step_reset = kwargs.get("step_reset") if kwargs.get("step_reset") else True
         # tool_name: [tool_action1, tool_action2, ...]
-        self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
-            "black_tool_actions") else self.conf.get('black_tool_actions', {})
-        self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
+        self.black_tool_actions: Dict[str, List[str]] = (
+            kwargs.get("black_tool_actions")
+            if kwargs.get("black_tool_actions")
+            else self.conf.get("black_tool_actions", {})
+        )
+        self.resp_parse_func = (
+            resp_parse_func if resp_parse_func else self.response_parse
+        )
         self.executor = executor if executor else agent_executor
         agent_executor.register(self.name(), self)
 
@@ -203,15 +214,27 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         # lazy
         if self._llm is None:
             llm_config = self.conf.llm_config or None
-            conf = llm_config if llm_config and (llm_config.llm_provider or llm_config.llm_base_url or llm_config.llm_api_key or llm_config.llm_model_name) else self.conf
+            conf = (
+                llm_config
+                if llm_config
+                and (
+                    llm_config.llm_provider
+                    or llm_config.llm_base_url
+                    or llm_config.llm_api_key
+                    or llm_config.llm_model_name
+                )
+                else self.conf
+            )
             self._llm = get_llm_model(conf)
         return self._llm
 
     def env_tool(self):
         """Description of agent as tool."""
-        return tool_desc_transform(get_tool_desc(),
-                                   tools=self.tool_names if self.tool_names else [],
-                                   black_tool_actions=self.black_tool_actions)
+        return tool_desc_transform(
+            get_tool_desc(),
+            tools=self.tool_names if self.tool_names else [],
+            black_tool_actions=self.black_tool_actions,
+        )
 
     def handoffs_agent_as_tool(self):
         """Description of agent as tool."""
@@ -289,7 +312,13 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             for history in histories:
                 messages.append(history.message)
                 if history.tool_calls:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.tool_calls[0]]})
+                    messages.append(
+                        {
+                            "role": "assistant",
+                            "content": "",
+                            "tool_calls": [history.tool_calls[0]],
+                        }
+                    )
                 else:
                     messages.append({"role": "assistant", "content": history.content})
 
@@ -316,7 +345,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             return AgentResult(actions=[], current_state=None)
 
         is_call_tool = False
-        content = '' if resp.content is None else resp.content
+        content = "" if resp.content is None else resp.content
         if resp.tool_calls:
             is_call_tool = True
             for tool_call in resp.tool_calls:
@@ -329,16 +358,26 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 names = full_name.split("__")
                 tool_name = names[0]
                 if is_agent_by_name(tool_name):
-                    param_info = params.get('content', "") + ' ' + params.get('info', '')
-                    results.append(ActionModel(agent_name=tool_name,
-                                               params=params,
-                                               policy_info=content + param_info))
+                    param_info = (
+                        params.get("content", "") + " " + params.get("info", "")
+                    )
+                    results.append(
+                        ActionModel(
+                            agent_name=tool_name,
+                            params=params,
+                            policy_info=content + param_info,
+                        )
+                    )
                 else:
-                    action_name = '__'.join(names[1:]) if len(names) > 1 else ''
-                    results.append(ActionModel(tool_name=tool_name,
-                                               action_name=action_name,
-                                               params=params,
-                                               policy_info=content))
+                    action_name = "__".join(names[1:]) if len(names) > 1 else ""
+                    results.append(
+                        ActionModel(
+                            tool_name=tool_name,
+                            action_name=action_name,
+                            params=params,
+                            policy_info=content,
+                        )
+                    )
         else:
             if content:
                 content = content.replace("```json", "").replace("```", "")
@@ -464,56 +503,63 @@ class AgentExecutor(object):
         """Log the sequence of messages for debugging purposes"""
         logger.info(f"[agent] Invoking LLM with {len(messages)} messages:")
         for i, msg in enumerate(messages):
-            prefix = msg.get('role')
-            logger.info(f"[agent] Message {i + 1}: {prefix} ===================================")
-            if isinstance(msg['content'], list):
-                for item in msg['content']:
-                    if item.get('type') == 'text':
+            prefix = msg.get("role")
+            logger.info(
+                f"[agent] Message {i + 1}: {prefix} ==================================="
+            )
+            if isinstance(msg["content"], list):
+                for item in msg["content"]:
+                    if item.get("type") == "text":
                         logger.info(f"[agent] Text content: {item.get('text')}")
-                    elif item.get('type') == 'image_url':
-                        image_url = item.get('image_url', {}).get('url', '')
-                        if image_url.startswith('data:image'):
+                    elif item.get("type") == "image_url":
+                        image_url = item.get("image_url", {}).get("url", "")
+                        if image_url.startswith("data:image"):
                             logger.info(f"[agent] Image: [Base64 image data]")
                         else:
                             logger.info(f"[agent] Image URL: {image_url[:30]}...")
             else:
-                content = str(msg['content'])
+                content = str(msg["content"])
                 chunk_size = 500
                 for j in range(0, len(content), chunk_size):
-                    chunk = content[j:j + chunk_size]
+                    chunk = content[j : j + chunk_size]
                     if j == 0:
                         logger.info(f"[agent] Content: {chunk}")
                     else:
                         logger.info(f"[agent] Content (continued): {chunk}")
 
-            if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                for tool_call in msg.get('tool_calls'):
-                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
-                    args = str(tool_call.get('args', {}))[:1000]
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tool_call in msg.get("tool_calls"):
+                    logger.info(
+                        f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}"
+                    )
+                    args = str(tool_call.get("args", {}))[:1000]
                     logger.info(f"[agent] Tool args: {args}...")
 
-    def execute_agent(self,
-                      observation: Observation,
-                      agent: Agent,
-                      **kwargs) -> List[ActionModel]:
+    def execute_agent(
+        self, observation: Observation, agent: Agent, **kwargs
+    ) -> List[ActionModel]:
         """The synchronous execution process of the agent with some hooks.
 
         Args:
             observation: Observation source from a tool or an agent.
             agent: The special agent instance.
         """
-        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
+        agent = self._get_or_create_agent(
+            observation.to_agent_name, agent, kwargs.get("conf")
+        )
         agent._finished = False
-        if is_abstract_method(agent, 'policy'):
+        if is_abstract_method(agent, "policy"):
             agent.desc_transform()
             images = observation.images if agent.conf.use_vision else None
             if agent.conf.use_vision and not images and observation.image:
                 images = [observation.image]
-            messages = agent.messages_transform(content=observation.content,
-                                                image_urls=images,
-                                                sys_prompt=agent.system_prompt,
-                                                agent_prompt=agent.agent_prompt,
-                                                output_prompt=agent.output_prompt)
+            messages = agent.messages_transform(
+                content=observation.content,
+                image_urls=images,
+                sys_prompt=agent.system_prompt,
+                agent_prompt=agent.agent_prompt,
+                output_prompt=agent.output_prompt,
+            )
 
             self._log_messages(messages)
 
@@ -567,9 +613,11 @@ class AgentExecutor(object):
             observation: Observation source from a tool or an agent.
             agent: The special agent instance.
         """
-        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
+        agent = self._get_or_create_agent(
+            observation.to_agent_name, agent, kwargs.get("conf")
+        )
         agent._finished = False
-        if is_abstract_method(agent, 'async_policy'):
+        if is_abstract_method(agent, "async_policy"):
             await agent.async_desc_transform()
             images = observation.images
             if not images and observation.image:

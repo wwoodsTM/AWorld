@@ -26,219 +26,322 @@ from aworld.mcp_servers.utils import (
     get_file_from_source,
     get_llm_config_from_os_environ,
     handle_llm_response,
+    parse_port,
     run_mcp_server,
 )
 from aworld.models.llm import get_llm_model
 
-llm_config = get_llm_config_from_os_environ(
-    llm_model_name="gpt-4o", server_name="Video Server"
-)
 
-VIDEO_ANALYZE = (
-    "Input is a sequence of video frames. Given user's task: {task}, "
-    "analyze the video content following these steps:\n"
-    "1. Temporal sequence understanding\n"
-    "2. Motion and action analysis\n"
-    "3. Scene context interpretation\n"
-    "4. Object and person tracking\n"
-    "Return a json string with the following format: "
-    '{{"video_analysis_result": "analysis result given task and video frames"}}'
-)
-
-VIDEO_EXTRACT_SUBTITLES = (
-    "Input is a sequence of video frames. "
-    "Extract all subtitles (if present) in the video. "
-    "Return a json string with the following format: "
-    '{{"video_subtitles": "extracted subtitles from video"}}'
-)
-
-VIDEO_SUMMARIZE = (
-    "Input is a sequence of video frames. "
-    "Summarize the main content of the video. "
-    "Include key points, main topics, and important visual elements. "
-    "Return a json string with the following format: "
-    '{{"video_summary": "concise summary of the video content"}}'
-)
-
-
-def get_video_frames(video_source: str, sample_rate: int = 2) -> List[Dict[str, Any]]:
+class VideoServer:
     """
-    Get frames from video with given sample rate using robust file handling
+    Video Server class for processing and analyzing video content.
 
-    Args:
-        video_source: Path or URL to the video file
-        sample_rate: Number of frames to sample per second
-
-    Returns:
-        List[Dict[str, Any]]: List of dictionaries containing frame data and timestamp
-
-    Raises:
-        ValueError: When video file cannot be opened or is not a valid video
+    This class provides methods for extracting frames from videos, analyzing content,
+    extracting subtitles, and summarizing video content.
     """
-    try:
-        # Get file with validation (only video files allowed)
-        file_path, _, _ = get_file_from_source(
-            video_source,
-            allowed_mime_prefixes=["video/"],
-            max_size_mb=100.0,  # 100MB limit for videos
+
+    _instance = None
+    _llm_config = None
+
+    def __new__(cls):
+        """Implement singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super(VideoServer, cls).__new__(cls)
+            cls._instance._init_server()
+        return cls._instance
+
+    def _init_server(self):
+        """Initialize the Video server and configuration"""
+        self._llm_config = get_llm_config_from_os_environ(
+            llm_model_name="gpt-4o", server_name="Video Server"
         )
 
-        # Open video file
-        video = cv2.VideoCapture(file_path)
-        if not video.isOpened():
-            raise ValueError(f"Could not open video file: {file_path}")
-
-        fps = video.get(cv2.CAP_PROP_FPS)
-        frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        frames = []
-
-        # Calculate frame interval based on sample rate
-        frame_interval = max(1, int(fps / sample_rate))
-
-        for i in range(0, frame_count, frame_interval):
-            video.set(cv2.CAP_PROP_POS_FRAMES, i)
-            ret, frame = video.read()
-            if not ret:
-                break
-
-            # Convert frame to JPEG format
-            _, buffer = cv2.imencode(".jpg", frame)
-            frame_data = base64.b64encode(buffer).decode("utf-8")
-
-            # Add data URL prefix for JPEG image
-            frame_data = f"data:image/jpeg;base64,{frame_data}"
-
-            frames.append({"data": frame_data, "time": i / fps})
-
-        video.release()
-
-        # Clean up temporary file if it was created for a URL
-        if file_path != os.path.abspath(video_source) and os.path.exists(file_path):
-            os.unlink(file_path)
-
-        if not frames:
-            raise ValueError(f"Could not extract any frames from video: {video_source}")
-
-        return frames
-
-    except Exception as e:
-        logger.error(f"Error extracting frames from {video_source}: {str(e)}")
-        raise
-
-
-def create_video_content(
-    prompt: str, video_frames: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
-    """Create uniform video format for querying llm."""
-    content = [{"type": "text", "text": prompt}]
-    content.extend(
-        [
-            {"type": "image_url", "image_url": {"url": frame["data"]}}
-            for frame in video_frames
-        ]
-    )
-    return content
-
-
-def mcpanalyzevideo(
-    video_url: str = Field(description="The input video in given filepath or url."),
-    question: str = Field(description="The question to analyze."),
-    sample_rate: int = Field(default=2, description="Sample n frames per second."),
-) -> str:
-    """analyze the video content by the given question."""
-    llm = get_llm_model(llm_config)
-
-    inputs = []
-    try:
-        video_frames = get_video_frames(video_url, sample_rate)
-        content = create_video_content(
-            VIDEO_ANALYZE.format(task=question), video_frames
+        # Initialize prompt templates
+        self._video_analyze = (
+            "input is a sequence of video frames. given user's task: {task}, "
+            "analyze the video content following these steps:\n"
+            "1. temporal sequence understanding\n"
+            "2. motion and action analysis\n"
+            "3. scene context interpretation\n"
+            "4. object and person tracking\n"
+            "return a json string with the following format: "
+            '{{"video_analysis_result": "analysis result given task and video frames"}}'
         )
-        inputs.append({"role": "user", "content": content})
 
-        response = llm.completion(
-            messages=inputs,
-            temperature=0,
+        self._video_extract_subtitles = (
+            "input is a sequence of video frames. "
+            "extract all subtitles (if present) in the video. "
+            "return a json string with the following format: "
+            '{{"video_subtitles": "extracted subtitles from video"}}'
         )
-        video_analysis_result = handle_llm_response(
-            response.content, "video_analysis_result"
+
+        self._video_summarize = (
+            "input is a sequence of video frames. "
+            "summarize the main content of the video. "
+            "include key points, main topics, and important visual elements. "
+            "return a json string with the following format: "
+            '{{"video_summary": "concise summary of the video content"}}'
         )
-    except (ValueError, IOError, RuntimeError) as e:
-        video_analysis_result = ""
-        logger.error(f"video_analysis-Execute error: {traceback.format_exc()}")
 
-    logger.info(
-        f"---get_analysis_by_video-video_analysis_result:{video_analysis_result}"
-    )
-    return video_analysis_result
+        logger.info("VideoServer initialized")
 
+    @classmethod
+    def get_instance(cls):
+        """Get the singleton instance of VideoServer"""
+        if cls._instance is None:
+            return cls()
+        return cls._instance
 
-def mcpextractvideosubtitles(
-    video_url: str = Field(description="The input video in given filepath or url."),
-    sample_rate: int = Field(default=2, description="Sample n frames per second."),
-) -> str:
-    """extract subtitles from the video."""
-    llm = get_llm_model(llm_config)
+    @staticmethod
+    def handle_error(e: Exception, operation_type: str) -> str:
+        """Unified error handling and return standard format error message"""
+        error_msg = f"{operation_type} error: {str(e)}"
+        logger.error(f"{operation_type} operation failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f'{{"error": "{error_msg}"}}'
 
-    inputs = []
-    try:
-        video_frames = get_video_frames(video_url, sample_rate)
-        content = create_video_content(VIDEO_EXTRACT_SUBTITLES, video_frames)
-        inputs.append({"role": "user", "content": content})
+    @staticmethod
+    def get_video_frames(
+        video_source: str, sample_rate: int = 2
+    ) -> List[Dict[str, Any]]:
+        """
+        Get frames from video with given sample rate using robust file handling
 
-        response = llm.completion(
-            messages=inputs,
-            temperature=0,
+        Args:
+            video_source: Path or URL to the video file
+            sample_rate: Number of frames to sample per second
+
+        Returns:
+            List[Dict[str, Any]]: List of dictionaries containing frame data and timestamp
+
+        Raises:
+            ValueError: When video file cannot be opened or is not a valid video
+        """
+        try:
+            # Get file with validation (only video files allowed)
+            file_path, _, _ = get_file_from_source(
+                video_source,
+                allowed_mime_prefixes=["video/"],
+                max_size_mb=100.0,  # 100MB limit for videos
+            )
+
+            # Open video file
+            video = cv2.VideoCapture(file_path)
+            if not video.isOpened():
+                raise ValueError(f"Could not open video file: {file_path}")
+
+            fps = video.get(cv2.CAP_PROP_FPS)
+            frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+            frames = []
+
+            # Calculate frame interval based on sample rate
+            frame_interval = max(1, int(fps / sample_rate))
+
+            for i in range(0, frame_count, frame_interval):
+                video.set(cv2.CAP_PROP_POS_FRAMES, i)
+                ret, frame = video.read()
+                if not ret:
+                    break
+
+                # Convert frame to JPEG format
+                _, buffer = cv2.imencode(".jpg", frame)
+                frame_data = base64.b64encode(buffer).decode("utf-8")
+
+                # Add data URL prefix for JPEG image
+                frame_data = f"data:image/jpeg;base64,{frame_data}"
+
+                frames.append({"data": frame_data, "time": i / fps})
+
+            video.release()
+
+            # Clean up temporary file if it was created for a URL
+            if file_path != os.path.abspath(video_source) and os.path.exists(file_path):
+                os.unlink(file_path)
+
+            if not frames:
+                raise ValueError(
+                    f"Could not extract any frames from video: {video_source}"
+                )
+
+            return frames
+
+        except Exception as e:
+            logger.error(f"Error extracting frames from {video_source}: {str(e)}")
+            raise
+
+    @staticmethod
+    def create_video_content(
+        prompt: str, video_frames: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Create uniform video format for querying llm."""
+        content = [{"type": "text", "text": prompt}]
+        content.extend(
+            [
+                {"type": "image_url", "image_url": {"url": frame["data"]}}
+                for frame in video_frames
+            ]
         )
-        video_subtitles = handle_llm_response(response.content, "video_subtitles")
-    except (ValueError, IOError, RuntimeError) as e:
-        video_subtitles = ""
-        logger.error(f"video_subtitles-Execute error: {traceback.format_exc()}")
+        return content
 
-    logger.info(f"---get_subtitles_from_video-video_subtitles:{video_subtitles}")
-    return video_subtitles
+    @classmethod
+    def analyze_video(
+        cls,
+        video_url: str = Field(description="The input video in given filepath or url."),
+        question: str = Field(description="The question to analyze."),
+        sample_rate: int = Field(default=2, description="Sample n frames per second."),
+    ) -> str:
+        """
+        Analyze the video content by the given question.
 
+        Args:
+            video_url: Path or URL to the video file
+            question: The question to analyze about the video
+            sample_rate: Number of frames to sample per second
 
-def mcpsummarizevideo(
-    video_url: str = Field(description="The input video in given filepath or url."),
-    sample_rate: int = Field(default=2, description="Sample n frames per second."),
-) -> str:
-    """summarize the main content of the video."""
-    llm = get_llm_model(llm_config)
+        Returns:
+            JSON string containing analysis results
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(video_url, "default") and not isinstance(video_url, str):
+                video_url = video_url.default
 
-    inputs = []
-    try:
-        video_frames = get_video_frames(video_url, sample_rate)
-        content = create_video_content(VIDEO_SUMMARIZE, video_frames)
-        inputs.append({"role": "user", "content": content})
+            if hasattr(question, "default") and not isinstance(question, str):
+                question = question.default
 
-        response = llm.completion(
-            messages=inputs,
-            temperature=0,
-        )
-        video_summary = handle_llm_response(response.content, "video_summary")
-    except (ValueError, IOError, RuntimeError) as e:
-        video_summary = ""
-        logger.error(f"video_summary-Execute error: {traceback.format_exc()}")
+            if hasattr(sample_rate, "default") and not isinstance(sample_rate, int):
+                sample_rate = sample_rate.default
 
-    logger.info(f"---get_summary_from_video-video_summary:{video_summary}")
-    return video_summary
+            # Get the singleton instance
+            instance = cls.get_instance()
+            llm = get_llm_model(instance._llm_config)
+
+            inputs = []
+            video_frames = cls.get_video_frames(video_url, sample_rate)
+            content = cls.create_video_content(
+                cls._video_analyze.format(task=question), video_frames
+            )
+            inputs.append({"role": "user", "content": content})
+
+            response = llm.completion(
+                messages=inputs,
+                temperature=0,
+            )
+            video_analysis_result = handle_llm_response(
+                response.content, "video_analysis_result"
+            )
+
+            logger.info(f"Video analysis result: {video_analysis_result[:100]}...")
+            return f'{{"video_analysis_result": "{video_analysis_result}"}}'
+
+        except Exception as e:
+            return cls.handle_error(e, "Video Analysis")
+
+    @classmethod
+    def extract_video_subtitles(
+        cls,
+        video_url: str = Field(description="The input video in given filepath or url."),
+        sample_rate: int = Field(default=2, description="Sample n frames per second."),
+    ) -> str:
+        """
+        Extract subtitles from video frames if present.
+
+        Args:
+            video_url: Path or URL to the video file
+            sample_rate: Number of frames to sample per second
+
+        Returns:
+            JSON string containing extracted subtitles
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(video_url, "default") and not isinstance(video_url, str):
+                video_url = video_url.default
+
+            if hasattr(sample_rate, "default") and not isinstance(sample_rate, int):
+                sample_rate = sample_rate.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+            llm = get_llm_model(instance._llm_config)
+
+            inputs = []
+            video_frames = cls.get_video_frames(video_url, sample_rate)
+            content = cls.create_video_content(
+                cls._video_extract_subtitles, video_frames
+            )
+            inputs.append({"role": "user", "content": content})
+
+            response = llm.completion(
+                messages=inputs,
+                temperature=0,
+            )
+            video_subtitles = handle_llm_response(response.content, "video_subtitles")
+
+            logger.info(f"Video subtitles extracted: {video_subtitles[:100]}...")
+            return f'{{"video_subtitles": "{video_subtitles}"}}'
+
+        except Exception as e:
+            return cls.handle_error(e, "Video Subtitle Extraction")
+
+    @classmethod
+    def summarize_video(
+        cls,
+        video_url: str = Field(description="The input video in given filepath or url."),
+        sample_rate: int = Field(default=2, description="Sample n frames per second."),
+    ) -> str:
+        """
+        Summarize the main content of the video.
+
+        Args:
+            video_url: Path or URL to the video file
+            sample_rate: Number of frames to sample per second
+
+        Returns:
+            JSON string containing video summary
+        """
+        try:
+            # Handle Field objects if they're passed directly
+            if hasattr(video_url, "default") and not isinstance(video_url, str):
+                video_url = video_url.default
+
+            if hasattr(sample_rate, "default") and not isinstance(sample_rate, int):
+                sample_rate = sample_rate.default
+
+            # Get the singleton instance
+            instance = cls.get_instance()
+            llm = get_llm_model(instance._llm_config)
+
+            inputs = []
+            video_frames = cls.get_video_frames(video_url, sample_rate)
+            content = cls.create_video_content(cls._video_summarize, video_frames)
+            inputs.append({"role": "user", "content": content})
+
+            response = llm.completion(
+                messages=inputs,
+                temperature=0,
+            )
+            video_summary = handle_llm_response(response.content, "video_summary")
+
+            logger.info(f"Video summary generated: {video_summary[:100]}...")
+            return f'{{"video_summary": "{video_summary}"}}'
+
+        except Exception as e:
+            return cls.handle_error(e, "Video Summarization")
 
 
 if __name__ == "__main__":
-    import argparse
+    port = parse_port()
 
-    parser = argparse.ArgumentParser(
-        description="Launch MCP servers with random port allocation"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        help=f"Listening to port. Must be specified.",
-    )
-    args = parser.parse_args()
+    video_server = VideoServer.get_instance()
+    logger.info("VideoServer initialized and ready to handle requests")
+
     run_mcp_server(
         "Video Server",
-        funcs=[mcpanalyzevideo, mcpextractvideosubtitles, mcpsummarizevideo],
-        port=args.port,
+        funcs=[
+            video_server.analyze_video,
+            video_server.extract_video_subtitles,
+            video_server.summarize_video,
+        ],
+        port=port,
     )

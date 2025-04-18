@@ -1,0 +1,538 @@
+[
+    {
+        "task_id": "c61d22de-5f6c-4958-a7f6-5e9707bd3466",
+        "question": "A paper about AI regulation that was originally submitted to arXiv.org in June 2022 shows a figure with three axes, where each axis has a label word at both ends. Which of these words is used to describe a type of society in a Physics and Society article submitted to arXiv.org on August 11, 2016?",
+        "level": 2,
+        "model_answer": "egalitarian",
+        "ground_truth": "egalitarian",
+        "score": true
+    },
+    {
+        "task_id": "17b5a6a3-bc87-42e8-b0fb-6ab0781ef2cc",
+        "question": "I’m researching species that became invasive after people who kept them as pets released them. There’s a certain species of fish that was popularized as a pet by being the main character of the movie Finding Nemo. According to the USGS, where was this fish found as a nonnative species, before the year 2020? I need the answer formatted as the five-digit zip codes of the places the species was found, separated by commas if there is more than one place.",
+        "level": 2,
+        "model_answer": "34689",
+        "ground_truth": "34689",
+        "score": true
+    },
+    {
+        "task_id": "04a04a9b-226c-43fd-b319-d5e89743676f",
+        "question": "If we assume all articles published by Nature in 2020 (articles, only, not book reviews/columns, etc) relied on statistical significance to justify their findings and they on average came to a p-value of 0.04, how many papers would be incorrect as to their claims of statistical significance? Round the value up to the next integer.",
+        "level": 2,
+        "model_answer": "41",
+        "ground_truth": "41",
+        "score": true
+    },
+    {
+        "task_id": "14569e28-c88c-43e4-8c32-097d35b9a67d",
+        "question": "In Unlambda, what exact charcter or text needs to be added to correct the following code to output \"For penguins\"? If what is needed is a character, answer with the name of the character. If there are different names for the character, use the shortest. The text location is not needed. Code:\n\n`r```````````.F.o.r. .p.e.n.g.u.i.n.si",
+        "level": 2,
+        "model_answer": "backtick",
+        "ground_truth": "backtick",
+        "score": true
+    },
+    {
+        "task_id": "e1fc63a2-da7a-432f-be78-7c4a95598703",
+        "question": "If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary.",
+        "level": 1,
+        "model_answer": "17000",
+        "ground_truth": "17",
+        "score": false
+    },
+    {
+        "task_id": "32102e3e-d12a-4209-9163-7b3a104efe5d",
+        "question": "The attached spreadsheet shows the inventory for a movie and video game rental store in Seattle, Washington. What is the title of the oldest Blu-Ray recorded in this spreadsheet? Return it as appearing in the spreadsheet. Here are the necessary table files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/32102e3e-d12a-4209-9163-7b3a104efe5d.xlsx, for processing excel file, you can write python code and leverage excel toolkit to process the file step-by-step and get the information.",
+        "level": 2,
+        "model_answer": "Time-Parking 2: Parallel Universe",
+        "ground_truth": "Time-Parking 2: Parallel Universe",
+        "score": true
+    },
+    {
+        "task_id": "8e867cd7-cff9-4e6c-867a-ff5ddc2550be",
+        "question": "How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia.",
+        "level": 1,
+        "model_answer": "3",
+        "ground_truth": "3",
+        "score": true
+    },
+    {
+        "task_id": "3627a8be-a77f-41bb-b807-7e1bd4c0ebdf",
+        "question": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?",
+        "level": 2,
+        "model_answer": "150",
+        "ground_truth": "142",
+        "score": false
+    },
+    {
+        "task_id": "7619a514-5fa8-43ef-9143-83b66a43d7a4",
+        "question": "According to github, when was Regression added to the oldest closed numpy.polynomial issue that has the Regression label in MM/DD/YY?",
+        "level": 2,
+        "model_answer": "04/15/18",
+        "ground_truth": "04/15/18",
+        "score": true
+    },
+    {
+        "task_id": "ec09fa32-d03f-4bf8-84b0-1f16922c3ae4",
+        "question": "Here's a fun riddle that I think you'll enjoy.\n\nYou have been selected to play the final round of the hit new game show \"Pick That Ping-Pong\". In this round, you will be competing for a large cash prize. Your job will be to pick one of several different numbered ping-pong balls, and then the game will commence. The host describes how the game works.\n\nA device consisting of a winding clear ramp and a series of pistons controls the outcome of the game. The ramp feeds balls onto a platform. The platform has room for three ping-pong balls at a time. The three balls on the platform are each aligned with one of three pistons. At each stage of the game, one of the three pistons will randomly fire, ejecting the ball it strikes. If the piston ejects the ball in the first position on the platform the balls in the second and third position on the platform each advance one space, and the next ball on the ramp advances to the third position. If the piston ejects the ball in the second position, the ball in the first position is released and rolls away, the ball in the third position advances two spaces to occupy the first position, and the next two balls on the ramp advance to occupy the second and third positions on the platform. If the piston ejects the ball in the third position, the ball in the first position is released and rolls away, the ball in the second position advances one space to occupy the first position, and the next two balls on the ramp advance to occupy the second and third positions on the platform.\n\nThe ramp begins with 100 numbered ping-pong balls, arranged in ascending order from 1 to 100. The host activates the machine and the first three balls, numbered 1, 2, and 3, advance to the platform. Before the random firing of the pistons begins, you are asked which of the 100 balls you would like to pick. If your pick is ejected by one of the pistons, you win the grand prize, $10,000.\n\nWhich ball should you choose to maximize your odds of winning the big prize? Please provide your answer as the number of the ball selected.",
+        "level": 1,
+        "model_answer": "2",
+        "ground_truth": "3",
+        "score": false
+    },
+    {
+        "task_id": "676e5e31-a554-4acc-9286-b60d90a92d26",
+        "question": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?",
+        "level": 3,
+        "model_answer": "Solution: To calculate the percentage of superseded items, I need the following information:\n\n1. **Number of Superseded Items:** The count of items from the 1959 list that have been updated or replaced in the 2023 standards.\n2. **Total Number of Original Items:** The total count of items from the 1959 list that were considered for comparison.\n\nOnce you provide these numbers, I can calculate the percentage for you using the formula:\n\n\\[\n\\text{Percentage Superseded} = \\left(\\frac{\\text{Number of Superseded Items}}{\\text{Total Number of Original Items}}\\right) \\times 100\n\\]\n\nIf you have any other questions or need further assistance, feel free to let me know!",
+        "ground_truth": "86",
+        "score": false
+    },
+    {
+        "task_id": "7dd30055-0198-452e-8c25-f73dbe27dcb8",
+        "question": "Using the Biopython library in Python, parse the PDB file of the protein identified by the PDB ID 5wb7 from the RCSB Protein Data Bank. Calculate the distance between the first and second atoms as they are listed in the PDB file. Report the answer in Angstroms, rounded to the nearest picometer. Here are the necessary files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/7dd30055-0198-452e-8c25-f73dbe27dcb8.pdb",
+        "level": 2,
+        "model_answer": "1.23",
+        "ground_truth": "1.456",
+        "score": false
+    },
+    {
+        "task_id": "2a649bb1-795f-4a01-b3be-9a01868dae73",
+        "question": "What are the EC numbers of the two most commonly used chemicals for the virus testing method in the paper about SPFMV and SPCSV in the Pearl Of Africa from 2016? Return the semicolon-separated numbers in the order of the alphabetized chemicals.",
+        "level": 2,
+        "model_answer": "Solution: Since I am unable to access the paper directly, I recommend that you manually review the methods section of the paper through the provided [link](https://pmc.ncbi.nlm.nih.gov/articles/PMC6716578/). Once you have identified the chemicals used in the virus testing method, please share the list with me. I will then assist you in finding their EC numbers using biochemical databases.",
+        "ground_truth": "3.1.3.1; 1.11.1.7",
+        "score": false
+    },
+    {
+        "task_id": "87c610df-bef7-4932-b950-1d83ef4e282b",
+        "question": "In April of 1977, who was the Prime Minister of the first place mentioned by name in the Book of Esther (in the New International Version)?",
+        "level": 2,
+        "model_answer": "Amir-Abbas Hoveyda",
+        "ground_truth": "Morarji Desai",
+        "score": false
+    },
+    {
+        "task_id": "624cbf11-6a41-4692-af9c-36b3e5ca3130",
+        "question": "What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor graveyard as of the end of 2022?",
+        "level": 2,
+        "model_answer": "Solution: It seems there are no direct results from YouTube regarding the Dastardly Mash headstone at the Ben & Jerry's Flavor Graveyard. \n\nTo find the last line of the rhyme, you may need to manually search for videos on YouTube or other video-sharing platforms. Alternatively, visiting the physical Flavor Graveyard in Vermont could provide the needed information. If you have access to social media platforms or image search engines, you might find images of the headstone there.",
+        "ground_truth": "So we had to let it die.",
+        "score": false
+    },
+    {
+        "task_id": "dd3c7503-f62a-4bd0-9f67-1b63b94194cc",
+        "question": "Use density measures from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023.\n\nI have a gallon of honey and a gallon of mayonnaise at 25C. I remove one cup of honey at a time from the gallon of honey. How many times will I need to remove a cup to have the honey weigh less than the mayonaise? Assume the containers themselves weigh the same.",
+        "level": 2,
+        "model_answer": "6",
+        "ground_truth": "6",
+        "score": true
+    },
+    {
+        "task_id": "5d0080cb-90d7-4712-bc33-848150e917d3",
+        "question": "What was the volume in m^3 of the fish bag that was calculated in the University of Leicester paper \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\"",
+        "level": 1,
+        "model_answer": "Solution: Unfortunately, I don't have direct access to academic databases like JSTOR or ResearchGate. However, I can guide you on how to search for the paper in these databases:\n\n1. **JSTOR**: Visit the JSTOR website and use their search function to look for the paper by its title. You may need institutional access to view the full text.\n\n2. **ResearchGate**: Go to ResearchGate and search for the paper title. If the authors have profiles on ResearchGate, they might have shared the paper there.\n\n3. **University Repositories**: Check the University of Leicester's online repository or library catalog. Many universities have digital archives of student projects and papers.\n\n4. **Google Scholar**: Use Google Scholar to search for the paper. Sometimes papers are indexed there even if they are not available on other platforms.\n\n5. **Contact Authors**: If you can identify the authors, consider reaching out to them directly for a copy of the paper.\n\nIf you have access to any of these platforms, I recommend trying these steps to locate the paper. If you need further assistance or have other instructions, please let me know!",
+        "ground_truth": "0.1777",
+        "score": false
+    },
+    {
+        "task_id": "bec74516-02fc-48dc-b202-55e78d0e17cf",
+        "question": "What is the average number of pre-2020 works on the open researcher and contributor identification pages of the people whose identification is in this file? Here are the necessary files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/bec74516-02fc-48dc-b202-55e78d0e17cf.jsonld",
+        "level": 3,
+        "model_answer": "0",
+        "ground_truth": "26.4",
+        "score": false
+    },
+    {
+        "task_id": "a1e91b78-d3d8-4675-bb8d-62741b4b68a6",
+        "question": "In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?",
+        "level": 1,
+        "model_answer": "Solution: Since the video analysis tool cannot directly process YouTube links, you will need to manually watch the video using the provided link: [https://www.youtube.com/watch?v=L1vXCYZAYYM](https://www.youtube.com/watch?v=L1vXCYZAYYM). As you watch, pause at scenes where multiple bird species are visible and note down the timestamps.\n\nOnce you have identified these scenes, let me know, and we can proceed with identifying and counting the bird species in those scenes. If you need help with identifying the bird species, I can assist you with that using online resources.",
+        "ground_truth": "3",
+        "score": false
+    },
+    {
+        "task_id": "46719c30-f4c3-4cad-be07-d5cb21eee6bb",
+        "question": "Of the authors (First M. Last) that worked on the paper \"Pie Menus or Linear Menus, Which Is Better?\" in 2015, what was the title of the first paper authored by the one that had authored prior papers?",
+        "level": 1,
+        "model_answer": "Solution: Since I am unable to manually visit websites, I recommend that you visit Pietro Murano's Google Scholar profile using the provided [link](https://scholar.google.com/citations?user=L9um4xoAAAAJ&hl=en). Once there, you can explore his publication history to identify the title of his first paper authored prior to 2015.\n\nIf you need further assistance or have any other requests, feel free to let me know!",
+        "ground_truth": "Mapping Human Oriented Information to Software Agents for Online Systems Usage",
+        "score": false
+    },
+    {
+        "task_id": "df6561b2-7ee5-4540-baab-5095f742716a",
+        "question": "When you take the average of the standard population deviation of the red numbers and the standard sample deviation of the green numbers in this image using the statistics module in Python 3.11, what is the result rounded to the nearest three decimal points? Here are the necessary image files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/df6561b2-7ee5-4540-baab-5095f742716a.png",
+        "level": 2,
+        "model_answer": "16.456",
+        "ground_truth": "17.056",
+        "score": false
+    },
+    {
+        "task_id": "00d579ea-0889-4fd9-a771-2c8d79835c8d",
+        "question": "Assuming scientists in the famous youtube video The Thinking Machine (Artificial Intelligence in the 1960s) were interviewed the same year, what is the name of the scientist predicting the sooner thinking machines or robots? Answer using the format First name Last name",
+        "level": 3,
+        "model_answer": "Claude Shannon",
+        "ground_truth": "Claude Shannon",
+        "score": true
+    },
+    {
+        "task_id": "4b6bb5f7-f634-410e-815d-e673ab7f8632",
+        "question": "In Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.",
+        "level": 1,
+        "model_answer": "Solution: Despite multiple attempts to access the official script for Series 9, Episode 11 of Doctor Who titled \"Heaven Sent,\" I encountered difficulties in downloading the document from the BBC website due to connection timeouts. However, I found references to the episode's setting on the Tardis Fandom page, which indicates that the main setting is \"Inside the Doctor's confession dial.\"\n\nFor the exact first scene heading, I recommend checking the BBC Writers Room or other reliable sources that host Doctor Who scripts. Alternatively, fan sites and forums may have discussions or transcripts that include the first scene heading. If you have access to any official resources, you may be able to obtain the script directly from there.",
+        "ground_truth": "THE CASTLE",
+        "score": false
+    },
+    {
+        "task_id": "f0f46385-fc03-4599-b5d3-f56496c3e69f",
+        "question": "In terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia? Answer using a comma separated list, ordering the countries by alphabetical order.",
+        "level": 2,
+        "model_answer": "Indonesia, Myanmar",
+        "ground_truth": "Indonesia, Myanmar",
+        "score": true
+    },
+    {
+        "task_id": "384d0dd8-e8a4-4cfe-963c-d37f256e7662",
+        "question": "In the NCATS PubChem compound database for Food Additive Status classification, find the compound that has a molecular weight of 100 g/mol or less, 6 heavy atoms, 1 or fewer hydrogen bond acceptors, and a complexity between 10 and 15. Of the shared gene-chemical co-occurrences between its two possible enzyme transformations, what is the PubChem CID of the heaviest by molecular weight?",
+        "level": 3,
+        "model_answer": "Solution: I attempted another approach to query the PubChem API using a different endpoint, but the request still returned an error with status code 400, indicating a bad request. This suggests that the query parameters or the API endpoint might not be correctly configured for the desired search.\n\nGiven the limitations in accessing the PubChem database directly through automated means, I recommend manually performing the search using the PubChem Advanced Search feature on their website. This will allow you to input the criteria directly and explore the results.\n\nIf you have any questions or need further assistance, please let me know!",
+        "ground_truth": "4192",
+        "score": false
+    },
+    {
+        "task_id": "e4e91f1c-1dcd-439e-9fdd-cb976f5293fd",
+        "question": "I need to fact-check a citation. This is the citation from the bibliography:\n\nGreetham, David. \"Uncoupled: OR, How I Lost My Author(s).\" Textual Cultures: Texts, Contexts, Interpretation, vol. 3 no. 1, 2008, p. 45-46. Project MUSE, doi:10.2979/tex.2008.3.1.44.\n\nAnd this is the in-line citation:\n\nOur relationship with the authors of the works we read can often be “obscured not by a \"cloak of print\" but by the veil of scribal confusion and mis-transmission” (Greetham 45-46).\n\nDoes the quoted text match what is actually in the article? If Yes, answer Yes, otherwise, give me the word in my citation that does not match with the correct one (without any article).",
+        "level": 2,
+        "model_answer": "cloak",
+        "ground_truth": "cloak",
+        "score": true
+    },
+    {
+        "task_id": "56137764-b4e0-45b8-9c52-1866420c3df5",
+        "question": "Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?",
+        "level": 2,
+        "model_answer": "Solution: The search results did not provide specific information about mailing list or newsletter archives related to the development of OpenCV version 4.0.0-pre. The results were more general and did not focus on contributors or development discussions.\n\nGiven the challenges in retrieving the contributor list directly from GitHub, Reddit, arXiv, conference proceedings, or mailing list archives, we may need to consider alternative methods or resources to find this information. If you have any specific suggestions or additional resources to explore, please let me know!",
+        "ground_truth": "Li Peng",
+        "score": false
+    },
+    {
+        "task_id": "de9887f5-ead8-4727-876f-5a4078f8598c",
+        "question": "What integer-rounded percentage of the total length of the harlequin shrimp recorded in Omar Valencfia-Mendez 2017 paper was the sea star fed to the same type of shrimp in G. Curt Fiedler's 2002 paper?",
+        "level": 3,
+        "model_answer": "Solution: I found a paper titled \"Influence of Social Environment on Sex Determination in Harlequin Shrimp (Hymenocera Picta: Decapoda, Gnathophyllidae)\" authored by G. Curt Fiedler. The paper is available on the Oxford Academic website. However, I encountered an issue accessing the content directly from the link provided. You can view the paper [here](https://academic.oup.com/jcb/article/22/4/750/2679743).\n\nNext, we need to extract the relevant information about the length of the sea star fed to the harlequin shrimp from this paper. You can try accessing the paper through the link and let me know if you find the information, or if you need further assistance.",
+        "ground_truth": "22",
+        "score": false
+    },
+    {
+        "task_id": "cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb",
+        "question": "An office held a Secret Santa gift exchange where each of its twelve employees was assigned one other employee in the group to present with a gift. Each employee filled out a profile including three likes or hobbies. On the day of the gift exchange, only eleven gifts were given, each one specific to one of the recipient's interests. Based on the information in the document, who did not give a gift? Here are the necessary document files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb.docx",
+        "level": 1,
+        "model_answer": "Fred",
+        "ground_truth": "Fred",
+        "score": true
+    },
+    {
+        "task_id": "8b3379c0-0981-4f5b-8407-6444610cb212",
+        "question": "What is the maximum length in meters of #9 in the first National Geographic short on YouTube that was ever released according to the Monterey Bay Aquarium website? Just give the number.",
+        "level": 2,
+        "model_answer": "13",
+        "ground_truth": "1.8",
+        "score": false
+    },
+    {
+        "task_id": "0ff53813-3367-4f43-bcbd-3fd725c1bf4b",
+        "question": "What two-word type of model did Manash Pratim Kashyap's and PS Fader's studies in customer retention studies published during 2018-2019 have in common (no punctuation)?",
+        "level": 2,
+        "model_answer": "Solution: The search results provide links to the study titled \"A Simple Model for Analyzing the Customer Retention Comparing Rural and Urban Store\" by Manash Pratim Kashyap. Here are some relevant links:\n\n1. [Journal IJAR Article](https://www.journalijar.com/article/26843/a-simple-model-for-analyzing-the-customer-retention-comparing-rural-and-urban-store/) - This link leads to the journal where the study is published.\n\n2. [ResearchGate Publication](https://www.researchgate.net/publication/332297417_A_SIMPLE_MODEL_FOR_ANALYZING_THE_CUSTOMER_RETENTION_COMPARING_RURAL_AND_URBAN_STORE) - This link provides access to the publication on ResearchGate.\n\n3. [Faculty Profile](https://adtu.in/teaching-faculties/TlRVMQ==/.html) - This link provides information about Dr. Manash Pratim Kashyap and his work.\n\nThese sources may contain detailed information about the models used in the study. If you have access to these articles, you can review them to identify any common models mentioned. If you need further assistance or have specific articles you want to explore, feel free to share them!",
+        "ground_truth": "beta geometric",
+        "score": false
+    },
+    {
+        "task_id": "983bba7c-c092-455f-b6c9-7857003d48fc",
+        "question": "What animals that were mentioned in both Ilias Lagkouvardos's and Olga Tapia's papers on the alvei species of the genus named for Copenhagen outside the bibliographies were also present in the 2021 article cited on the alvei species' Wikipedia page about a multicenter, randomized, double-blind study?",
+        "level": 3,
+        "model_answer": "Solution: To proceed with the task, we need to identify the 2021 article cited on the Hafnia (bacterium) Wikipedia page. Since I cannot directly access the page, please visit the [Hafnia (bacterium) Wikipedia page](https://en.wikipedia.org/wiki/Hafnia_(bacterium)) and look for the references section. Identify the 2021 article cited there, and note down the title, authors, and any other relevant details of the article.\n\nOnce you have this information, please provide it here, and we can proceed to find and access the full text of the article to extract mentions of animals within the main text. If you encounter any issues or need further assistance, please let me know!",
+        "ground_truth": "mice",
+        "score": false
+    },
+    {
+        "task_id": "a7feb290-76bb-4cb7-8800-7edaf7954f2f",
+        "question": "How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?",
+        "level": 2,
+        "model_answer": "Solution: I have modified the Python script to ensure it correctly captures and prints the list of article IDs extracted from the Arxiv page. The script outputs the article IDs in a clear format. Here's the updated script:\n\npython\nimport requests\nfrom bs4 import BeautifulSoup\n\ndef fetch_arxiv_article_ids(url):\n    # Send a GET request to the provided URL\n    response = requests.get(url)\n    \n    # Check if the request was successful\n    if response.status_code == 200:\n        # Parse the page content using BeautifulSoup\n        soup = BeautifulSoup(response.content, 'html.parser')\n        \n        # Find all elements that contain article IDs\n        # Arxiv article IDs are typically found in the 'a' tags with 'href' attributes containing '/abs/'\n        article_links = soup.find_all('a', href=True)\n        \n        # Extract article IDs from the href attributes\n        article_ids = []\n        for link in article_links:\n            href = link['href']\n            if '/abs/' in href:\n                # Extract the article ID from the href\n                article_id = href.split('/abs/')[-1]\n                article_ids.append(article_id)\n        \n        # Print the list of article IDs in a clear format\n        print(\"Extracted Article IDs:\")\n        for article_id in article_ids:\n            print(article_id)\n    else:\n        print(f\"Failed to retrieve the page. Status code: {response.status_code}\")\n\n# Example usage\nfetch_arxiv_article_ids('https://arxiv.org/list/hep-lat/2001')\n\n\nThis script will accurately extract and print the article IDs from the specified Arxiv page. You can run this script to obtain the list of article IDs, which can then be used to check for the availability of PS versions. If you need further assistance, please let me know!",
+        "ground_truth": "31",
+        "score": false
+    },
+    {
+        "task_id": "b4cc024b-3f5e-480e-b96a-6656493255b5",
+        "question": "The photograph in the Whitney Museum of American Art's collection with accession number 2022.128 shows a person holding a book. Which military unit did the author of this book join in 1813? Answer without using articles.",
+        "level": 2,
+        "model_answer": "Russian army",
+        "ground_truth": "Russian-German Legion",
+        "score": false
+    },
+    {
+        "task_id": "2d83110e-a098-4ebb-9987-066c06fa42d0",
+        "question": ".rewsna eht sa \"tfel\" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI",
+        "level": 1,
+        "model_answer": "right",
+        "ground_truth": "Right",
+        "score": true
+    },
+    {
+        "task_id": "33d8ea3b-6c6b-4ff1-803d-7e270dea8a57",
+        "question": "What is the minimum number of page links a person must click on to go from the english Wikipedia page on The Lord of the Rings (the book) to the english Wikipedia page on A Song of Ice and Fire (the book series)? In your count, include each link you would click on to get to the page. Use the pages as they appeared at the end of the day on July 3, 2023.",
+        "level": 2,
+        "model_answer": "Solution: Since the tools are currently unable to access the Wikipedia pages directly, you will need to manually visit the pages using the provided URLs. Here are the steps you can follow:\n\n1. **Visit the \"The Lord of the Rings\" Wikipedia Page**: Use the URL [https://en.wikipedia.org/wiki/The_Lord_of_the_Rings](https://en.wikipedia.org/wiki/The_Lord_of_the_Rings) to access the page. Look for hyperlinks that might lead to related topics or pages that could connect to \"A Song of Ice and Fire.\"\n\n2. **Visit the \"A Song of Ice and Fire\" Wikipedia Page**: Use the URL [https://en.wikipedia.org/wiki/The_Winds_of_Winter](https://en.wikipedia.org/wiki/The_Winds_of_Winter) to access the page. Look for hyperlinks that might connect back to \"The Lord of the Rings\" or related topics.\n\n3. **Identify Potential Paths**: Identify any intermediate pages that could serve as a bridge between the two topics. This might include pages on fantasy literature, authors, or related book series.\n\n4. **List the Sequence of Pages and Links**: Once you have identified a potential path, list the sequence of pages and links that would lead from \"The Lord of the Rings\" to \"A Song of Ice and Fire.\"\n\n5. **Count the Number of Links**: Count the number of links in the path, including each link you would click on to get to the target page.\n\nIf you have any questions or need further assistance, feel free to ask!",
+        "ground_truth": "2",
+        "score": false
+    },
+    {
+        "task_id": "5cfb274c-0207-4aa7-9575-6ac0bd95d9b2",
+        "question": "Each cell in the attached spreadsheet represents a plot of land. The color of the cell indicates who owns that plot. Green cells are plots owned by Earl Smith. Can Earl walk through every plot he owns (and no other plots) and return to his starting plot without backtracking? For this question, consider backtracking to be any instance where Earl would enter a plot of land he had already entered since leaving his starting plot. Here are the necessary table files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/5cfb274c-0207-4aa7-9575-6ac0bd95d9b2.xlsx, for processing excel file, you can write python code and leverage excel toolkit to process the file step-by-step and get the information.",
+        "level": 1,
+        "model_answer": "Solution: The file path `/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/5cfb274c-0207-4aa7-9575-6ac0bd95d9b2.xlsx` was accessed, but the sheet \"Sheet1\" was found to be empty. This indicates that there is no data available to proceed with the task of identifying green cells or creating a graph representation.\n\nTo continue, please verify the file path and ensure that the Excel file contains the necessary data. If the file path is incorrect or the file is empty, please provide the correct file path or a new file with the required data. Once the file's content is confirmed, we can proceed with identifying the green cells and continue with the task.",
+        "ground_truth": "No",
+        "score": false
+    },
+    {
+        "task_id": "9b54f9d9-35ee-4a14-b62f-d130ea00317f",
+        "question": "Which of the text elements under CATEGORIES in the XML would contain the one food in the spreadsheet that does not appear a second time under a different name? Here are the necessary files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip",
+        "level": 3,
+        "model_answer": "Solution: Please provide the names of the XML and spreadsheet files that you find within the extracted folder. This information is necessary for us to proceed with analyzing the files using the available tools. Once you provide the file names, I can assist you in analyzing the contents of these files to complete the task.",
+        "ground_truth": "Soups and Stews",
+        "score": false
+    },
+    {
+        "task_id": "e8cb5b03-41e0-4086-99e5-f6806cd97211",
+        "question": "I went to Virtue restaurant & bar in Chicago for my birthday on March 22, 2021 and the main course I had was delicious!  Unfortunately, when I went back about a month later on April 21, it was no longer on the dinner menu.  Using the Wayback Machine, can you help me figure out which main course was on the dinner menu for Virtue on March 22, 2021 but not April 21, 2021? Answer using the singular form, without articles.",
+        "level": 2,
+        "model_answer": "Solution: I am unable to send emails or contact businesses directly on your behalf. However, you can use the draft message provided to contact Virtue Restaurant through their official website or email. You can find their contact information on their [official website](https://www.virtuerestaurant.com/) or [Yelp page](https://www.yelp.com/biz/virtue-restaurant-chicago).\n\nOnce you send the message, you can wait for their response regarding the main course that was available on March 22, 2021, but not on April 21, 2021. If you need further assistance or have any questions, feel free to ask!",
+        "ground_truth": "shrimp",
+        "score": false
+    },
+    {
+        "task_id": "27d5d136-8563-469e-92bf-fd103c28b57c",
+        "question": "¬(A ∧ B) ↔ (¬A ∨ ¬B)\n¬(A ∨ B) ↔ (¬A ∧ ¬B)\n(A → B) ↔ (¬B → ¬A)\n(A → B) ↔ (¬A ∨ B)\n(¬A → B) ↔ (A ∨ ¬B)\n¬(A → B) ↔ (A ∧ ¬B)\n\nWhich of the above is not logically equivalent to the rest? Provide the full statement that doesn't fit.",
+        "level": 1,
+        "model_answer": "(A → B) ↔ (¬B → ¬A)",
+        "ground_truth": "(¬A → B) ↔ (A ∨ ¬B)",
+        "score": false
+    },
+    {
+        "task_id": "dc28cf18-6431-458b-83ef-64b3ce566c10",
+        "question": "My family reunion is this week, and I was assigned the mashed potatoes to bring. The attendees include my married mother and father, my twin brother and his family, my aunt and her family, my grandma and her brother, her brother's daughter, and his daughter's family. All the adults but me have been married, and no one is divorced or remarried, but my grandpa and my grandma's sister-in-law passed away last year. All living spouses are attending. My brother has two children that are still kids, my aunt has one six-year-old, and my grandma's brother's daughter has three kids under 12. I figure each adult will eat about 1.5 potatoes of mashed potatoes and each kid will eat about 1/2 a potato of mashed potatoes, except my second cousins don't eat carbs. The average potato is about half a pound, and potatoes are sold in 5-pound bags. How many whole bags of potatoes do I need? Just give the number.",
+        "level": 1,
+        "model_answer": "2",
+        "ground_truth": "2",
+        "score": true
+    },
+    {
+        "task_id": "b816bfce-3d80-4913-a07d-69b752ce6377",
+        "question": "In Emily Midkiff's June 2014 article in a journal named for the one of Hreidmar's sons that guarded his house, what word was quoted from two different authors in distaste for the nature of dragon depictions?",
+        "level": 1,
+        "model_answer": "fluffy",
+        "ground_truth": "fluffy",
+        "score": true
+    },
+    {
+        "task_id": "f46b4380-207e-4434-820b-f32ce04ae2a4",
+        "question": "It is 1999. Before you party like it is 1999, please assist me in settling a bet.\n\nFiona Apple and Paula Cole released albums prior to 1999. Of these albums, which didn't receive a letter grade from Robert Christgau? Provide your answer as a comma delimited list of album titles, sorted alphabetically.",
+        "level": 2,
+        "model_answer": "Harbinger, Tidal",
+        "ground_truth": "Harbinger, Tidal",
+        "score": true
+    },
+    {
+        "task_id": "72e110e7-464c-453c-a309-90a95aed6538",
+        "question": "Under DDC 633 on Bielefeld University Library's BASE, as of 2020, from what country was the unknown language article with a flag unique from the others?",
+        "level": 1,
+        "model_answer": null,
+        "ground_truth": "Guatemala",
+        "score": false
+    },
+    {
+        "task_id": "05407167-39ec-4d3a-a234-73a9120c325d",
+        "question": "In the 2018 VSCode blog post on replit.com, what was the command they clicked on in the last video to remove extra lines?",
+        "level": 3,
+        "model_answer": null,
+        "ground_truth": "Format Document",
+        "score": false
+    },
+    {
+        "task_id": "b9763138-c053-4832-9f55-86200cb1f99c",
+        "question": "Compute the check digit the Tropicos ID for the Order Helotiales would have if it were an ISBN-10 number.",
+        "level": 2,
+        "model_answer": "Solution: Since we are assuming that we have obtained the Tropicos ID for the Order Helotiales, let's proceed with applying the ISBN-10 check digit formula. If you provide the Tropicos ID, I can compute the check digit for you.\n\nIf you have the Tropicos ID, please share it here, and I will use the previously generated Python code to calculate the ISBN-10 check digit. If you need any assistance with this process, feel free to let me know!",
+        "ground_truth": "3",
+        "score": false
+    },
+    {
+        "task_id": "16d825ff-1623-4176-a5b5-42e0f5c2b0ac",
+        "question": "What time was the Tri-Rail train that carried the most passengers on May 27, 2019 scheduled to arrive in Pompano Beach? Express your answer in the 12-hour digital clock format without leading zero if any, and include whether it is AM or PM.",
+        "level": 2,
+        "model_answer": "Solution: The search results did not provide specific government transportation reports with detailed Tri-Rail ridership data for May 27, 2019. However, there are links to various reports and documents related to Tri-Rail operations and ridership.\n\nGiven the challenges in finding specific data, here are some alternative approaches:\n\n1. **Contact Tri-Rail Directly:** Reach out to Tri-Rail's customer service or media relations for specific data on train ridership for May 27, 2019.\n\n2. **Explore Public Transportation Forums:** Look for discussions or posts by commuters who might have shared detailed information about Tri-Rail schedules and ridership.\n\n3. **Check Local Libraries or Archives:** Some libraries or local archives might have transportation reports or studies that include the data we need.\n\nIf you have any other preferences or need further assistance, please let me know!",
+        "ground_truth": "6:41 PM",
+        "score": false
+    },
+    {
+        "task_id": "2b3ef98c-cc05-450b-a719-711aee40ac65",
+        "question": "Could you help me out with this assignment? Our professor sprung it on us at the end of class Friday, and I'm still trying to figure it out. The question he asked us was about an anagram. I've attached an audio recording of the question that he asked, so if you could please take a listen and give me the answer, I'd really appreciate the help. Please limit your response to the anagram text that could be generated from the original line which fulfills the professor's request, without any other commentary. Also, please don't include any punctuation in your response. Here are the necessary files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/2b3ef98c-cc05-450b-a719-711aee40ac65.mp3",
+        "level": 2,
+        "model_answer": "If you can upload the audio file to a cloud storage service like Google Drive, Dropbox, or OneDrive, and share the link with me, I can access the file and proceed with transcription. Let me know once you have done this or if you need further assistance!",
+        "ground_truth": "To be or not to be that is the question whether tis nobler in the mind to suffer the slings and arrows of outrageous fortune",
+        "score": false
+    },
+    {
+        "task_id": "bfcd99e1-0690-4b53-a85c-0174a8629083",
+        "question": "How many applicants for the job in the PDF are only missing a single qualification? Here are the necessary files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/bfcd99e1-0690-4b53-a85c-0174a8629083.zip",
+        "level": 2,
+        "model_answer": "3",
+        "ground_truth": "17",
+        "score": false
+    },
+    {
+        "task_id": "544b7f0c-173a-4377-8d56-57b36eb26ddf",
+        "question": "In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.",
+        "level": 2,
+        "model_answer": null,
+        "ground_truth": "A Nightmare on Elm Street",
+        "score": false
+    },
+    {
+        "task_id": "42576abe-0deb-4869-8c63-225c2d75a95a",
+        "question": "In the fictional language of Tizin, basic sentences are arranged with the Verb first, followed by the direct object, followed by the subject of the sentence. I want to express my love for apples to my Tizin friend. \n\nThe word that indicates oneself is \"Pa\" is the nominative form, \"Mato\" is the accusative form, and \"Sing\" is the genitive form. \n\nThe root verb that indicates an intense like for something is \"Maktay\". When it is used in the present, it is used in it's root form, when it is used in the preterit past, it is \"Tay\", and when it is used in the imperfect past, it is \"Aktay\". It is used differently than in English, and is better translated as \"is pleasing to\", meaning that the thing doing the liking is actually the object of the sentence rather than the subject.\n\nThe word for apples is borrowed from English in Tizin, and so it is \"Apple\" is the nominative form, \"Zapple\" is the accusative form, and \"Izapple\" is the genitive form. \n\nPlease translate \"I like apples\" to Tizin.",
+        "level": 1,
+        "model_answer": null,
+        "ground_truth": "Maktay mato apple",
+        "score": false
+    },
+    {
+        "task_id": "6b078778-0b90-464d-83f6-59511c811b01",
+        "question": "The Metropolitan Museum of Art has a portrait in its collection with an accession number of 29.100.5. Of the consecrators and co-consecrators of this portrait's subject as a bishop, what is the name of the one who never became pope?",
+        "level": 2,
+        "model_answer": "Solution: Since accessing the Wikipedia page directly is not possible, I recommend manually visiting the [Wikipedia page for Fernando Niño de Guevara](https://en.wikipedia.org/wiki/Fernando_Ni%C3%B1o_de_Guevara) to gather detailed information about his consecration as a bishop. Look for the names of his consecrators and co-consecrators.\n\nOnce you have this information, please provide the names so we can proceed to the next step, which involves determining which of them never became pope. If you need further assistance or have any questions, feel free to ask!",
+        "ground_truth": "Alfonso Visconti",
+        "score": false
+    },
+    {
+        "task_id": "b415aba4-4b68-4fc6-9b89-2c812e55a3e1",
+        "question": "In Nature journal's Scientific Reports conference proceedings from 2012, in the article that did not mention plasmons or plasmonics, what nano-compound is studied? Don't use the prefix nano in your answer if there is one.",
+        "level": 1,
+        "model_answer": "silicon crystals",
+        "ground_truth": "diamond",
+        "score": false
+    },
+    {
+        "task_id": "076c8171-9b3b-49b9-a477-244d2a532826",
+        "question": "The attached file contains a list of vendors in the Liminal Springs mall, along with each vendor’s monthly revenue and the rent they pay the mall. I want you to find the vendor that makes the least money, relative to the rent it pays. Then, tell me what is listed in the “type” column for that vendor. Here are the necessary table files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/076c8171-9b3b-49b9-a477-244d2a532826.xlsx, for processing excel file, you can write python code and leverage excel toolkit to process the file step-by-step and get the information.",
+        "level": 2,
+        "model_answer": "Finance",
+        "ground_truth": "Finance",
+        "score": true
+    },
+    {
+        "task_id": "08cae58d-4084-4616-b6dd-dd6534e4825b",
+        "question": "According to Google Finance, when was the first year the Apple stock went above $50 (without adjusting for stock split)?",
+        "level": 2,
+        "model_answer": "Solution: It seems there are no direct search results from Google Finance regarding the specific year when Apple's stock price first went above $50 without adjusting for stock splits. \n\nGiven this, I recommend manually checking Google Finance or other financial websites like Yahoo Finance or MacroTrends for historical stock data. If you need further assistance or have any questions, feel free to ask!",
+        "ground_truth": "2018",
+        "score": false
+    },
+    {
+        "task_id": "cca530fc-4052-43b2-b130-b30968d8aa44",
+        "question": "Review the chess position provided in the image. It is black's turn. Provide the correct next move for black which guarantees a win. Please provide your response in algebraic notation. Here are the necessary image files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/cca530fc-4052-43b2-b130-b30968d8aa44.png",
+        "level": 1,
+        "model_answer": "Solution: To confirm if **Qxc3** is the best move for Black, you can manually visit the [Next Chess Move](https://nextchessmove.com/) website and follow these steps:\n\n1. **Configure the Board**: Drag and drop the pieces to match the described position on the board.\n2. **Set Active Color**: Ensure that \"Black to move\" is selected.\n3. **Calculate Next Move**: Click on the \"Calculate Next Move\" button to see the recommended move for Black.\n\nThis will help you verify if **Qxc3** is indeed the best move for Black. If you encounter any issues or need further assistance, feel free to ask!",
+        "ground_truth": "Rd5",
+        "score": false
+    },
+    {
+        "task_id": "2dfc4c37-fec1-4518-84a7-10095d30ad75",
+        "question": "According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.",
+        "level": 2,
+        "model_answer": "5",
+        "ground_truth": "6",
+        "score": false
+    },
+    {
+        "task_id": "935e2cff-ae78-4218-b3f5-115589b19dae",
+        "question": "In the year 2022, and before December, what does \"R\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?",
+        "level": 1,
+        "model_answer": "No Original Research",
+        "ground_truth": "research",
+        "score": false
+    },
+    {
+        "task_id": "4fc2f1ae-8625-45b5-ab34-ad4433bc21f8",
+        "question": "Who nominated the only Featured Article on English Wikipedia about a dinosaur that was promoted in November 2016?",
+        "level": 1,
+        "model_answer": "FunkMonk",
+        "ground_truth": "FunkMonk",
+        "score": true
+    },
+    {
+        "task_id": "5188369a-3bbe-43d8-8b94-11558f909a08",
+        "question": "What writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?",
+        "level": 1,
+        "model_answer": "Solution: Since I cannot manually visit web pages, I recommend you visit the [Word of the Day: Jingoism | Merriam-Webster](https://www.merriam-webster.com/word-of-the-day/jingoism-2022-06-27) page using the provided link. Once on the page, locate the section where the writer is quoted for the Word of the Day on June 27, 2022. If you need further assistance or encounter any difficulties, please let me know!",
+        "ground_truth": "Annie Levin",
+        "score": false
+    },
+    {
+        "task_id": "9f41b083-683e-4dcf-9185-ccfeaa88fa45",
+        "question": "How many pages if the 2023 IPCC report (85 pages version) mentions nuclear energy?",
+        "level": 2,
+        "model_answer": null,
+        "ground_truth": "0",
+        "score": false
+    },
+    {
+        "task_id": "6f37996b-2ac7-44b0-8e68-6d28256631b4",
+        "question": "Given this table defining * on the set S = {a, b, c, d, e}\n\n|*|a|b|c|d|e|\n|---|---|---|---|---|---|\n|a|a|b|c|b|d|\n|b|b|c|a|e|c|\n|c|c|a|b|b|a|\n|d|b|e|b|e|d|\n|e|d|b|a|d|c|\n\nprovide the subset of S involved in any possible counter-examples that prove * is not commutative. Provide your answer as a comma separated list of the elements in the set in alphabetical order.",
+        "level": 1,
+        "model_answer": "b, e",
+        "ground_truth": "b, e",
+        "score": true
+    },
+    {
+        "task_id": "56db2318-640f-477a-a82f-bc93ad13e882",
+        "question": "The following numbers function similarly to ISBN 13 numbers, however, their validation methods are slightly different. Rather than using alternate weights of 1 and 3, the checksum digit is calculated with an alternate weight of 1 and some other positive integer less than 10. Otherwise, the checksum digit is calculated as expected. Unfortunately, there is an error in the data. Two adjacent columns have been transposed. These errored columns do not involve the final column or one of the first three columns. Using this information, please provide all potential solutions with the unknown weight and the smaller index of the two errored columns (assume we start our indexing at 0 and ignore hyphens). Give your answer in the form x, y where x is the weight and y is the smaller index of the two transposed columns.\n\n978-354181391-9\n978-946669746-1\n978-398036139-6\n978-447656680-4\n978-279586664-7\n978-595073693-3\n978-976647652-6\n978-591178125-5\n978-728465924-5\n978-414825155-9",
+        "level": 3,
+        "model_answer": "2, 5; 3, 5; 4, 5; 5, 5; 6, 5; 7, 5; 8, 5; 9, 5",
+        "ground_truth": "7, 9",
+        "score": false
+    },
+    {
+        "task_id": "ecbc4f94-95a3-4cc7-b255-6741a458a625",
+        "question": "How many images are there in the latest 2022 Lego english wikipedia article?",
+        "level": 2,
+        "model_answer": "15",
+        "ground_truth": "13",
+        "score": false
+    },
+    {
+        "task_id": "e9a2c537-8232-4c3f-85b0-b52de6bcba99",
+        "question": "The attached file shows a list of books in the collection of Scribe County Public Library. How many of the library’s books that are authored by Rick Riordan are not currently on the library’s shelves? Here are the necessary document files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/e9a2c537-8232-4c3f-85b0-b52de6bcba99.pdf",
+        "level": 2,
+        "model_answer": "7",
+        "ground_truth": "7",
+        "score": true
+    },
+    {
+        "task_id": "8131e2c0-0083-4265-9ce7-78c2d568425d",
+        "question": "I was trying to remember how well the Cheater Beater performed in comparison to the Cheater when James tested it on his channel. I know that the Cheater still outperformed the Cheater Beater in terms of CFM. Could you please look that up for me, and report the CFM of both the Cheater and the Cheater Beater? I'm not sure if he made any changes to his testing, but this was back in season 4, so just report the value from that season. Please format your response like this: CFM number for Cheater, CFM number for Cheater beater",
+        "level": 3,
+        "model_answer": "I understand the task, but unfortunately, I am unable to watch YouTube videos directly using the tools available. However, you can watch the video titled \"NO ONE Has Done This Before | Fan Showdown S4E10\" on YouTube using the provided [link](https://www.youtube.com/watch?v=bk875vQvACw). Look for the segment where James discusses the CFM values for the Cheater and Cheater Beater, and note down these values.\n\nOnce you have the CFM values, you can format the response as: \"CFM number for Cheater, CFM number for Cheater Beater\". If you need further assistance or have any questions, feel free to ask!",
+        "ground_truth": "101.376, 84.348",
+        "score": false
+    },
+    {
+        "task_id": "9318445f-fe6a-4e1b-acbf-c68228c9906a",
+        "question": "As a comma separated list with no whitespace, using the provided image provide all the fractions that use / as the fraction line and the answers to the sample problems. Order the list by the order in which the fractions appear. Here are the necessary image files: /Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/9318445f-fe6a-4e1b-acbf-c68228c9906a.png",
+        "level": 1,
+        "model_answer": "3/4,1/4,2/4,1/2,5/35,7/21,30/5,6/8,4/60,30/90,8/18,9/72,64/46,206/340",
+        "ground_truth": "3/4,1/4,3/4,3/4,2/4,1/2,5/35,7/21,30/5,30/5,3/4,1/15,1/3,4/9,1/8,32/23,103/170",
+        "score": false
+    }
+]
