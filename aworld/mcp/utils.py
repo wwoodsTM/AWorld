@@ -21,8 +21,8 @@ async def run(mcp_servers: list[MCPServer]) -> List[Dict[str, Any]]:
                     required = tool.inputSchema.get("required", [])
                     _properties = tool.inputSchema["properties"]
                     for param_name, param_info in _properties.items():
-                        param_type = param_info["type"] if param_info["type"] != "str" else "string"
-                        param_desc = param_info["description"] if param_info["description"] else ""
+                        param_type = param_info.get("type") if param_info.get("type") != "str" else "string"
+                        param_desc = param_info.get("description", "")
                         if param_type == "array":
                             # Handle array type parameters
                             item_type = param_info.get("items", {}).get("type", "string")
