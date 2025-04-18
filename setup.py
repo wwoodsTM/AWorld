@@ -6,8 +6,8 @@ import sys
 import re
 import subprocess
 
-import aworld
 from aworld.utils.import_package import import_package
+from aworld.version_gen import generate_version_info, __version__
 
 # if no setuptools, install first
 import_package("setuptools")
@@ -52,7 +52,7 @@ def get_build_date():
 def build_version_template():
     import getpass
     return version_template.format(BUILD_USER=getpass.getuser(),
-                                   BUILD_VERSION=aworld.__version__,
+                                   BUILD_VERSION=__version__,
                                    BUILD_DATE=get_build_date())
 
 
@@ -82,7 +82,7 @@ class AWorldPackage(sdist):
         with open(os.path.join(home, "version.py"), "w") as f:
             version_info = build_version_template()
             f.write(version_info)
-        from aworld.version_gen import generate_version_info
+
         generate_version_info(scenario="AWORLD_SDIST")
         sdist.run(self)
 
@@ -114,7 +114,7 @@ class AWorldInstaller(install):
             subprocess.check_call('playwright install', shell=True, timeout=60)
         except Exception as e:
             logger.error(f"Fail to execute playwright install\n {e}")
-        logger.info(f"Successfully installed aworld-{aworld.__version__}")
+        logger.info(f"Successfully installed aworld-{__version__}")
 
     def _contains_module(self, module):
         if self._extra is None:
@@ -208,7 +208,7 @@ extra = os.getenv(AWorldInstaller.EXTRA_ENV, None)
 
 setup(
     name='aworld',
-    version=aworld.__version__,
+    version=__version__,
     description='Ant Agent Package',
     url='https://github.com/inclusionAI/AWorld',
     author='Ant AI',

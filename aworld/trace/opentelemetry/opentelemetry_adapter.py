@@ -3,7 +3,7 @@ import traceback
 import time
 import requests
 from threading import Lock
-from typing import Optional, Any, TYPE_CHECKING, Iterator, Sequence
+from typing import Any, Iterator, Sequence
 from contextvars import Token
 from urllib.parse import urljoin
 import opentelemetry.context as otlp_context_api
@@ -17,8 +17,6 @@ from opentelemetry.sdk.trace import (
 )
 from opentelemetry.context import Context as OTLPContext
 from opentelemetry.semconv.trace import SpanAttributes
-from opentelemetry.exporter.otlp.proto.http import Compression
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from aworld.trace.trace import (
@@ -43,7 +41,7 @@ class OTLPTraceProvider(TraceProvider):
     When the context manager is exited, it calls `shutdown` on the `SDKTracerProvider`.
     Args:
         provider: The internal provider to wrap.
-    """ 
+    """
 
     def __init__(self, provider: SDKTracerProvider, suppressed_scopes: Optional[set[str]] = None):
         self._provider: SDKTracerProvider = provider
@@ -51,19 +49,20 @@ class OTLPTraceProvider(TraceProvider):
         if suppressed_scopes:
             self._suppressed_scopes.update(suppressed_scopes)
         self._lock: Lock = Lock()
-    
+
     def get_tracer(
-        self,
-        name: str,
-        version: Optional[str] = None
+            self,
+            name: str,
+            version: Optional[str] = None
     ):
         with self._lock:
             if name in self._suppressed_scopes:
                 return NoOpTracer()
             else:
-                tracer = self._provider.get_tracer(instrumenting_module_name=name, instrumenting_library_version=version)
+                tracer = self._provider.get_tracer(instrumenting_module_name=name,
+                                                   instrumenting_library_version=version)
                 return OTLPTracer(tracer)
-            
+
     def shutdown(self) -> None:
         with self._lock:
             if isinstance(self._provider, SDKTracerProvider):
@@ -80,6 +79,7 @@ class OTLPTraceProvider(TraceProvider):
         otlp_span = get_current_otlp_span()
         return OTLPSpan(otlp_span)
 
+
 class OTLPTracer(Tracer):
     """A Tracer represents a collection of Spans.
     Args:
@@ -90,13 +90,13 @@ class OTLPTracer(Tracer):
         self._tracer = tracer
 
     def start_span(
-        self,
-        name: str,
-        span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, AttributeValueType] = None,
-        start_time: Optional[int] = None,
-        record_exception: bool = True,
-        set_status_on_exception: bool = True,
+            self,
+            name: str,
+            span_type: SpanType = SpanType.INTERNAL,
+            attributes: dict[str, AttributeValueType] = None,
+            start_time: Optional[int] = None,
+            record_exception: bool = True,
+            set_status_on_exception: bool = True,
     ) -> "Span":
         start_time = start_time or time.time_ns()
         attributes = {**(attributes or {})}
@@ -104,22 +104,22 @@ class OTLPTracer(Tracer):
 
         span_kind = self._convert_to_span_kind(span_type) if span_type else SpanKind.INTERNAL
         span = self._tracer.start_span(name=name,
-                                      kind=span_kind,
-                                      attributes=attributes,
-                                      start_time=start_time,
-                                      record_exception=record_exception,
-                                      set_status_on_exception=set_status_on_exception)
+                                       kind=span_kind,
+                                       attributes=attributes,
+                                       start_time=start_time,
+                                       record_exception=record_exception,
+                                       set_status_on_exception=set_status_on_exception)
         return OTLPSpan(span)
 
     def start_as_current_span(
-        self,
-        name: str,
-        span_type: SpanType = SpanType.INTERNAL,
-        attributes: dict[str, AttributeValueType] = None,
-        start_time: Optional[int] = None,
-        record_exception: bool = True,
-        set_status_on_exception: bool = True,
-        end_on_exit: bool = True,
+            self,
+            name: str,
+            span_type: SpanType = SpanType.INTERNAL,
+            attributes: dict[str, AttributeValueType] = None,
+            start_time: Optional[int] = None,
+            record_exception: bool = True,
+            set_status_on_exception: bool = True,
+            end_on_exit: bool = True,
     ) -> Iterator["Span"]:
 
         start_time = start_time or time.time_ns()
@@ -136,14 +136,13 @@ class OTLPTracer(Tracer):
                                                 end_on_exit=end_on_exit) as span:
             yield OTLPSpan(span)
 
-
     def _convert_to_span_kind(self, span_type: SpanType) -> str:
         if span_type == SpanType.INTERNAL:
             return SpanKind.INTERNAL
         elif span_type == SpanType.CLIENT:
             return SpanKind.CLIENT
         elif span_type == SpanType.SERVER:
-            return  SpanKind.SERVER
+            return SpanKind.SERVER
         elif span_type == SpanType.PRODUCER:
             return SpanKind.PRODUCER
         elif span_type == SpanType.CONSUMER:
@@ -187,7 +186,7 @@ class OTLPSpan(Span, ReadableSpan):
             attributes: dict[str, Any] = None,
             timestamp: Optional[int] = None,
             escaped: bool = False,
-        ) -> None:
+    ) -> None:
         timestamp = timestamp or time.time_ns()
         attributes = {**(attributes or {})}
 
@@ -197,11 +196,11 @@ class OTLPSpan(Span, ReadableSpan):
             # So we override the stacktrace attribute with the correct one.
             stacktrace = ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__))
             attributes[SpanAttributes.EXCEPTION_STACKTRACE] = stacktrace
-        
+
         self._span.record_exception(exception=exception,
-                                   attributes=attributes,
-                                   timestamp=timestamp,
-                                   escaped=escaped)
+                                    attributes=attributes,
+                                    timestamp=timestamp,
+                                    escaped=escaped)
 
     def get_trace_id(self) -> str:
         """Get the trace ID of the span.
@@ -209,7 +208,7 @@ class OTLPSpan(Span, ReadableSpan):
             The trace ID of the span.
         """
         return f"{self._span.get_span_context().trace_id:032x}"
-    
+
     def _attach(self):
         if self._token is not None:
             return
@@ -221,11 +220,12 @@ class OTLPSpan(Span, ReadableSpan):
         otlp_context_api.detach(self._token)
         self._token = None
 
+
 def configure_otlp_provider(
-    backends: Sequence[str] = None,
-    base_url: str = None,
-    write_token: str = None,
-    **kwargs
+        backends: Sequence[str] = None,
+        base_url: str = None,
+        write_token: str = None,
+        **kwargs
 ) -> None:
     """Configure the OTLP provider.
     Args:
@@ -252,13 +252,16 @@ def _configure_logfire_exporter(write_token: str, base_url: str = None) -> None:
         base_url: The base URL to use.
         **kwargs: Additional keyword arguments to pass to the exporter.
     """
+    from opentelemetry.exporter.otlp.proto.http import Compression
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
     base_url = base_url or "https://logfire-us.pydantic.dev"
     headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': write_token}
     print("=========headers", headers)
     session = requests.Session()
     session.headers.update(headers)
     return OTLPSpanExporter(
-                        endpoint=urljoin(base_url, '/v1/traces'),
-                        session=session,
-                        compression=Compression.Gzip,
-                    )
+        endpoint=urljoin(base_url, '/v1/traces'),
+        session=session,
+        compression=Compression.Gzip,
+    )

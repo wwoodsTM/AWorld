@@ -1,8 +1,16 @@
-import importlib.metadata as importlib_metadata
 import types
 import inspect
-from typing import TYPE_CHECKING, Union, Optional, Any, Type, Sequence, Callable
-from aworld.trace.trace import AttributeValueType, NoOpSpan, Span, Tracer, NoOpTracer, get_tracer_provider, log_trace_error
+
+import aworld
+
+from typing import Union, Optional, Any, Type, Sequence, Callable
+from aworld.trace.trace import (
+    AttributeValueType,
+    Span, Tracer,
+    NoOpTracer,
+    get_tracer_provider,
+    log_trace_error
+)
 from aworld.trace.auto_trace import AutoTraceModule, install_auto_tracing
 from aworld.trace.stack_info import get_user_stack_info
 from aworld.trace.constants import (
@@ -18,12 +26,13 @@ from aworld.trace.msg_format import (
 )
 from .opentelemetry.opentelemetry_adapter import configure_otlp_provider
 
+
 def trace_configure(provider: str = "otlp",
                     backends: Sequence[str] = None,
                     base_url: str = None,
                     write_token: str = None,
                     **kwargs
-) -> None:
+                    ) -> None:
     """
     Configure the trace provider.
     Args:
@@ -45,14 +54,15 @@ class TraceManager:
     """
     TraceManager is a class that provides a way to trace the execution of a function.
     """
+
     def __init__(self, tracer_name: str = None) -> None:
         self._tracer_name = tracer_name or "aworld"
-        self._version = importlib_metadata.version('aworld')
+        self._version = aworld.__version__
 
     def _create_auto_span(self,
                           name: str,
                           attributes: dict[str, AttributeValueType] = None
-    ) -> Span:
+                          ) -> Span:
         """
         Create a auto trace span with the given name and attributes.
         """
@@ -80,8 +90,7 @@ class TraceManager:
 
     def auto_tracing(self,
                      modules: Union[Sequence[str], Callable[[AutoTraceModule], bool]],
-                     min_duration: float
-    ) -> None:
+                     min_duration: float) -> None:
         """
         Automatically trace the execution of a function.
         Args:
@@ -96,15 +105,14 @@ class TraceManager:
              msg_template: str,
              attributes: dict[str, AttributeValueType] = None,
              *,
-             span_name: str = None
-    ) -> "ContextSpan":
+             span_name: str = None) -> "ContextSpan":
 
         try:
             attributes = attributes or {}
             stack_info = get_user_stack_info()
             merged_attributes = {**stack_info, **attributes}
             # Retrieve stack information of user code and add it to the attributes
-            
+
             if any(c in msg_template for c in ('{', '}')):
                 fstring_frame = inspect.currentframe().f_back
             else:
@@ -121,12 +129,11 @@ class TraceManager:
             span_name = span_name or msg_template
             tracer = get_tracer_provider().get_tracer(name=self._tracer_name, version=self._version)
             return ContextSpan(span_name=span_name,
-                               tracer=tracer, 
+                               tracer=tracer,
                                attributes=merged_attributes)
         except Exception:
             log_trace_error()
             return ContextSpan(span_name=span_name, tracer=NoOpTracer(), attributes=attributes)
-
 
 
 class ContextSpan(Span):
@@ -161,10 +168,10 @@ class ContextSpan(Span):
         return self
 
     def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        traceback: Optional[Any],
+            self,
+            exc_type: Optional[Type[BaseException]],
+            exc_val: Optional[BaseException],
+            traceback: Optional[Any],
     ) -> None:
         """Ends context manager and calls `end` on the `Span`."""
         if self._span and self._span.is_recording() and isinstance(exc_val, BaseException):
@@ -177,7 +184,7 @@ class ContextSpan(Span):
 
     def set_attribute(self, key: str, value: AttributeValueType) -> None:
         if self._span:
-            self._span.set_attribute(key, value)    
+            self._span.set_attribute(key, value)
 
     def set_attributes(self, attributes: dict[str, AttributeValueType]) -> None:
         if self._span:
@@ -189,11 +196,11 @@ class ContextSpan(Span):
         return False
 
     def record_exception(
-        self,
-        exception: BaseException,
-        attributes: dict[str, Any] = None,
-        timestamp: Optional[int] = None,
-        escaped: bool = False,
+            self,
+            exception: BaseException,
+            attributes: dict[str, Any] = None,
+            timestamp: Optional[int] = None,
+            escaped: bool = False,
     ) -> None:
         if self._span:
             self._span.record_exception(exception, attributes, timestamp, escaped)
@@ -202,10 +209,11 @@ class ContextSpan(Span):
         if self._span:
             return self._span.get_trace_id()
 
+
 def format_span_msg(
-    format_string: str,
-    kwargs: dict[str, Any],
-    fstring_frame: types.FrameType = None,
+        format_string: str,
+        kwargs: dict[str, Any],
+        fstring_frame: types.FrameType = None,
 ) -> tuple[str, dict[str, Any], str]:
     """ Returns
     1. The formatted message.
@@ -229,4 +237,3 @@ def format_span_msg(
 
     # Formatting failed, so just use the original format string as the message.
     return format_string, {}, format_string
-
