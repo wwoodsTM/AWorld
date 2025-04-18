@@ -255,6 +255,8 @@ class NoOpSpan(Span):
         escaped: bool = False,
     ) -> None:
         pass
+    def get_trace_id( self) -> str:
+        return ""
 
 class NoOpTracer(Tracer):
     """No-op implementation of `Tracer`."""
