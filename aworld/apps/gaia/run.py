@@ -142,9 +142,13 @@ if __name__ == "__main__":
             }
             _results.append(_result_info)
             with open(save_path, "w") as f:
-                sorted(_results, key=lambda x: x["index"])
+                # Ensure all entries have the 'index' key before sorting
+                if all('index' in result for result in _results):
+                    _results = sorted(_results, key=lambda x: x["index"])
                 json.dump(_results, f, indent=4, ensure_ascii=False)
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt")
     finally:
+        with open(save_path, "w") as f:
+            json.dump(_results, f, indent=4, ensure_ascii=False)
         logger.success(f"Results saved to {save_path} with #{len(_results)} recods!")
