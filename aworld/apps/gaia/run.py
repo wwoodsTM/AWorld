@@ -70,7 +70,7 @@ if __name__ == "__main__":
         ),
         step_reset=False,
         tool_names=[],
-        mcp_servers=["aworld"],
+        mcp_servers=["aworld", f"playwright_{end_idx//40}"],
     )
     browser = ExecuteAgent(
         conf=AgentConfig(
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         mcp_servers=[f"playwright_{end_idx//40}"],
         step_reset=False,
     )
-    swarm = Swarm((planner, executor), (executor, browser), sequence=False)
+    swarm = Swarm((planner, executor), sequence=False)
 
     # Define a task
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -140,9 +140,9 @@ if __name__ == "__main__":
                 "score": question_scorer(answer, sample["Final answer"]),
             }
             _results.append(_result_info)
+            with open(save_path, "w") as f:
+                json.dump(_results, f, indent=4, ensure_ascii=False)
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt")
     finally:
-        with open(save_path, "w") as f:
-            json.dump(_results, f, indent=4, ensure_ascii=False)
         logger.success(f"Results saved to {save_path} with #{len(_results)} recods!")

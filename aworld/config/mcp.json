@@ -4,16 +4,36 @@
       "url": "http://localhost:2000/sse"
     },
     "playwright_1": {
-      "url": "http://localhost:2001/sse"
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--port 2001"
+      ]
     },
     "playwright_2": {
-      "url": "http://localhost:2002/sse"
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--port 2002"
+      ]
     },
     "playwright_3": {
-      "url": "http://localhost:2003/sse"
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--port 2003"
+      ]
     },
     "playwright_4": {
-      "url": "http://localhost:2004/sse"
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--port 2004"
+      ]
     },
     "amap-amap-sse": {
       "url": "https://mcp.amap.com/sse?key=YOUR_API_KEY",

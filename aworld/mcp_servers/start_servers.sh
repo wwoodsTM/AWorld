@@ -20,12 +20,12 @@ server_pids+=($LAUNCHER_PID)
 echo "Started Aworld MCP Server with PID $LAUNCHER_PID"
 
 # start multiple playwright instances
-for port in {2001..2004}; do
-    yes | npx @playwright/mcp@latest --port $port --headless &
-    PLAYWRIGHT_PID=$!
-    server_pids+=($PLAYWRIGHT_PID)
-    echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port $port"
-done
+# for port in {2001..2004}; do
+#     yes | npx @playwright/mcp@latest --port $port --headless &
+#     PLAYWRIGHT_PID=$!
+#     server_pids+=($PLAYWRIGHT_PID)
+#     echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port $port"
+# done
 
 # wait for all servers to finish
 wait "${server_pids[@]}"
