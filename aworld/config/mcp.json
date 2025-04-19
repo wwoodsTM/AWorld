@@ -1,61 +1,19 @@
 {
   "mcpServers": {
-    "arxiv": {
+    "aworld": {
       "url": "http://localhost:2000/sse"
     },
-    "audio": {
+    "playwright_1": {
       "url": "http://localhost:2001/sse"
     },
-    "code": {
+    "playwright_2": {
       "url": "http://localhost:2002/sse"
     },
-    "document": {
+    "playwright_3": {
       "url": "http://localhost:2003/sse"
     },
-    "download": {
+    "playwright_4": {
       "url": "http://localhost:2004/sse"
-    },
-    "filesystem": {
-      "url": "http://localhost:2005/sse"
-    },
-    "github": {
-      "url": "http://localhost:2006/sse"
-    },
-    "googlemaps": {
-      "url": "http://localhost:2007/sse"
-    },
-    "image": {
-      "url": "http://localhost:2008/sse"
-    },
-    "math": {
-      "url": "http://localhost:2009/sse"
-    },
-    "reddit": {
-      "url": "http://localhost:2010/sse"
-    },
-    "search": {
-      "url": "http://localhost:2011/sse"
-    },
-    "sympy": {
-      "url": "http://localhost:2012/sse"
-    },
-    "video": {
-      "url": "http://localhost:2013/sse"
-    },
-    "playwright": {
-      "url": "http://localhost:2014/sse"
-    },
-    "wikipedia": {
-      "url": "http://localhost:2015/sse"
-    },
-    "orcid": {
-      "url": "http://localhost:2016/sse"
-    },
-    "reasoning": {
-      "url": "http://localhost:2017/sse"
-    },
-    "wayback": {
-      "url": "http://localhost:2018/sse"
     },
     "amap-amap-sse": {
       "url": "https://mcp.amap.com/sse?key=YOUR_API_KEY",

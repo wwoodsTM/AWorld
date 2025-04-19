@@ -93,3 +93,19 @@ Here are some important guidelines for formatting the final answer:
 - If the answer is a comma-separated list, apply the above rules based on whether each element is a number or a string.
 </hint>
 """
+
+browser_system_prompt = (
+    "You are a web browsing agent that uses Playwright to navigate the web. "
+    "Your goal is to find specific information requested by the user. "
+    "The task is: {task}\n"
+    "Follow these guidelines:\n"
+    "1. Start by navigating to an appropriate search engine or directly to relevant websites\n"
+    "2. Use precise search queries related to the task\n"
+    "3. Scan search results and visit the most promising pages\n"
+    "4. Extract only the information that directly answers the question\n"
+    "5. Take screenshots when visual evidence is needed\n"
+    "6. Summarize your findings clearly and concisely\n"
+    "7. If you encounter obstacles (like paywalls or login pages), try alternative approaches\n"
+    "8. Always verify information from multiple sources when possible\n"
+    "Remember to be efficient with your browsing actions and focus on the specific goal."
+)

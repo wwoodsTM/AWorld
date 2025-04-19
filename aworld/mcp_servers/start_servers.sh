@@ -3,52 +3,30 @@
 handle_interrupt() {
     echo "Caught SIGINT (Ctrl+C). Executing cleanup commands..."
     echo "Shutting down localhost ports..."
-    lsof -i :2000-2013 | awk 'NR>1 {print $2}' | sort -u | xargs -r kill -9
+    lsof -i :2000-2004 | awk 'NR>1 {print $2}' | sort -u | xargs -r kill -9
     echo "Cleanup done."
     exit 1
 }
 
+# trap SIGINT (Ctrl+C) and call handle_interrupt function
 trap handle_interrupt SIGINT
 
-python arxiv_server.py --port 2000 &
-ARXIV_PID=$!
-python audio_server.py --port 2001 &
-AUDIO_PID=$!
-python code_server.py --port 2002 &
-CODE_PID=$!
-python document_server.py --port 2003 &
-DOCUMENT_PID=$!
-python download_server.py --port 2004 &
-DOWNLOAD_PID=$!
-# python filesystem_server.py --port 2005 &
-# FILESYSTEM_PID=$!
-python github_server.py --port 2006 &
-GITHUB_PID=$!
-python googlemaps_server.py --port 2007 &
-GOOGLEMAPS_PID=$!
-python image_server.py --port 2008 &
-IMAGE_PID=$!
-python math_server.py --port 2009 &
-MATH_PID=$!
-python reddit_server.py --port 2010 &
-REDDIT_PID=$!
-python search_server.py --port 2011 &
-SEARCH_PID=$!
-# python sympy_server.py --port 2012 &
-# SYMPY_PID=$!
-python video_server.py --port 2013 &
-VIDEO_PID=$!
-yes | npx @playwright/mcp@latest --port 2014 --headless &
-PLAYWRIGHT_PID=$!
-# python wikipedia_server.py --port 2015 &
-# WIKIPEDIA_PID=$!
-# python orcid_server.py --port 2016 &
-# ORCID_PID=$!
-python reasoning_server.py --port 2017 &
-REASONING_PID=$!
-# python wayback_server.py --port 2018 &
-# WAYBACK_PID=$!
+# include the list of servers
+server_pids=()
 
-wait $ARXIV_PID $AUDIO_PID $CODE_PID $DOCUMENT_PID $DOWNLOAD_PID $GITHUB_PID $GOOGLEMAPS_PID $IMAGE_PID $MATH_PID $REDDIT_PID $SEARCH_PID $VIDEO_PID $PLAYWRIGHT_PID $REASONING_PID
+python launcher.py --port 2000 --sse-path "/sse" &
+LAUNCHER_PID=$!
+server_pids+=($LAUNCHER_PID)
+echo "Started Aworld MCP Server with PID $LAUNCHER_PID"
 
-echo "All servers have been started."
+# start multiple playwright instances
+for port in {2001..2004}; do
+    yes | npx @playwright/mcp@latest --port $port --headless &
+    PLAYWRIGHT_PID=$!
+    server_pids+=($PLAYWRIGHT_PID)
+    echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port $port"
+done
+
+# wait for all servers to finish
+wait "${server_pids[@]}"
+echo "All servers have been stopped."

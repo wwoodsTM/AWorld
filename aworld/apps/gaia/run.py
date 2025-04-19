@@ -4,15 +4,10 @@
 import json
 import os
 
-from aworld.agents.browser.agent import BrowserAgent
-from aworld.agents.browser.config import BrowserAgentConfig
 from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
-from aworld.apps.gaia.utils import (
-    _check_task_completed,
-    _generate_summary,
-    question_scorer,
-)
-from aworld.config.common import Agents, Tools
+from aworld.agents.gaia.xy_prompts import *
+from aworld.apps.gaia.utils import _check_task_completed, question_scorer
+from aworld.config.common import Agents
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.client import Client
@@ -21,6 +16,26 @@ from aworld.dataset.gaia.benchmark import GAIABenchmark
 from aworld.logs.util import logger
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Launch MCP servers with random port allocation"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        help=f"Listening to port. Must be specified.",
+    )
+    parser.add_argument(
+        "--n",
+        type=int,
+        default=0,
+    )
+    args = parser.parse_args()
+    port = args.port
+    start_idx = args.n
+    end_idx = min(args.n + 40, 165)
+
     # Initialize client
     client = Client()
 
@@ -32,87 +47,79 @@ if __name__ == "__main__":
     llm_api_key = os.getenv("LLM_API_KEY", "")
     llm_base_url = os.getenv("LLM_BASE_URL", "")
 
+    planner = PlanAgent(
+        conf=AgentConfig(
+            name=Agents.PLAN.value,
+            llm_provider="openai",
+            llm_model_name="gpt-4o",
+            llm_base_url=f"http://localhost:{port}",
+            llm_api_key="dummy-key",
+            llm_temperature=0.3,
+        ),
+        step_reset=False,
+    )
+    executor = ExecuteAgent(
+        conf=AgentConfig(
+            name=Agents.EXECUTE.value,
+            llm_provider="openai",
+            llm_model_name="gpt-4o",
+            llm_base_url=f"http://localhost:{port}",
+            llm_api_key="dummy-key",
+            llm_temperature=0.3,
+            system_prompt=execute_system_prompt,
+        ),
+        step_reset=False,
+        tool_names=[],
+        mcp_servers=["aworld"],
+    )
+    browser = ExecuteAgent(
+        conf=AgentConfig(
+            name=Agents.BROWSER.value,
+            llm_provider="openai",
+            llm_model_name="gpt-4o",
+            llm_base_url=f"http://localhost:{port}",
+            llm_api_key="dummy-key",
+            system_prompt=browser_system_prompt,
+        ),
+        tool_names=[],
+        mcp_servers=[f"playwright_{end_idx//40}"],
+        step_reset=False,
+    )
+    swarm = Swarm((planner, executor), (executor, browser), sequence=False)
+
     # Define a task
-    save_path = os.path.expanduser("~/Desktop/gaia/v4/result.json")
-    save_score_path = os.path.expanduser("~/Desktop/gaia/v4/score.json")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    save_path = os.path.join(
+        current_dir, "results", f"result_#{end_idx//40}_{start_idx}_{end_idx}.json"
+    )
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
     if os.path.exists(save_path):
         with open(save_path, "r") as f:
             _results = json.load(f)
     else:
         _results = []
-    for idx, sample in enumerate(dataset[:100]):
+
+    for idx, sample in enumerate(dataset[start_idx:end_idx]):
         logger.info(
-            f">>> Progress bar: {str(idx)}/{len(dataset)}. Current task {sample['task_id']}. "
+            f">>> ✈️ Progress bar: {str(idx+start_idx)}/{len(dataset)}."
+            f"Current task {sample['task_id']}. "
         )
 
         if _check_task_completed(sample["task_id"], _results):
             logger.info(
-                f"The following task is already completed:\n task id: {sample['task_id']}, question: {sample['Question']}"
+                f"The following task is already completed: \nTaskId: {sample['task_id']}\nQuestion: {sample['Question']}"
             )
             continue
 
         question = sample["Question"]
-        logger.info(f"question: {question}")
+        logger.info(f">>> 🤔 Question: {question}")
 
-        planner = PlanAgent(
-            conf=AgentConfig(
-                name=Agents.PLAN.value,
-                llm_provider="openai",
-                llm_model_name="gpt-4o",
-                llm_base_url="http://localhost:3456",
-                llm_api_key="dummy-key",
-                # llm_api_key=llm_api_key,
-                # llm_base_url=llm_base_url,
-                llm_temperature=0.3,
-            ),
-            step_reset=False,
-        )
-        executor = ExecuteAgent(
-            conf=AgentConfig(
-                name=Agents.EXECUTE.value,
-                llm_provider="openai",
-                llm_model_name="gpt-4o",
-                llm_base_url="http://localhost:3456",
-                llm_api_key="dummy-key",
-                # llm_base_url=llm_base_url,D
-                # llm_api_key=llm_api_key,
-                llm_temperature=0.3,
-            ),
-            step_reset=False,
-            tool_names=[],
-            mcp_servers=[
-                "arxiv",
-                "audio",
-                "code",
-                "document",
-                "download",
-                "github",
-                "googlemaps",
-                "playwright",
-                "image",
-                "math",
-                "reddit",
-                "search",
-                "video",
-                "reasoning",
-                # "wayback",
-            ],
-        )
-
-        browser = BrowserAgent(
-            conf=BrowserAgentConfig(
-                name=Agents.BROWSER.value,
-                llm_provider="openai",
-                llm_model_name="gpt-4o",
-                llm_base_url="http://localhost:3456",
-                llm_api_key="dummy-key",
-            ),
-            tool_names=[Tools.BROWSER.value],
-        )
-
-        swarm = Swarm((planner, executor), sequence=False)
         task = Task(
-            input=question, swarm=swarm, conf=TaskConfig(), endless_threshold=10
+            input=question,
+            swarm=swarm,
+            conf=TaskConfig(task_id=sample["task_id"]),
+            endless_threshold=15,
         )
         result = client.submit(task=[task])
 
@@ -120,6 +127,8 @@ if __name__ == "__main__":
         logger.info(f"Task completed: {result['success']}")
         logger.info(f"Time cost: {result['time_cost']}")
         logger.info(f"Task Answer: {answer}")
+        logger.info(f"Gold Answer: {sample['Final answer']}")
+        logger.info(f"Level: {sample['Level']}")
 
         _result_info = {
             "task_id": sample["task_id"],
@@ -132,8 +141,3 @@ if __name__ == "__main__":
         _results.append(_result_info)
         with open(save_path, "w") as f:
             json.dump(_results, f, indent=4, ensure_ascii=False)
-
-    score_dict = _generate_summary(_results)
-    print(score_dict)
-    with open(save_score_path, "w") as f:
-        json.dump(score_dict, f, indent=4, ensure_ascii=False)

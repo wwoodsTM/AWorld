@@ -6,8 +6,8 @@ import time
 import traceback
 from typing import Any, Dict, List, Union
 
-from aworld.agents.gaia.prompts import *
 from aworld.agents.gaia.utils import extract_pattern
+from aworld.agents.gaia.xy_prompts import *
 from aworld.config.common import Agents
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.base import Agent, AgentFactory
@@ -29,14 +29,14 @@ class ExecuteAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(ExecuteAgent, self).__init__(conf, **kwargs)
         # Initialize logger context
-        self.logger_context = logger.bind(agent="ExecuteAgent", method="policy")
-        if not check_log_level("EXECUTE"):
-            self.logger_context.level(
-                "EXECUTE", no=25, color="<bold><fg #FC753F>", icon="🚀"
-            )
+        spec_name = conf.name.split("_")[0].upper()
+        color = "<bold><fg #009D73>" if spec_name == "EXECUTE" else "<bold><fg #979797>"
+        self.logger_context = logger.bind(agent=spec_name, method="policy")
+        if not check_log_level(spec_name):
+            self.logger_context.level(spec_name, no=25, color=color, icon="🚀")
         self.logger_context.execute = (
             lambda message, *message_args, **message_kwargs: self.logger_context.log(
-                "EXECUTE",
+                spec_name,
                 message,
                 *message_args,
                 **message_kwargs,
@@ -48,12 +48,14 @@ class ExecuteAgent(Agent):
             compression="zip",
             format="{time} - {level} - {message}",
         )
+        assert conf.system_prompt
+        self.prompt = conf.system_prompt
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
         super().reset(options)
 
-        self.system_prompt = execute_system_prompt.format(task=self.task)
+        self.system_prompt = self.prompt.format(task=self.task)
         self.step_reset = False
 
     def policy(
@@ -204,14 +206,15 @@ class PlanAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super(PlanAgent, self).__init__(conf, **kwargs)
         # Initialize logger context
-        self.logger_context = logger.bind(agent="PlanAgent", method="policy")
-        if not check_log_level("PLAN"):
+        spec_name = conf.name.split("_")[0].upper()
+        self.logger_context = logger.bind(agent=spec_name, method="policy")
+        if not check_log_level(spec_name):
             self.logger_context.level(
-                "PLAN", no=25, color="<bold><fg #6837F4>", icon="🤔"
+                spec_name, no=25, color="<bold><fg #F26A11>", icon="🤔"
             )
         self.logger_context.plan = (
             lambda message, *message_args, **message_kwargs: self.logger_context.log(
-                "PLAN",
+                spec_name,
                 message,
                 *message_args,
                 **message_kwargs,

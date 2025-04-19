@@ -1,11 +1,12 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-import os.path
-import time
-import sys
 import importlib
+import os.path
 import subprocess
+import sys
+import time
 from importlib import metadata
+
 from aworld.logs.util import logger
 
 
@@ -32,11 +33,15 @@ def is_package_installed(package_name: str, version: str = "") -> bool:
         dist = metadata.distribution(package_name)
 
         if version and dist.version != version:
-            logger.info(f"Package {package_name} is installed but version {dist.version} "
-                        f"does not match required version {version}")
+            logger.info(
+                f"Package {package_name} is installed but version {dist.version} "
+                f"does not match required version {version}"
+            )
             return False
 
-        logger.info(f"Package {package_name} is already installed (version: {dist.version})")
+        logger.info(
+            f"Package {package_name} is already installed (version: {dist.version})"
+        )
         return True
 
     except metadata.PackageNotFoundError:
@@ -66,14 +71,14 @@ def import_packages(packages: list[str]) -> dict:
 
 
 def import_package(
-        package_name: str,
-        alias: str = '',
-        install_name: str = '',
-        version: str = '',
-        installer: str = 'pip',
-        timeout: int = 300,
-        retry_count: int = 3,
-        retry_delay: int = 5
+    package_name: str,
+    alias: str = "",
+    install_name: str = "",
+    version: str = "",
+    installer: str = "pip",
+    timeout: int = 300,
+    retry_count: int = 3,
+    retry_delay: int = 5,
 ) -> object:
     """
     Import and install package if not available.
@@ -100,7 +105,7 @@ def import_package(
     if not package_name:
         raise ValueError("Package name cannot be empty")
 
-    if installer not in ['pip', 'conda']:
+    if installer not in ["pip", "conda"]:
         raise ValueError(f"Unsupported installer: {installer}")
 
     # Use package_name as install_name if not provided
@@ -111,9 +116,9 @@ def import_package(
 
     # Try to import the module first
     try:
-        logger.debug(f"Attempting to import {package_name}")
+        # logger.debug(f"Attempting to import {package_name}")
         module = importlib.import_module(package_name)
-        logger.debug(f"Successfully imported {package_name}")
+        # logger.debug(f"Successfully imported {package_name}")
 
         # If we successfully imported the module, check version if specified
         if version:
@@ -142,8 +147,10 @@ def import_package(
         else:
             # If package is installed but import failed, there might be an issue with dependencies
             # or the package itself. Still, let's try to reinstall it.
-            logger.warning(f"Package {real_install_name} is installed but import of {package_name} failed. "
-                           f"Will attempt reinstallation.")
+            logger.warning(
+                f"Package {real_install_name} is installed but import of {package_name} failed. "
+                f"Will attempt reinstallation."
+            )
             need_install = True
 
     # Install the package if needed
@@ -154,7 +161,9 @@ def import_package(
         for attempt in range(retry_count):
             try:
                 cmd = _get_install_command(installer, real_install_name, version)
-                logger.info(f"Installing {real_install_name} with command: {' '.join(cmd)}")
+                logger.info(
+                    f"Installing {real_install_name} with command: {' '.join(cmd)}"
+                )
                 _execute_install_command(cmd, timeout)
 
                 # Break out of retry loop if installation succeeds
@@ -163,11 +172,16 @@ def import_package(
             except (ImportError, TimeoutError, subprocess.SubprocessError) as e:
                 if attempt < retry_count - 1:
                     logger.warning(
-                        f"Installation attempt {attempt + 1} failed: {str(e)}. Retrying in {retry_delay} seconds...")
+                        f"Installation attempt {attempt + 1} failed: {str(e)}. Retrying in {retry_delay} seconds..."
+                    )
                     time.sleep(retry_delay)
                 else:
-                    logger.error(f"All installation attempts failed for {real_install_name}")
-                    raise ImportError(f"Failed to install {real_install_name} after {retry_count} attempts: {str(e)}")
+                    logger.error(
+                        f"All installation attempts failed for {real_install_name}"
+                    )
+                    raise ImportError(
+                        f"Failed to install {real_install_name} after {retry_count} attempts: {str(e)}"
+                    )
 
     # Try importing after installation
     try:
@@ -195,18 +209,18 @@ def _get_install_command(installer: str, package_name: str, version: str = "") -
     Raises:
         ValueError: If unsupported installer is specified
     """
-    if installer == 'pip':
+    if installer == "pip":
         # Use sys.executable to ensure the right Python interpreter is used
         pytho3 = os.path.basename(sys.executable)
-        cmd = [pytho3, '-m', 'pip', 'install', '--upgrade']
+        cmd = [pytho3, "-m", "pip", "install", "--upgrade"]
         if version:
-            cmd.append(f'{package_name}=={version}')
+            cmd.append(f"{package_name}=={version}")
         else:
             cmd.append(package_name)
-    elif installer == 'conda':
-        cmd = ['conda', 'install', '-y', package_name]
+    elif installer == "conda":
+        cmd = ["conda", "install", "-y", package_name]
         if version:
-            cmd.extend([f'={version}'])
+            cmd.extend([f"={version}"])
     else:
         raise ValueError(f"Unsupported installer: {installer}")
 
@@ -227,11 +241,7 @@ def _execute_install_command(cmd: list, timeout: int) -> None:
     """
     logger.info(f"Executing: {' '.join(cmd)}")
 
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
         stdout, stderr = process.communicate(timeout=timeout)
@@ -249,7 +259,9 @@ def _execute_install_command(cmd: list, timeout: int) -> None:
         raise TimeoutError(error_msg)
 
     if process.returncode != 0:
-        error_msg = f"Installation failed with code {process.returncode}: {stderr.decode()}"
+        error_msg = (
+            f"Installation failed with code {process.returncode}: {stderr.decode()}"
+        )
         logger.error(error_msg)
         raise ImportError(error_msg)
 

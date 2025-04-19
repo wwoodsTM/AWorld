@@ -16,179 +16,24 @@ Main functions:
 - main: Entry point for launching all MCP servers
 - MCPLauncher class: Manages the lifecycle of MCP server processes
 """
-import argparse
-import atexit
-import os
 import random
-import signal
-import subprocess
-import sys
-import threading
-from typing import Callable, Dict, List
+
+from mcp.server import FastMCP
 
 from aworld.logs.util import logger
-from aworld.mcp_servers.arxiv_server import mcpdownloadarxivpaper, mcpsearcharxivpaper
-from aworld.mcp_servers.audio_server import mcptranscribeaudio
-from aworld.mcp_servers.code_server import mcpexecutecode, mcpgeneratecode
-from aworld.mcp_servers.document_server import (
-    mcpreaddocx,
-    mcpreadexcel,
-    mcpreadjson,
-    mcpreadpdf,
-    mcpreadpptx,
-    mcpreadsourcecode,
-    mcpreadtext,
-    mcpreadxml,
-)
-from aworld.mcp_servers.download_server import mcpdownloadfiles
-from aworld.mcp_servers.filesystem_server import (
-    mcpchangepermissions,
-    mcpcheckpath,
-    mcpcompressfiles,
-    mcpcopypath,
-    mcpcreatedirectory,
-    mcpdeletepath,
-    mcpextractarchive,
-    mcpfindduplicates,
-    mcpgetdiskusage,
-    mcpgetfileinfo,
-    mcplistdir,
-    mcpmovepath,
-    mcpreadfile,
-    mcpsearchfiles,
-    mcpwritefile,
-)
-from aworld.mcp_servers.googlemaps_server import (
-    mcpdirections,
-    mcpdistancematrix,
-    mcpelevation,
-    mcpgeocode,
-    mcpgetlatlng,
-    mcpgetpostcode,
-    mcpplacedetails,
-    mcpplacesearch,
-    mcptimezone,
-)
-from aworld.mcp_servers.image_server import mcpreasoningimage
-from aworld.mcp_servers.math_server import (
-    mcpbasicmath,
-    mcpconversion,
-    mcpgeometry,
-    mcprandom,
-    mcpsolveequation,
-    mcpstatistics,
-    mcptrigonometry,
-)
-from aworld.mcp_servers.reddit_server import (
-    mcpgethotposts,
-    mcpgetpostcomments,
-    mcpgetsubredditinfo,
-    mcpgettopsubreddits,
-    mcpgetuserinfo,
-    mcpgetuserposts,
-    mcpsearchreddit,
-)
-from aworld.mcp_servers.search_server import (
-    mcpsearchduckduckgo,
-    mcpsearchexa,
-    mcpsearchgoogle,
-)
-from aworld.mcp_servers.sympy_server import (
-    mcpalgebraic,
-    mcpcalculus,
-    mcpmatrix,
-    mcpsolve,
-    mcpsolvelinear,
-    mcpsolveode,
-)
-from aworld.mcp_servers.utils import run_mcp_server
-from aworld.mcp_servers.video_server import (
-    mcpanalyzevideo,
-    mcpextractvideosubtitles,
-    mcpsummarizevideo,
-)
-
-# Special case for Playwright MCP
-PLAYWRIGHT_PORT: int = 8931  # Default port for Playwright MCP
-
-# Create mapping from server names to functions
-SERVER_FUNCTIONS: Dict[str, List[Callable]] = {
-    "arxiv": [mcpdownloadarxivpaper, mcpsearcharxivpaper],
-    "audio": [mcptranscribeaudio],
-    "code": [mcpexecutecode, mcpgeneratecode],
-    "document": [
-        mcpreaddocx,
-        mcpreadexcel,
-        mcpreadjson,
-        mcpreadpdf,
-        mcpreadpptx,
-        mcpreadsourcecode,
-        mcpreadtext,
-        mcpreadxml,
-    ],
-    "download": [mcpdownloadfiles],
-    "filesystem": [
-        mcpchangepermissions,
-        mcpcheckpath,
-        mcpcompressfiles,
-        mcpcopypath,
-        mcpcreatedirectory,
-        mcpdeletepath,
-        mcpextractarchive,
-        mcpfindduplicates,
-        mcpgetdiskusage,
-        mcpgetfileinfo,
-        mcplistdir,
-        mcpmovepath,
-        mcpreadfile,
-        mcpsearchfiles,
-        mcpwritefile,
-    ],
-    "googlemaps": [
-        mcpdirections,
-        mcpdistancematrix,
-        mcpelevation,
-        mcpgeocode,
-        mcpgetlatlng,
-        mcpgetpostcode,
-        mcpplacedetails,
-        mcpplacesearch,
-        mcptimezone,
-    ],
-    "image": [mcpreasoningimage],
-    "math": [
-        mcpbasicmath,
-        mcpconversion,
-        mcpgeometry,
-        mcprandom,
-        mcpsolveequation,
-        mcpstatistics,
-        mcptrigonometry,
-    ],
-    "reddit": [
-        mcpgethotposts,
-        mcpgetpostcomments,
-        mcpgetsubredditinfo,
-        mcpgettopsubreddits,
-        mcpgetuserinfo,
-        mcpgetuserposts,
-        mcpsearchreddit,
-    ],
-    "search": [mcpsearchduckduckgo, mcpsearchexa, mcpsearchgoogle],
-    "sympy": [
-        mcpalgebraic,
-        mcpcalculus,
-        mcpmatrix,
-        mcpsolve,
-        mcpsolvelinear,
-        mcpsolveode,
-    ],
-    "video": [
-        mcpanalyzevideo,
-        mcpextractvideosubtitles,
-        mcpsummarizevideo,
-    ],
-}
+from aworld.mcp_servers.arxiv_server import ArxivServer
+from aworld.mcp_servers.audio_server import AudioServer
+from aworld.mcp_servers.code_server import CodeServer
+from aworld.mcp_servers.document_server import DocumentServer
+from aworld.mcp_servers.download_server import DownloadServer
+from aworld.mcp_servers.github_server import GitHubServer
+from aworld.mcp_servers.googlemaps_server import GoogleMapsServer
+from aworld.mcp_servers.image_server import ImageServer
+from aworld.mcp_servers.math_server import MathServer
+from aworld.mcp_servers.reasoning_server import ReasoningServer
+from aworld.mcp_servers.reddit_server import RedditServer
+from aworld.mcp_servers.search_server import SearchServer
+from aworld.mcp_servers.video_server import VideoServer
 
 
 class MCPLauncher:
@@ -196,166 +41,173 @@ class MCPLauncher:
     Manages the lifecycle of MCP server processes.
     """
 
-    def __init__(
-        self,
-        servers: Dict[str, List[Callable]],
-        base_port: int = 2000,
-        port_range: int = 8000,
-    ):
+    def __init__(self, sse_path="/sse", port=2000):
         """
         Initialize the MCP launcher.
 
         Args:
-            servers: Dictionary of server-tools to launch
-            base_port: Starting port number for random allocation
-            port_range: Range of ports to allocate from
+            port (int, optional): Port to run the FastMCP server on. Defaults to 2000.
         """
-        self.servers = servers
-        self.base_port = base_port
-        self.port_range = port_range
-        self.processes: Dict[str, subprocess.Popen] = {}
-        self.threads: Dict[str, threading.Thread] = {}
-        self.ports: Dict[str, int] = {}
+        self.sse_path = sse_path
+        self.port = port
+        self.server = FastMCP("Aworld MCP Server")
+        self.processes = {}
+        self.running = False
+        self.server_instances = []
+        self.available_apis = []
 
-        # Register shutdown handler
-        atexit.register(self.shutdown)
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+    def register_apis(self):
+        """Register all available MCP server APIs."""
+        arxiv_server = ArxivServer.get_instance()
+        audio_server = AudioServer.get_instance()
+        code_server = CodeServer.get_instance()
+        document_server = DocumentServer.get_instance()
+        download_server = DownloadServer.get_instance()
+        github_server = GitHubServer.get_instance()
+        googlemaps_server = GoogleMapsServer.get_instance()
+        image_server = ImageServer.get_instance()
+        math_server = MathServer.get_instance()
+        reasoning_server = ReasoningServer.get_instance()
+        reddit_server = RedditServer.get_instance()
+        search_server = SearchServer.get_instance()
+        video_server = VideoServer.get_instance()
 
-    def _signal_handler(self, sig, frame):
-        """Handle termination signals by shutting down gracefully."""
-        logger.info(f"\nReceived signal {sig}, shutting down...")
-        sys.exit(0)
+        self.server_instances = [
+            arxiv_server,
+            audio_server,
+            code_server,
+            document_server,
+            download_server,
+            github_server,
+            googlemaps_server,
+            image_server,
+            math_server,
+            reasoning_server,
+            reddit_server,
+            search_server,
+            video_server,
+        ]
 
-    def _generate_ports(self) -> None:
-        """Generate random unique ports for each server."""
-        available_ports = list(range(self.base_port, self.base_port + self.port_range))
-        random.shuffle(available_ports)
+        self.available_apis = [
+            arxiv_server.search_arxiv_paper_by_title_or_ids,
+            arxiv_server.download_arxiv_paper,
+            audio_server.transcribe_audio,
+            code_server.generate_code,
+            code_server.execute_code,
+            document_server.read_text,
+            document_server.read_json,
+            document_server.read_xml,
+            document_server.read_pdf,
+            document_server.read_docx,
+            document_server.read_excel,
+            document_server.read_pptx,
+            document_server.read_source_code,
+            document_server.read_html_text,
+            download_server.download_files,
+            github_server.get_repository,
+            github_server.list_repository_contents,
+            github_server.search_repositories,
+            github_server.search_code,
+            github_server.get_user,
+            github_server.get_user_repositories,
+            github_server.get_labels,
+            github_server.get_issues,
+            github_server.get_file_content,
+            googlemaps_server.geocode,
+            googlemaps_server.distance_matrix,
+            googlemaps_server.directions,
+            googlemaps_server.place_details,
+            googlemaps_server.place_search,
+            googlemaps_server.get_latlng,
+            googlemaps_server.get_postcode,
+            image_server.ocr,
+            image_server.reasoning_image,
+            math_server.basic_math,
+            math_server.statistics,
+            math_server.geometry,
+            math_server.trigonometry,
+            math_server.solve_equation,
+            math_server.random_operations,
+            math_server.unit_conversion,
+            reasoning_server.complex_problem_reasoning,
+            reddit_server.get_hot_posts,
+            reddit_server.search_reddit,
+            reddit_server.get_post_comments,
+            reddit_server.get_subreddit_info,
+            reddit_server.get_user_info,
+            reddit_server.get_user_posts,
+            reddit_server.get_top_subreddits,
+            search_server.search_google,
+            # search_server.search_duckduckgo,
+            # search_server.search_exa,
+            video_server.analyze_video,
+            video_server.extract_video_subtitles,
+            video_server.summarize_video,
+        ]
 
-        for server, _ in self.servers.items():
-            self.ports[server] = available_ports.pop()
+    def start(self):
+        """Start the FastMCP server with all registered functions."""
+        if self.running:
+            logger.warning("MCP Launcher is already running")
+            return
 
-    def start(self) -> None:
-        """
-        Start all MCP servers with allocated ports.
+        self.register_apis()
 
-        Args:
-            debug: Whether to run in debug mode (more verbose output)
-        """
-        logger.info("Starting MCP servers...")
+        # Initialize and start the FastMCP server
+        for api in self.available_apis:
+            self.server.add_tool(api)
+        self.server.settings.sse_path = self.sse_path
+        self.server.settings.port = self.port
+        self.server.run(transport="sse")
+        self.running = True
+        logger.info(
+            f"MCP Launcher started on port {self.port}/{self.sse_path}"
+            f"with {len(self.available_apis)} total functions"
+        )
 
-        # Generate random ports
-        self._generate_ports()
+    def __enter__(self):
+        """Context manager entry."""
+        self.start()
+        return self
 
-        # Get the directory of this script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Start each server
-        for server_name, funcs in self.servers.items():
-            port = self.ports[server_name]
-
-            if not funcs:
-                logger.warning(f"No functions found for {server_name}, skipping...")
-                continue
-
-            # Use threads to start servers to avoid blocking the main thread
-            logger.info(f"Starting {server_name} on port {port}")
-            thread = threading.Thread(
-                target=run_mcp_server,
-                args=(server_name, funcs, port),
-                daemon=True,
-            )
-            thread.start()
-
-            # Store threads instead of processes
-            self.threads[server_name] = thread
-
-        # Start Playwright MCP
-        # logger.info(f"Starting Playwright MCP on port {PLAYWRIGHT_PORT}...")
-        # playwright_process = subprocess.Popen(
-        #     f"yes | npx @playwright/mcp@latest --port {PLAYWRIGHT_PORT}",
-        #     shell=True,
-        #     stdout=subprocess.PIPE if not debug else None,
-        #     stderr=subprocess.PIPE if not debug else None,
-        #     text=True,
-        #     cwd=script_dir,
-        # )
-        # self.processes["playwright"] = playwright_process
-
-        logger.success("All MCP servers started successfully!")
-        logger.success("Press Ctrl+C to stop all servers")
-
-        while True:
-            try:
-                pass
-            except KeyboardInterrupt as e:
-                logger.info("\nShutting down...")
-                sys.exit(0)
-
-        # Keep the main process running
-        # try:
-        #     # For threads, we can't use poll(), so we only check the playwright process
-        #     while playwright_process.poll() is None:
-        #         time.sleep(1)
-
-        #     # If playwright process exits, log a warning
-        #     if playwright_process.poll() is not None:
-        #         logger.warning(
-        #             f"WARNING: playwright exited unexpectedly with code {playwright_process.returncode}"
-        #         )
-        # except KeyboardInterrupt:
-        #     logger.info("\nShutting down...")
-
-    def shutdown(self) -> None:
-        """Gracefully shut down all running MCP server processes."""
-        logger.info("Shutting down MCP servers...")
-
-        # Shutdown playwright process
-        if "playwright" in self.processes:
-            process = self.processes["playwright"]
-            if (
-                hasattr(process, "poll") and process.poll() is None
-            ):  # Is a process and still running
-                logger.info("Stopping playwright...")
-                try:
-                    # Try to terminate gracefully first
-                    process.terminate()
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    # Force kill if it doesn't respond
-                    logger.warning("Force killing playwright...")
-                    process.kill()
-
-        # Threads are daemon threads and will terminate with the main program
-        # We just need to log
-        for server in [s for s in self.threads if s != "playwright"]:
-            logger.info(f"Stopping {server}...")
-
-        logger.success("All MCP servers stopped")
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.stop()
 
 
 def main():
-    """Main entry point for the MCP launcher."""
-    parser = argparse.ArgumentParser(
-        description="Launch MCP servers with random port allocation"
+    """
+    Main entry point for the MCP Launcher.
+    Starts the MCP server and handles graceful shutdown.
+    """
+    import argparse
+    import signal
+    import sys
+
+    parser = argparse.ArgumentParser(description="Launch MCP servers")
+    parser.add_argument(
+        "--port", type=int, default=2000, help="Port to run the MCP server on"
     )
     parser.add_argument(
-        "--server_name",
-        type=str,
-        help=f"Available servers: {', '.join(SERVER_FUNCTIONS.keys())}",
-        choices=SERVER_FUNCTIONS.keys(),
-        default=None,
+        "--sse-path", type=str, default="/sse", help="SSE path for the MCP server"
     )
     args = parser.parse_args()
 
-    if args.server_name:
-        launcher = MCPLauncher({args.server_name: SERVER_FUNCTIONS[args.server_name]})
-        logger.success(f"Launching server: {args.server_name}")
-    else:
-        launcher = MCPLauncher(SERVER_FUNCTIONS)
-        logger.success("Launching all servers")
+    launcher = MCPLauncher(sse_path=args.sse_path, port=args.port)
 
-    launcher.start()
+    def signal_handler(sig, frame):
+        logger.info("Received shutdown signal, stopping MCP Launcher...")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    try:
+        launcher.start()
+        # Keep the main thread alive
+        signal.pause()
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt received, stopping MCP Launcher...")
 
 
 if __name__ == "__main__":
