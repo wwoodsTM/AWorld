@@ -132,6 +132,7 @@ if __name__ == "__main__":
             logger.info(f"Level: {sample['Level']}")
 
             _result_info = {
+                "index": idx + start_idx,
                 "task_id": sample["task_id"],
                 "question": sample["Question"],
                 "level": sample["Level"],
@@ -141,6 +142,7 @@ if __name__ == "__main__":
             }
             _results.append(_result_info)
             with open(save_path, "w") as f:
+                sorted(_results, key=lambda x: x["index"])
                 json.dump(_results, f, indent=4, ensure_ascii=False)
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt")
