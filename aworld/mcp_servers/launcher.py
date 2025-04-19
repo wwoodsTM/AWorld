@@ -82,7 +82,7 @@ class MCPLauncher:
             self.server.add_tool(api)
         self.server.settings.sse_path = self.sse_path
         self.server.settings.port = self.port
-        logger.info(f"MCP Launcher started on port {self.port}/{self.sse_path}")
+        logger.info(f"MCP Launcher started on port {self.port}:{self.sse_path}")
 
         self.server.run(transport="sse")
         self.running = True
