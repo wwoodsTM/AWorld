@@ -133,13 +133,13 @@ class VideoServer(MCPServerBase):
 
             fps = video.get(cv2.CAP_PROP_FPS)
             frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+            all_frames = []
             frames = []
 
             # Calculate frame interval based on sample rate
             frame_interval = max(1, int(fps / sample_rate))
 
-            for i in range(0, frame_count, frame_interval):
-                video.set(cv2.CAP_PROP_POS_FRAMES, i)
+            for i in range(0, frame_count):
                 ret, frame = video.read()
                 if not ret:
                     break
@@ -151,7 +151,10 @@ class VideoServer(MCPServerBase):
                 # Add data URL prefix for JPEG image
                 frame_data = f"data:image/jpeg;base64,{frame_data}"
 
-                frames.append({"data": frame_data, "time": i / fps})
+                all_frames.append({"data": frame_data, "time": i / fps})
+
+            for i in range(0, len(all_frames), frame_interval):
+                frames.append(all_frames[i])
 
             video.release()
 
@@ -220,19 +223,31 @@ class VideoServer(MCPServerBase):
 
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
-            content = cls.create_video_content(
-                cls._video_analyze.format(task=question), video_frames
-            )
-            inputs.append({"role": "user", "content": content})
 
-            response = llm.completion(
-                messages=inputs,
-                temperature=0,
-            )
-            video_analysis_result = handle_llm_response(
-                response.content, "video_analysis_result"
-            )
+            interval = 20
+            frame_nums = 30
+            all_res = []
+            for i in range(0, len(video_frames), interval):
+                inputs = []
+                cur_frames = video_frames[i : min(i + frame_nums, len(video_frames))]
+                content = cls.create_video_content(
+                    cls._video_analyze.format(task=question), cur_frames
+                )
+                inputs.append({"role": "user", "content": content})
+                try:
+                    response = llm.completion(
+                        messages=inputs,
+                        temperature=0,
+                    )
+                    video_analysis_result = handle_llm_response(
+                        response.content, "video_analysis_result"
+                    )
+                except Exception as e:
+                    video_analysis_result = ""
+                    cls.handle_error(e, "Error extracting frames")
+                all_res.append(video_analysis_result)
 
+            video_analysis_result = "\n".join(all_res)
             logger.info(f"Video analysis result: {video_analysis_result[:100]}...")
             return f'{{"video_analysis_result": "{video_analysis_result}"}}'
 
