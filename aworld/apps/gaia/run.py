@@ -100,44 +100,49 @@ if __name__ == "__main__":
     else:
         _results = []
 
-    for idx, sample in enumerate(dataset[start_idx:end_idx]):
-        logger.info(
-            f">>> ✈️ Progress bar: {str(idx+start_idx)}/{len(dataset)}."
-            f"Current task {sample['task_id']}. "
-        )
-
-        if _check_task_completed(sample["task_id"], _results):
+    try:
+        for idx, sample in enumerate(dataset[start_idx:end_idx]):
             logger.info(
-                f"The following task is already completed: \nTaskId: {sample['task_id']}\nQuestion: {sample['Question']}"
+                f">>> ✈️ Progress bar: {str(idx+start_idx)}/{len(dataset)}."
+                f"Current task {sample['task_id']}. "
             )
-            continue
 
-        question = sample["Question"]
-        logger.info(f">>> 🤔 Question: {question}")
+            if _check_task_completed(sample["task_id"], _results):
+                logger.info(
+                    f"The following task is already completed: \nTaskId: {sample['task_id']}\nQuestion: {sample['Question']}"
+                )
+                continue
 
-        task = Task(
-            input=question,
-            swarm=swarm,
-            conf=TaskConfig(task_id=sample["task_id"]),
-            endless_threshold=15,
-        )
-        result = client.submit(task=[task])
+            question = sample["Question"]
+            logger.info(f">>> 🤔 Question: {question}")
 
-        answer = result["task_0"]["answer"]
-        logger.info(f"Task completed: {result['success']}")
-        logger.info(f"Time cost: {result['time_cost']}")
-        logger.info(f"Task Answer: {answer}")
-        logger.info(f"Gold Answer: {sample['Final answer']}")
-        logger.info(f"Level: {sample['Level']}")
+            task = Task(
+                input=question,
+                swarm=swarm,
+                conf=TaskConfig(task_id=sample["task_id"]),
+                endless_threshold=15,
+            )
+            result = client.submit(task=[task])
 
-        _result_info = {
-            "task_id": sample["task_id"],
-            "question": sample["Question"],
-            "level": sample["Level"],
-            "model_answer": answer,
-            "ground_truth": sample["Final answer"],
-            "score": question_scorer(answer, sample["Final answer"]),
-        }
-        _results.append(_result_info)
+            answer = result["task_0"]["answer"]
+            logger.info(f"Task completed: {result['success']}")
+            logger.info(f"Time cost: {result['time_cost']}")
+            logger.info(f"Task Answer: {answer}")
+            logger.info(f"Gold Answer: {sample['Final answer']}")
+            logger.info(f"Level: {sample['Level']}")
+
+            _result_info = {
+                "task_id": sample["task_id"],
+                "question": sample["Question"],
+                "level": sample["Level"],
+                "model_answer": answer,
+                "ground_truth": sample["Final answer"],
+                "score": question_scorer(answer, sample["Final answer"]),
+            }
+            _results.append(_result_info)
+    except KeyboardInterrupt:
+        logger.critical("KeyboardInterrupt")
+    finally:
         with open(save_path, "w") as f:
             json.dump(_results, f, indent=4, ensure_ascii=False)
+        logger.success(f"Results saved to {save_path} with #{len(_results)} recods!")
