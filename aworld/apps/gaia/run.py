@@ -70,7 +70,7 @@ if __name__ == "__main__":
         ),
         step_reset=False,
         tool_names=[],
-        mcp_servers=["aworld", f"playwright_{end_idx//40}"],
+        mcp_servers=["aworld", "google-search", f"playwright_{end_idx//40}"],
     )
     browser = ExecuteAgent(
         conf=AgentConfig(

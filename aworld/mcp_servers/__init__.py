@@ -9,7 +9,8 @@ from aworld.mcp_servers.image_server import ImageServer
 from aworld.mcp_servers.math_server import MathServer
 from aworld.mcp_servers.reasoning_server import ReasoningServer
 from aworld.mcp_servers.reddit_server import RedditServer
-from aworld.mcp_servers.search_server import SearchServer
+
+# from aworld.mcp_servers.search_server import SearchServer
 from aworld.mcp_servers.video_server import VideoServer
 
 __all__ = [
@@ -24,6 +25,6 @@ __all__ = [
     "MathServer",
     "ReasoningServer",
     "RedditServer",
-    "SearchServer",
+    # "SearchServer",
     "VideoServer",
 ]
