@@ -1,5 +1,33 @@
 init_prompt = f"""
 Please give me clear step-by-step instructions to complete the entire task. To successfully process, you MUST break down the problem into logically linked action sequences. If the task needs any special knowledge, let me know which tools I should use to help me get it done.
+
+===== TOOL PLANNING GUIDELINES =====
+- For web searches: Use search_google for precise, targeted queries
+- For academic research: Use search_arxiv_paper_by_title_or_ids and download_arxiv_paper
+- For document processing:
+  - PDF: read_pdf
+  - Word: read_docx
+  - Excel: read_excel
+  - PowerPoint: read_pptx
+  - Text/JSON/XML: read_text, read_json, read_xml
+  - Source code: read_source_code
+  - Web content: read_html_text
+- For code execution: generate_code and execute_code
+- For mathematical operations:
+  - Basic calculations: basic_math
+  - Statistical analysis: statistics
+  - Geometric problems: geometry
+  - Trigonometry: trigonometry
+  - Equation solving: solve_equation
+  - Unit conversions: unit_conversion
+- For visual analysis: ocr and reasoning_image
+- For audio processing: transcribe_audio
+- For video analysis: analyze_video, extract_video_subtitles, summarize_video
+- For location data: tools (geocode, directions, place_search, etc.)
+- For GitHub interactions: tools for repositories, code search, and issues
+- For Reddit information: tools to access posts, comments, and subreddits
+- For complex reasoning tasks: complex_problem_reasoning
+- For downloading external files: download_files
 """
 
 execute_system_prompt = """

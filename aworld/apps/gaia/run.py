@@ -5,7 +5,7 @@ import json
 import os
 
 from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
-from aworld.agents.gaia.prompts import *
+from aworld.agents.gaia.xy_prompts import *
 from aworld.apps.gaia.utils import _check_task_completed, question_scorer
 from aworld.config.common import Agents
 from aworld.config.conf import AgentConfig, TaskConfig
