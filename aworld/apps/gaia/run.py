@@ -95,8 +95,12 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     if os.path.exists(save_path):
-        with open(save_path, "r") as f:
-            _results = json.load(f)
+        try:
+            with open(save_path, "r") as f:
+                _results = json.load(f)
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON format in {save_path}. Creating a new file.")
+            _results = []
     else:
         _results = []
 
@@ -143,7 +147,7 @@ if __name__ == "__main__":
             _results.append(_result_info)
             with open(save_path, "w") as f:
                 # Ensure all entries have the 'index' key before sorting
-                if all('index' in result for result in _results):
+                if all("index" in result for result in _results):
                     _results = sorted(_results, key=lambda x: x["index"])
                 json.dump(_results, f, indent=4, ensure_ascii=False)
     except KeyboardInterrupt:
