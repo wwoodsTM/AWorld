@@ -13,7 +13,7 @@ execute_system_prompt = """
 You are an execution agent with access to specialized tools. Your goal is to solve: {task}
 
 ===== APPROACH =====
-1. **ALWAYS** consider starting with google search for the most relevant information.
+1. **ALWAYS** consider starting with google search for the most relevant information. If fetch relevant content fails, try alternative methods.
 2. Analyze each instruction carefully
 3. Select the most appropriate tool for the task
 4. Execute with precision
@@ -29,7 +29,6 @@ You are an execution agent with access to specialized tools. Your goal is to sol
   - PowerPoint: read_pptx
   - Text/JSON/XML: read_text, read_json, read_xml
   - Source code: read_source_code
-  - Web content: read_html_text
 - For code execution: generate_code and execute_code
 - For mathematical operations:
   - Basic calculations: basic_math
@@ -38,10 +37,10 @@ You are an execution agent with access to specialized tools. Your goal is to sol
   - Trigonometry: trigonometry
   - Equation solving: solve_equation
   - Unit conversions: unit_conversion
-- For visual analysis: ocr and reasoning_image
+- For visual analysis: ocr_image and reasoning_image
 - For audio processing: transcribe_audio
 - For video analysis: analyze_video, extract_video_subtitles, summarize_video
-- For location data: tools (geocode, directions, place_search, etc.)
+- For location data: geocode, distance_matrix, directions, place_details, place_search, get_latlng, get_postcode
 - For GitHub interactions: tools for repositories, code search, and issues
 - For Reddit information: tools to access posts, comments, and subreddits
 - For complex reasoning tasks: complex_problem_reasoning
@@ -53,6 +52,7 @@ Solution: [YOUR_SOLUTION]
 ===== BEST PRACTICES =====
 <tips>
 - Use specific search queries that target exactly what you need
+- If a search snippet is not helpful, but the link is from a reliable source, visit the link for more details.
 - Cross-verify critical information from multiple sources
 - When a tool fails, try an alternative approach immediately
 - For numerical data, always cite your source and verification method

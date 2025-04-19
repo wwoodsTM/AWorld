@@ -1052,7 +1052,6 @@ class DocumentServer(MCPServerBase):
         except Exception as e:
             return cls.handle_error(e, "Source code file reading")
 
-    @mcp
     @classmethod
     def read_html_text(
         cls,
