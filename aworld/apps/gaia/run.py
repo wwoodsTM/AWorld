@@ -70,7 +70,7 @@ if __name__ == "__main__":
         ),
         step_reset=False,
         tool_names=[],
-        mcp_servers=["aworld", "google-search", f"playwright_{end_idx//40}"],
+        mcp_servers=["aworld", "playwright"],
     )
     browser = ExecuteAgent(
         conf=AgentConfig(
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             system_prompt=browser_system_prompt,
         ),
         tool_names=[],
-        mcp_servers=[f"playwright_{end_idx//40}"],
+        mcp_servers=["playwright"],
         step_reset=False,
     )
     swarm = Swarm((planner, executor), sequence=False)

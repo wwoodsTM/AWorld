@@ -19,12 +19,10 @@ LAUNCHER_PID=$!
 server_pids+=($LAUNCHER_PID)
 echo "Started Aworld MCP Server with PID $LAUNCHER_PID on port 2000 with SSE path /sse"
 
-for port in 2001; do
-    yes | npx @playwright/mcp@latest --port $port --headless &
-    PLAYWRIGHT_PID=$!
-    server_pids+=($PLAYWRIGHT_PID)
-    echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port $port"
-done
+npx @playwright/mcp@lates --port 2001 &
+PLAYWRIGHT_PID=$!
+server_pids+=($PLAYWRIGHT_PID)
+echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port 2001"
 
 # wait for all servers to finish
 wait "${server_pids[@]}"
