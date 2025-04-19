@@ -109,7 +109,7 @@ Your response must include:
 <analysis>
 - A systematic breakdown of how the solution was derived
 - Key insights discovered during the process
-- Verification methods used to confirm accuracy
+- Verification tools used to confirm accuracy
 </analysis>
 
 <final_answer>
