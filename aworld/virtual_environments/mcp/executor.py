@@ -267,9 +267,10 @@ class MCPToolExecutor(ToolActionExecutor):
             params = action.params or {}
             try:
                 # Get or create the MCP server
-                if self.mcp_servers[server_name][
-                    "instance"
-                ]:  # 不重启已初始化 server 的 instance
+                if (
+                    server_name == "playwright"
+                    and self.mcp_servers[server_name]["instance"]
+                ):  # 不重启已初始化 server 的 instance
                     print(
                         f"---------------------------self.server {server_name} exists."
                     )
