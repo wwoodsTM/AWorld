@@ -343,7 +343,7 @@ class MCPToolExecutor(ToolActionExecutor):
             except Exception as e:
                 # Handle general errors
                 error_msg = str(e)
-                logger.error(f"Error executing MCP action: {error_msg}")
+                logger.error(f"Error executing MCP action: {traceback.format_exc()}")
                 action_result = ActionResult(
                     content=f"Error executing tool: {error_msg}", keep=True
                 )

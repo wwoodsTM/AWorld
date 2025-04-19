@@ -7,18 +7,9 @@ import os
 import shutil
 import tempfile
 import unittest
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
 
-import arxiv
-
-from aworld.logs.util import logger
-from aworld.mcp_servers.arxiv_server import (
-    ArxivArticle,
-    ArxivDownloadResult,
-    ArxivSearchResult,
-    ArxivServer,
-)
+from aworld.mcp_servers.arxiv_server import ArxivSearchResult, ArxivServer
 
 
 class TestArxivServer(unittest.TestCase):

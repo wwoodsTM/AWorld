@@ -141,7 +141,7 @@ class SearchServer(MCPServerBase):
 
         return error_response.model_dump_json()
 
-    @mcp
+    # @mcp
     @classmethod
     def search_exa(
         cls,
@@ -390,7 +390,7 @@ class SearchServer(MCPServerBase):
         except Exception as e:
             return cls.handle_error(e, "Google Search")
 
-    @mcp
+    # @mcp
     @classmethod
     def search_duckduckgo(
         cls,
