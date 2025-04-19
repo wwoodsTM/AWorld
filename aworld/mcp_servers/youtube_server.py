@@ -47,8 +47,24 @@ class YoutubeDownloadResults(BaseModel):
 class YoutubeServer(MCPServerBase):
     """YouTube Server class for downloading videos from YouTube URLs"""
 
-    def __init__(self):
-        """Initialize the YouTube download server"""
+    _instance = None
+    _llm_config = None
+
+    def __new__(cls):
+        """Implement singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super(YoutubeServer, cls).__new__(cls)
+            cls._instance._init_server()
+        return cls._instance
+
+    @classmethod
+    def get_instance(cls):
+        """Get the singleton instance of VideoServer"""
+        if cls._instance is None:
+            return cls()
+        return cls._instance
+
+    def _init_server(self):
         self._default_output_dir = "/tmp/mcp_downloads"
         self._default_timeout = 180
         self._default_driver_path = os.environ.get(
@@ -56,11 +72,6 @@ class YoutubeServer(MCPServerBase):
             os.path.expanduser("~/Downloads/chromedriver-mac-arm64/chromedriver"),
         )
         logger.info("YoutubeServer initialized")
-
-    @classmethod
-    def get_instance(cls):
-        """Get an instance of YoutubeServer"""
-        return cls()
 
     @mcp
     @classmethod
