@@ -33,6 +33,7 @@ Example:
 ===== TOOL SELECTION GUIDELINES =====
 - For web searches: Use search_google for precise, targeted queries
 - For browser use: Use playwright browser for general web navigation, accessing web pages, navigating through links, and extracting content
+   - CLOSE THE TAB: remeber to call browser_tab_close function at last step when the task done
 - For academic research: Use search_arxiv_paper_by_title_or_ids and download_arxiv_paper
 - For obtaining structured document content:
   - PDF: read_pdf
