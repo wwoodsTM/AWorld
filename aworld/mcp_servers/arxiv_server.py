@@ -21,6 +21,7 @@ import arxiv
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 
 
@@ -58,7 +59,7 @@ class ArxivDownloadResult(BaseModel):
     error: Optional[str] = None
 
 
-class ArxivServer:
+class ArxivServer(MCPServerBase):
     """
     ArXiv Server class for interacting with the arXiv API.
 
@@ -73,10 +74,10 @@ class ArxivServer:
         """Implement singleton pattern"""
         if cls._instance is None:
             cls._instance = super(ArxivServer, cls).__new__(cls)
-            cls._instance._init_client()
+            cls._instance._init_server()
         return cls._instance
 
-    def _init_client(self):
+    def _init_server(self):
         """Initialize the arxiv client"""
         if self._client is None:
             self._client = arxiv.Client()
@@ -113,6 +114,7 @@ class ArxivServer:
             journal_ref=result.journal_ref,
         )
 
+    @mcp
     @classmethod
     def search_arxiv_paper_by_title_or_ids(
         cls,
@@ -221,6 +223,7 @@ class ArxivServer:
             logger.error(f"arXiv search error: {traceback.format_exc()}")
             return json.dumps({"error": error_msg})
 
+    @mcp
     @classmethod
     def download_arxiv_paper(
         cls,
@@ -356,9 +359,6 @@ if __name__ == "__main__":
 
     run_mcp_server(
         "arXiv Server",
-        funcs=[
-            arxiv_server.search_arxiv_paper_by_title_or_ids,
-            arxiv_server.download_arxiv_paper,
-        ],
+        funcs=arxiv_server.get_functions(),
         port=port,
     )

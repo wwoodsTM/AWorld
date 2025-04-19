@@ -15,11 +15,12 @@ from pydantic import Field
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.models.llm import get_llm_model
 
 
-class ReasoningServer:
+class ReasoningServer(MCPServerBase):
     """
     Reasoning Server class for complex problem reasoning.
     For math and code contest problem, this class utilizes OpenAI o3-mini model to obtain superior performance.
@@ -55,6 +56,7 @@ class ReasoningServer:
             return cls()
         return cls._instance
 
+    @mcp
     @classmethod
     def complex_problem_reasoning(
         cls,

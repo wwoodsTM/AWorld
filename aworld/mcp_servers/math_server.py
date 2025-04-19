@@ -21,7 +21,6 @@ Main functions:
 - conversion: Converts between different units of measurement
 """
 
-import argparse
 import json
 import math
 import random
@@ -32,6 +31,7 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 
 
@@ -89,7 +89,7 @@ class MathError(BaseModel):
     operation: str
 
 
-class MathServer:
+class MathServer(MCPServerBase):
     """
     Math Server class for performing various mathematical operations.
 
@@ -448,6 +448,7 @@ class MathServer:
         return random.sample(choices, count)
 
     # Class methods for MCP functions
+    @mcp
     @classmethod
     def basic_math(
         cls,
@@ -574,6 +575,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Basic Math")
 
+    @mcp
     @classmethod
     def statistics(
         cls,
@@ -678,6 +680,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Statistics")
 
+    @mcp
     @classmethod
     def geometry(
         cls,
@@ -790,6 +793,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Geometry")
 
+    @mcp
     @classmethod
     def trigonometry(
         cls,
@@ -867,6 +871,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Trigonometry")
 
+    @mcp
     @classmethod
     def solve_equation(
         cls,
@@ -975,6 +980,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Equation Solving")
 
+    @mcp
     @classmethod
     def random_operations(
         cls,
@@ -1075,6 +1081,7 @@ class MathServer:
         except Exception as e:
             return cls.handle_error(e, "Random Generation")
 
+    @mcp
     @classmethod
     def unit_conversion(
         cls,

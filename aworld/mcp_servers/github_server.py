@@ -31,6 +31,7 @@ from github import Github, Label
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.utils import import_package
 
@@ -129,7 +130,7 @@ class GitHubError(BaseModel):
     operation: str
 
 
-class GitHubServer:
+class GitHubServer(MCPServerBase):
     """
     GitHub Server class for interacting with the GitHub API.
 
@@ -188,6 +189,7 @@ class GitHubServer:
             )
             return Github()
 
+    @mcp
     @classmethod
     def get_repository(
         cls,
@@ -243,6 +245,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Get Repository")
 
+    @mcp
     @classmethod
     def list_repository_contents(
         cls,
@@ -319,6 +322,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "List Repository Contents")
 
+    @mcp
     @classmethod
     def search_repositories(
         cls,
@@ -414,6 +418,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Search Repositories")
 
+    @mcp
     @classmethod
     def search_code(
         cls,
@@ -499,6 +504,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Search Code")
 
+    @mcp
     @classmethod
     def get_user(
         cls,
@@ -549,6 +555,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Get User")
 
+    @mcp
     @classmethod
     def get_user_repositories(
         cls,
@@ -647,6 +654,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Get User Repositories")
 
+    @mcp
     @classmethod
     def get_issues(
         cls,
@@ -763,6 +771,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Get Issues")
 
+    @mcp
     @classmethod
     def get_labels(
         cls,
@@ -816,6 +825,7 @@ class GitHubServer:
         except Exception as e:
             return cls.handle_error(e, "Get Labels")
 
+    @mcp
     @classmethod
     def get_file_content(
         cls,

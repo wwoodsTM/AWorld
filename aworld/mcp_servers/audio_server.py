@@ -20,6 +20,7 @@ from typing import List
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
     get_file_from_source,
     get_llm_config_from_os_environ,
@@ -31,31 +32,32 @@ from aworld.models.llm import get_llm_model
 
 class AudioTranscriptionResult(BaseModel):
     """Model representing the result of an audio transcription"""
+
     audio_url: str
     transcription: str
     success: bool
     error: str = None
 
 
-class AudioServer:
+class AudioServer(MCPServerBase):
     """
     Audio Server class for processing audio files.
-    
+
     This class provides methods for encoding audio to base64 format and
     transcribing audio content using LLM models.
     """
-    
+
     _instance = None
     _llm = None
     _llm_config = None
-    
+
     def __new__(cls):
         """Implement singleton pattern"""
         if cls._instance is None:
             cls._instance = super(AudioServer, cls).__new__(cls)
             cls._instance._init_server()
         return cls._instance
-    
+
     def _init_server(self):
         """Initialize the audio server"""
         self._llm_config = get_llm_config_from_os_environ(
@@ -63,14 +65,14 @@ class AudioServer:
         )
         self._llm = get_llm_model(self._llm_config)
         logger.info("AudioServer initialized")
-    
+
     @classmethod
     def get_instance(cls):
         """Get the singleton instance of AudioServer"""
         if cls._instance is None:
             return cls()
         return cls._instance
-    
+
     @staticmethod
     def encode_audio(audio_source: str, with_header: bool = True) -> str:
         """
@@ -103,7 +105,9 @@ class AudioServer:
 
             # Format with header if requested
             final_audio = (
-                f"data:{mime_type};base64,{audio_base64}" if with_header else audio_base64
+                f"data:{mime_type};base64,{audio_base64}"
+                if with_header
+                else audio_base64
             )
 
             # Clean up temporary file if it was created for a URL
@@ -117,7 +121,8 @@ class AudioServer:
                 f"Error encoding audio from {audio_source}: {traceback.format_exc()}"
             )
             raise
-    
+
+    @mcp
     @classmethod
     def transcribe_audio(
         cls,
@@ -137,7 +142,7 @@ class AudioServer:
         # Handle Field objects if they're passed directly
         if hasattr(audio_urls, "default") and not isinstance(audio_urls, list):
             audio_urls = audio_urls.default
-            
+
         # Get the singleton instance and ensure server is initialized
         instance = cls.get_instance()
         real_llm = instance._llm.provider
@@ -157,46 +162,47 @@ class AudioServer:
                         model="gpt-4o-transcribe",
                         response_format="text",
                     )
-                    
+
                 result = AudioTranscriptionResult(
-                    audio_url=audio_url,
-                    transcription=transcription,
-                    success=True
+                    audio_url=audio_url, transcription=transcription, success=True
                 )
                 results.append(result)
 
                 # Clean up temporary file if it was created for a URL
-                if file_path != os.path.abspath(audio_url) and os.path.exists(file_path):
+                if file_path != os.path.abspath(audio_url) and os.path.exists(
+                    file_path
+                ):
                     os.unlink(file_path)
 
             except Exception as e:
                 error_msg = str(e)
-                logger.error(f"Error transcribing {audio_url}: {traceback.format_exc()}")
+                logger.error(
+                    f"Error transcribing {audio_url}: {traceback.format_exc()}"
+                )
                 result = AudioTranscriptionResult(
                     audio_url=audio_url,
                     transcription="",
                     success=False,
-                    error=error_msg
+                    error=error_msg,
                 )
                 results.append(result)
 
         logger.info(f"Transcription results: {len(results)} files processed")
-        return json.dumps({
-            "total": len(audio_urls),
-            "success_count": sum(1 for r in results if r.success),
-            "failed_count": sum(1 for r in results if not r.success),
-            "results": [r.model_dump() for r in results]
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "total": len(audio_urls),
+                "success_count": sum(1 for r in results if r.success),
+                "failed_count": sum(1 for r in results if not r.success),
+                "results": [r.model_dump() for r in results],
+            },
+            ensure_ascii=False,
+        )
 
 
 if __name__ == "__main__":
     port = parse_port()
-    
+
     audio_server = AudioServer.get_instance()
     logger.info("AudioServer initialized and ready to handle requests")
-    
-    run_mcp_server(
-        "Audio Server", 
-        funcs=[audio_server.transcribe_audio], 
-        port=port
-    )
+
+    run_mcp_server("Audio Server", funcs=[audio_server.transcribe_audio], port=port)

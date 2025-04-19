@@ -24,6 +24,7 @@ from PIL import Image
 from pydantic import Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
     get_file_from_source,
     get_llm_config_from_os_environ,
@@ -34,7 +35,7 @@ from aworld.mcp_servers.utils import (
 from aworld.models.llm import get_llm_model
 
 
-class ImageServer:
+class ImageServer(MCPServerBase):
     """
     Image Server class for image processing and analysis.
 
@@ -59,13 +60,13 @@ class ImageServer:
         self._llm_config = get_llm_config_from_os_environ(
             llm_model_name="gpt-4o", server_name="Image Server"
         )
-        
+
         self._image_ocr_prompt = (
             "Input is a base64 encoded image. Read text from image if present. "
             "Return a json string with the following format: "
             '{{"image_text": "text from image"}}'
         )
-        
+
         self._image_reasoning_prompt = (
             "Input is a base64 encoded image. Given user's task: {task}, "
             "solve it following the guide line:\n"
@@ -76,7 +77,7 @@ class ImageServer:
             "Return a json string with the following format: "
             '{{"image_reasoning_result": "reasoning result given task and image"}}'
         )
-        
+
         logger.info("ImageServer initialized")
 
     @classmethod
@@ -121,7 +122,9 @@ class ImageServer:
             return image_data  # Return original data if optimization fails
 
     @classmethod
-    def encode_images(cls, image_sources: List[str], with_header: bool = True) -> List[str]:
+    def encode_images(
+        cls, image_sources: List[str], with_header: bool = True
+    ) -> List[str]:
         """
         Encode images to base64 format with robust file handling
 
@@ -164,7 +167,9 @@ class ImageServer:
                 images.append(final_image)
 
                 # Clean up temporary file if it was created for a URL
-                if file_path != os.path.abspath(image_source) and os.path.exists(file_path):
+                if file_path != os.path.abspath(image_source) and os.path.exists(
+                    file_path
+                ):
                     os.unlink(file_path)
 
             except Exception as e:
@@ -174,7 +179,9 @@ class ImageServer:
         return images
 
     @staticmethod
-    def create_image_contents(prompt: str, image_base64: List[str]) -> List[Dict[str, Any]]:
+    def create_image_contents(
+        prompt: str, image_base64: List[str]
+    ) -> List[Dict[str, Any]]:
         """Create uniform image format for querying llm."""
         content = [
             {"type": "text", "text": prompt},
@@ -184,8 +191,9 @@ class ImageServer:
         )
         return content
 
+    @mcp
     @classmethod
-    def ocr(
+    def ocr_image(
         cls,
         image_urls: List[str] = Field(
             description="The input image in given a list of filepaths or urls."
@@ -198,7 +206,9 @@ class ImageServer:
         inputs = []
         try:
             image_base64 = cls.encode_images(image_urls)
-            content = cls.create_image_contents(instance._image_ocr_prompt, image_base64)
+            content = cls.create_image_contents(
+                instance._image_ocr_prompt, image_base64
+            )
             inputs.append({"role": "user", "content": content})
 
             response = llm.completion(
@@ -214,6 +224,7 @@ class ImageServer:
 
         return image_text
 
+    @mcp
     @classmethod
     def reasoning_image(
         cls,
@@ -237,7 +248,9 @@ class ImageServer:
                 messages=inputs,
                 temperature=0,
             )
-            reasoning_result = handle_llm_response(response.content, "image_reasoning_result")
+            reasoning_result = handle_llm_response(
+                response.content, "image_reasoning_result"
+            )
         except (ValueError, IOError, RuntimeError) as e:
             logger.error(f"image_reasoning-Execute error: {traceback.format_exc()}")
             reasoning_result = ""
@@ -250,14 +263,14 @@ class ImageServer:
 # Main function
 if __name__ == "__main__":
     port = parse_port()
-    
+
     image_server = ImageServer.get_instance()
     logger.info("ImageServer initialized and ready to handle requests")
-    
+
     run_mcp_server(
         "Image Server",
         funcs=[
-            image_server.ocr,
+            image_server.ocr_image,
             image_server.reasoning_image,
         ],
         port=port,

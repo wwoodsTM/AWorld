@@ -16,24 +16,16 @@ Main functions:
 - main: Entry point for launching all MCP servers
 - MCPLauncher class: Manages the lifecycle of MCP server processes
 """
-import random
+import argparse
+import signal
+import sys
+from typing import List
 
 from mcp.server import FastMCP
 
 from aworld.logs.util import logger
-from aworld.mcp_servers.arxiv_server import ArxivServer
-from aworld.mcp_servers.audio_server import AudioServer
-from aworld.mcp_servers.code_server import CodeServer
-from aworld.mcp_servers.document_server import DocumentServer
-from aworld.mcp_servers.download_server import DownloadServer
-from aworld.mcp_servers.github_server import GitHubServer
-from aworld.mcp_servers.googlemaps_server import GoogleMapsServer
-from aworld.mcp_servers.image_server import ImageServer
-from aworld.mcp_servers.math_server import MathServer
-from aworld.mcp_servers.reasoning_server import ReasoningServer
-from aworld.mcp_servers.reddit_server import RedditServer
-from aworld.mcp_servers.search_server import SearchServer
-from aworld.mcp_servers.video_server import VideoServer
+from aworld.mcp_servers import *
+from aworld.mcp_servers.abc.base import MCPServerBase
 
 
 class MCPLauncher:
@@ -56,94 +48,25 @@ class MCPLauncher:
         self.server_instances = []
         self.available_apis = []
 
+    def register_server(self):
+        """Register all available MCP server APIs."""
+        self.server_instances: List[MCPServerBase] = [
+            cls.get_instance()
+            for _, cls in globals().items()
+            if isinstance(cls, type)
+            and issubclass(cls, MCPServerBase)
+            and cls is not MCPServerBase
+        ]
+        logger.success(f"Registered {len(self.server_instances)} MCP server instances")
+
     def register_apis(self):
         """Register all available MCP server APIs."""
-        arxiv_server = ArxivServer.get_instance()
-        audio_server = AudioServer.get_instance()
-        code_server = CodeServer.get_instance()
-        document_server = DocumentServer.get_instance()
-        download_server = DownloadServer.get_instance()
-        github_server = GitHubServer.get_instance()
-        googlemaps_server = GoogleMapsServer.get_instance()
-        image_server = ImageServer.get_instance()
-        math_server = MathServer.get_instance()
-        reasoning_server = ReasoningServer.get_instance()
-        reddit_server = RedditServer.get_instance()
-        search_server = SearchServer.get_instance()
-        video_server = VideoServer.get_instance()
-
-        self.server_instances = [
-            arxiv_server,
-            audio_server,
-            code_server,
-            document_server,
-            download_server,
-            github_server,
-            googlemaps_server,
-            image_server,
-            math_server,
-            reasoning_server,
-            reddit_server,
-            search_server,
-            video_server,
-        ]
-
         self.available_apis = [
-            arxiv_server.search_arxiv_paper_by_title_or_ids,
-            arxiv_server.download_arxiv_paper,
-            audio_server.transcribe_audio,
-            code_server.generate_code,
-            code_server.execute_code,
-            document_server.read_text,
-            document_server.read_json,
-            document_server.read_xml,
-            document_server.read_pdf,
-            document_server.read_docx,
-            document_server.read_excel,
-            document_server.read_pptx,
-            document_server.read_source_code,
-            document_server.read_html_text,
-            download_server.download_files,
-            github_server.get_repository,
-            github_server.list_repository_contents,
-            github_server.search_repositories,
-            github_server.search_code,
-            github_server.get_user,
-            github_server.get_user_repositories,
-            github_server.get_labels,
-            github_server.get_issues,
-            github_server.get_file_content,
-            googlemaps_server.geocode,
-            googlemaps_server.distance_matrix,
-            googlemaps_server.directions,
-            googlemaps_server.place_details,
-            googlemaps_server.place_search,
-            googlemaps_server.get_latlng,
-            googlemaps_server.get_postcode,
-            image_server.ocr,
-            image_server.reasoning_image,
-            math_server.basic_math,
-            math_server.statistics,
-            math_server.geometry,
-            math_server.trigonometry,
-            math_server.solve_equation,
-            math_server.random_operations,
-            math_server.unit_conversion,
-            reasoning_server.complex_problem_reasoning,
-            reddit_server.get_hot_posts,
-            reddit_server.search_reddit,
-            reddit_server.get_post_comments,
-            reddit_server.get_subreddit_info,
-            reddit_server.get_user_info,
-            reddit_server.get_user_posts,
-            reddit_server.get_top_subreddits,
-            search_server.search_google,
-            # search_server.search_duckduckgo,
-            # search_server.search_exa,
-            video_server.analyze_video,
-            video_server.extract_video_subtitles,
-            video_server.summarize_video,
+            func
+            for instance in self.server_instances
+            for func in instance.get_functions()
         ]
+        logger.success(f"Registered {len(self.available_apis)} MCP server APIs")
 
     def start(self):
         """Start the FastMCP server with all registered functions."""
@@ -151,6 +74,7 @@ class MCPLauncher:
             logger.warning("MCP Launcher is already running")
             return
 
+        self.register_server()
         self.register_apis()
 
         # Initialize and start the FastMCP server
@@ -158,12 +82,20 @@ class MCPLauncher:
             self.server.add_tool(api)
         self.server.settings.sse_path = self.sse_path
         self.server.settings.port = self.port
+        logger.info(f"MCP Launcher started on port {self.port}/{self.sse_path}")
+
         self.server.run(transport="sse")
         self.running = True
-        logger.info(
-            f"MCP Launcher started on port {self.port}/{self.sse_path}"
-            f"with {len(self.available_apis)} total functions"
-        )
+
+    def stop(self):
+        """Stop the FastMCP server and all running processes."""
+        if not self.running:
+            logger.warning("MCP Launcher is not running")
+            return
+        # Stop the FastMCP server
+        for instance in self.server_instances:
+            instance.cleanup()
+        self.running = False
 
     def __enter__(self):
         """Context manager entry."""
@@ -180,9 +112,6 @@ def main():
     Main entry point for the MCP Launcher.
     Starts the MCP server and handles graceful shutdown.
     """
-    import argparse
-    import signal
-    import sys
 
     parser = argparse.ArgumentParser(description="Launch MCP servers")
     parser.add_argument(
@@ -204,7 +133,6 @@ def main():
 
     try:
         launcher.start()
-        # Keep the main thread alive
         signal.pause()
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received, stopping MCP Launcher...")

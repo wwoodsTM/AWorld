@@ -24,6 +24,7 @@ import praw
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.utils import import_package
 
@@ -105,7 +106,7 @@ class RedditError(BaseModel):
     operation: str
 
 
-class RedditServer:
+class RedditServer(MCPServerBase):
     """
     Reddit Server class for interacting with the Reddit API.
 
@@ -163,6 +164,7 @@ class RedditServer:
             user_agent="AWorld Reddit MCP Server",
         )
 
+    @mcp
     @classmethod
     def get_hot_posts(
         cls,
@@ -242,6 +244,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Get Hot Posts")
 
+    @mcp
     @classmethod
     def search_reddit(
         cls,
@@ -345,6 +348,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Search Reddit")
 
+    @mcp
     @classmethod
     def get_post_comments(
         cls,
@@ -447,6 +451,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Get Post Comments")
 
+    @mcp
     @classmethod
     def get_subreddit_info(
         cls,
@@ -490,6 +495,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Get Subreddit Info")
 
+    @mcp
     @classmethod
     def get_user_info(
         cls,
@@ -531,6 +537,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Get User Info")
 
+    @mcp
     @classmethod
     def get_user_posts(
         cls,
@@ -631,6 +638,7 @@ class RedditServer:
         except Exception as e:
             return cls.handle_error(e, "Get User Posts")
 
+    @mcp
     @classmethod
     def get_top_subreddits(
         cls,

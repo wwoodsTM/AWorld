@@ -25,6 +25,7 @@ import requests
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 
 
@@ -47,7 +48,7 @@ class DownloadResults(BaseModel):
     failed_count: int
 
 
-class DownloadServer:
+class DownloadServer(MCPServerBase):
     """
     Download Server class for downloading files from URLs.
 
@@ -75,6 +76,7 @@ class DownloadServer:
             return cls()
         return cls._instance
 
+    @mcp
     @classmethod
     def download_files(
         cls,

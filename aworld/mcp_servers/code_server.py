@@ -27,6 +27,7 @@ import pyglove as pg
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
     get_llm_config_from_os_environ,
     parse_port,
@@ -53,7 +54,7 @@ class CodeExecutionResult(BaseModel):
     success: bool
 
 
-class CodeServer:
+class CodeServer(MCPServerBase):
     """
     Code Server class for generating and executing code.
 
@@ -138,6 +139,7 @@ class CodeServer:
             line_count = len(code.split("\n"))
             return f"Generated {language} code with {line_count} lines."
 
+    @mcp
     @classmethod
     def generate_code(
         cls,
@@ -230,6 +232,7 @@ class CodeServer:
             logger.error(f"Code generation error: {traceback.format_exc()}")
             return json.dumps({"error": error_msg})
 
+    @mcp
     @classmethod
     def execute_code(
         cls,

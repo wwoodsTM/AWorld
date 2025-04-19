@@ -27,6 +27,7 @@ from exa_py.api import SearchResponse
 from pydantic import BaseModel, Field, field_validator
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 
 
@@ -87,7 +88,7 @@ class SearchResponse(BaseModel):
     error: Optional[str] = None
 
 
-class SearchServer:
+class SearchServer(MCPServerBase):
     """
     Search Server class for interacting with various search engines.
 
@@ -140,6 +141,7 @@ class SearchServer:
 
         return error_response.model_dump_json()
 
+    @mcp
     @classmethod
     def search_exa(
         cls,
@@ -287,6 +289,7 @@ class SearchServer:
         except Exception as e:
             return cls.handle_error(e, "Exa Search")
 
+    @mcp
     @classmethod
     def search_google(
         cls,
@@ -387,6 +390,7 @@ class SearchServer:
         except Exception as e:
             return cls.handle_error(e, "Google Search")
 
+    @mcp
     @classmethod
     def search_duckduckgo(
         cls,

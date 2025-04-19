@@ -22,6 +22,7 @@ import cv2
 from pydantic import Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
     get_file_from_source,
     get_llm_config_from_os_environ,
@@ -32,7 +33,7 @@ from aworld.mcp_servers.utils import (
 from aworld.models.llm import get_llm_model
 
 
-class VideoServer:
+class VideoServer(MCPServerBase):
     """
     Video Server class for processing and analyzing video content.
 
@@ -183,6 +184,7 @@ class VideoServer:
         )
         return content
 
+    @mcp
     @classmethod
     def analyze_video(
         cls,
@@ -237,6 +239,7 @@ class VideoServer:
         except Exception as e:
             return cls.handle_error(e, "Video Analysis")
 
+    @mcp
     @classmethod
     def extract_video_subtitles(
         cls,
@@ -284,6 +287,7 @@ class VideoServer:
         except Exception as e:
             return cls.handle_error(e, "Video Subtitle Extraction")
 
+    @mcp
     @classmethod
     def summarize_video(
         cls,

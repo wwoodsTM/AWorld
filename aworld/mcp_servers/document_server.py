@@ -49,6 +49,7 @@ from PyPDF2 import PdfReader
 from tabulate import tabulate
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.image_server import ImageServer
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.utils import import_package, import_packages
@@ -226,7 +227,7 @@ class ComplexEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
-class DocumentServer:
+class DocumentServer(MCPServerBase):
     """
     Document Server class for processing and analyzing various document formats.
 
@@ -286,6 +287,7 @@ class DocumentServer:
             return f"File is not readable: {document_path}"
         return None
 
+    @mcp
     @classmethod
     def read_text(
         cls,
@@ -319,6 +321,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "Text file reading", document_path)
 
+    @mcp
     @classmethod
     def read_json(
         cls,
@@ -399,6 +402,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "JSON file reading", document_path)
 
+    @mcp
     @classmethod
     def read_xml(
         cls,
@@ -427,6 +431,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "XML file reading", document_path)
 
+    @mcp
     @classmethod
     def read_pdf(
         cls,
@@ -579,6 +584,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "PDF file reading")
 
+    @mcp
     @classmethod
     def read_docx(
         cls,
@@ -611,6 +617,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "Word file reading", document_path)
 
+    @mcp
     @classmethod
     def read_excel(
         cls,
@@ -842,6 +849,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "Excel/CSV files processing")
 
+    @mcp
     @classmethod
     def read_pptx(
         cls,
@@ -954,6 +962,7 @@ class DocumentServer:
                     f"Error cleaning up temporary files: {str(cleanup_error)}"
                 )
 
+    @mcp
     @classmethod
     def read_source_code(
         cls,
@@ -1043,6 +1052,7 @@ class DocumentServer:
         except Exception as e:
             return cls.handle_error(e, "Source code file reading")
 
+    @mcp
     @classmethod
     def read_html_text(
         cls,

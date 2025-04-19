@@ -26,6 +26,7 @@ import googlemaps
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
+from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import parse_port, run_mcp_server
 from aworld.utils import import_package
 
@@ -165,7 +166,7 @@ class GoogleMapsError(BaseModel):
     status: str
 
 
-class GoogleMapsServer:
+class GoogleMapsServer(MCPServerBase):
     """
     Google Maps Server class for interacting with the Google Maps API.
 
@@ -211,6 +212,7 @@ class GoogleMapsServer:
 
         return error.model_dump_json()
 
+    @mcp
     @classmethod
     def geocode(
         cls,
@@ -285,6 +287,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Geocoding")
 
+    @mcp
     @classmethod
     def distance_matrix(
         cls,
@@ -399,6 +402,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Distance Matrix")
 
+    @mcp
     @classmethod
     def directions(
         cls,
@@ -555,6 +559,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Directions")
 
+    @mcp
     @classmethod
     def place_details(
         cls,
@@ -622,6 +627,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Place Details")
 
+    @mcp
     @classmethod
     def place_search(
         cls,
@@ -760,6 +766,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Place Search")
 
+    @mcp
     @classmethod
     def get_latlng(
         cls,
@@ -812,6 +819,7 @@ class GoogleMapsServer:
         except Exception as e:
             return cls.handle_error(e, "Get LatLng")
 
+    @mcp
     @classmethod
     def get_postcode(
         cls,
