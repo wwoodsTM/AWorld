@@ -19,7 +19,7 @@ LAUNCHER_PID=$!
 server_pids+=($LAUNCHER_PID)
 echo "Started Aworld MCP Server with PID $LAUNCHER_PID on port 2000 with SSE path /sse"
 
-npx @playwright/mcp@lates --port 2001 &
+npx @playwright/mcp@latest --port 2001 &
 PLAYWRIGHT_PID=$!
 server_pids+=($PLAYWRIGHT_PID)
 echo "Started Playwright instance with PID $PLAYWRIGHT_PID on port 2001"
