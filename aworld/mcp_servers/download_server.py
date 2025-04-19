@@ -16,12 +16,12 @@ Main functions:
 """
 
 import os
+import subprocess
 import traceback
 import urllib.parse
 from pathlib import Path
 from typing import List, Optional
 
-import requests
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
@@ -136,7 +136,7 @@ class DownloadServer(MCPServerBase):
     def _download_single_file(
         cls, url: str, output_dir: str, filename: str, timeout: int
     ) -> str:
-        """Download a single file from URL and save to the local filesystem.
+        """Download a single file from URL using curl and save to the local filesystem.
 
         Args:
             url: The URL of the file to download
@@ -177,22 +177,22 @@ class DownloadServer(MCPServerBase):
             # Full path to save the file
             file_path = os.path.join(output_dir, filename)
 
-            # Download the file with progress tracking
-            logger.info(f"Downloading {url} to {file_path}")
-            response = requests.get(url, stream=True, timeout=timeout)
-            response.raise_for_status()
+            # Use curl to download the file
+            logger.info(f"Downloading {url} to {file_path} using curl")
+            curl_command = [
+                "curl",
+                "-L",  # Follow redirects
+                "--max-time",
+                str(timeout),  # Set timeout
+                "-o",
+                file_path,  # Output file
+                url,
+            ]
 
-            # Get content type
-            content_type = response.headers.get("Content-Type")
+            result = subprocess.run(curl_command, capture_output=True, text=True)
 
-            # Get file size
-            file_size = int(response.headers.get("Content-Length", 0))
-
-            # Save the file
-            with open(file_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+            if result.returncode != 0:
+                raise Exception(f"Curl error: {result.stderr.strip()}")
 
             # Verify file was saved
             if not os.path.exists(file_path):
@@ -207,20 +207,10 @@ class DownloadServer(MCPServerBase):
                 file_path=file_path,
                 file_name=filename,
                 file_size=actual_size,
-                content_type=content_type,
+                content_type=None,  # Content type is not directly available with curl
                 success=True,
             ).model_dump_json()
 
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Download error: {str(e)}"
-            logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            return DownloadResult(
-                file_path="",
-                file_name=filename,
-                file_size=0,
-                success=False,
-                error=error_msg,
-            ).model_dump_json()
         except Exception as e:
             error_msg = f"Unexpected error: {str(e)}"
             logger.error(f"{error_msg}\n{traceback.format_exc()}")
