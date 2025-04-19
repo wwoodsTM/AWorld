@@ -47,46 +47,6 @@ if __name__ == "__main__":
     llm_api_key = os.getenv("LLM_API_KEY", "")
     llm_base_url = os.getenv("LLM_BASE_URL", "")
 
-    planner = PlanAgent(
-        conf=AgentConfig(
-            name=Agents.PLAN.value,
-            llm_provider="openai",
-            llm_model_name="gpt-4o",
-            llm_base_url=f"http://localhost:{port}",
-            llm_api_key="dummy-key",
-            llm_temperature=0.3,
-        ),
-        step_reset=False,
-    )
-    executor = ExecuteAgent(
-        conf=AgentConfig(
-            name=Agents.EXECUTE.value,
-            llm_provider="openai",
-            llm_model_name="gpt-4o",
-            llm_base_url=f"http://localhost:{port}",
-            llm_api_key="dummy-key",
-            llm_temperature=0.3,
-            system_prompt=execute_system_prompt,
-        ),
-        step_reset=False,
-        tool_names=[],
-        mcp_servers=["aworld", "playwright"],
-    )
-    browser = ExecuteAgent(
-        conf=AgentConfig(
-            name=Agents.BROWSER.value,
-            llm_provider="openai",
-            llm_model_name="gpt-4o",
-            llm_base_url=f"http://localhost:{port}",
-            llm_api_key="dummy-key",
-            system_prompt=browser_system_prompt,
-        ),
-        tool_names=[],
-        mcp_servers=["playwright"],
-        step_reset=False,
-    )
-    swarm = Swarm((planner, executor), sequence=False)
-
     # Define a task
     current_dir = os.path.dirname(os.path.abspath(__file__))
     save_path = os.path.join(
@@ -120,11 +80,38 @@ if __name__ == "__main__":
             question = sample["Question"]
             logger.info(f">>> 🤔 Question: {question}")
 
+            planner = PlanAgent(
+                conf=AgentConfig(
+                    name=Agents.PLAN.value,
+                    llm_provider="openai",
+                    llm_model_name="gpt-4o",
+                    llm_base_url=f"http://localhost:{port}",
+                    llm_api_key="dummy-key",
+                    llm_temperature=0.3,
+                ),
+                step_reset=False,
+            )
+            executor = ExecuteAgent(
+                conf=AgentConfig(
+                    name=Agents.EXECUTE.value,
+                    llm_provider="openai",
+                    llm_model_name="gpt-4o",
+                    llm_base_url=f"http://localhost:{port}",
+                    llm_api_key="dummy-key",
+                    llm_temperature=0.3,
+                    system_prompt=execute_system_prompt,
+                ),
+                step_reset=False,
+                tool_names=[],
+                mcp_servers=["aworld", "playwright"],
+            )
+
+            swarm = Swarm((planner, executor), sequence=False)
             task = Task(
                 input=question,
                 swarm=swarm,
                 conf=TaskConfig(task_id=sample["task_id"]),
-                endless_threshold=15,
+                endless_threshold=10,
             )
             result = client.submit(task=[task])
 
