@@ -1,5 +1,6 @@
 from aworld.mcp_servers.arxiv_server import ArxivServer
 from aworld.mcp_servers.audio_server import AudioServer
+from aworld.mcp_servers.browser_server import BrowserServer
 from aworld.mcp_servers.code_server import CodeServer
 from aworld.mcp_servers.document_server import DocumentServer
 from aworld.mcp_servers.download_server import DownloadServer
@@ -16,6 +17,7 @@ from aworld.mcp_servers.youtube_server import YoutubeServer
 __all__ = [
     "ArxivServer",
     "AudioServer",
+    "BrowserServer",
     "CodeServer",
     "DocumentServer",
     "DownloadServer",

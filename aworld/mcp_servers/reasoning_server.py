@@ -42,7 +42,7 @@ class ReasoningServer(MCPServerBase):
         """Initialize the reasoning server"""
         self._llm_config = AgentConfig(
             llm_provider="openai",
-            llm_model_name="o3-mini",
+            llm_model_name="deepseek-r1",
             llm_base_url=os.getenv("LLM_BASE_URL", ""),
             llm_api_key=os.getenv("LLM_API_KEY", ""),
         )
@@ -55,62 +55,6 @@ class ReasoningServer(MCPServerBase):
         if cls._instance is None:
             return cls()
         return cls._instance
-
-    @mcp
-    @classmethod
-    def complex_problem_reasoning(
-        cls,
-        question: str = Field(
-            description="The input question for complex problem reasoning, such as math and code contest problem",
-        ),
-        original_task: str = Field(
-            default="",
-            description="The original task description. This argument could be fetched from the <task>TASK</task> tag",
-        ),
-    ) -> str:
-        """
-        Perform complex problem reasoning using OpenAI o3-mini model.
-
-        Args:
-            question: The input question for complex problem reasoning
-            original_task: The original task description (optional)
-
-        Returns:
-            str: The reasoning result from the model
-        """
-        # Get the singleton instance and ensure server is initialized
-        instance = cls.get_instance()
-
-        try:
-            # Prepare the prompt with both the question and original task if provided
-            prompt = question
-            if original_task:
-                prompt = f"Original Task: {original_task}\n\nQuestion: {question}"
-
-            # Call the LLM model for reasoning
-            response = instance._llm.provider.completion(
-                model="o3-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert at solving complex problems including math, code contests, riddles, and puzzles. Provide detailed step-by-step reasoning and a clear final answer.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.2,  # Lower temperature for more deterministic reasoning
-            )
-
-            # Extract the reasoning result
-            reasoning_result = response.content
-
-            logger.info(f"Complex reasoning completed successfully")
-            return reasoning_result
-
-        except Exception as e:
-            logger.error(
-                f"Error in complex problem reasoning: {traceback.format_exc()}"
-            )
-            return f"Error performing reasoning: {str(e)}"
 
     @mcp
     @classmethod
@@ -231,13 +175,5 @@ class ReasoningServer(MCPServerBase):
 
 
 if __name__ == "__main__":
-    port = parse_port()
-
     reasoning_server = ReasoningServer.get_instance()
-    logger.info("ReasoningServer initialized and ready to handle requests")
-
-    run_mcp_server(
-        "Reasoning Server",
-        funcs=[reasoning_server.complex_problem_reasoning],
-        port=port,
-    )
+    logger.success(reasoning_server.complex_problem_reasoning(question="1+1=?"))

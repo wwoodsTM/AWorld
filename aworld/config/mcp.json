@@ -3,12 +3,6 @@
     "aworld": {
       "url": "http://localhost:2000/sse"
     },
-    "playwright": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
-    },
     "amap-amap-sse": {
       "url": "https://mcp.amap.com/sse?key=YOUR_API_KEY",
       "timeout": 5.0,

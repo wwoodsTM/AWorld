@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 ),
                 step_reset=False,
                 tool_names=[],
-                mcp_servers=["aworld", "playwright"],
+                mcp_servers=["aworld"],
             )
 
             swarm = Swarm((planner, executor), sequence=False)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                 input=question,
                 swarm=swarm,
                 conf=TaskConfig(task_id=sample["task_id"]),
-                endless_threshold=10,
+                endless_threshold=6,
             )
             result = client.submit(task=[task])
 

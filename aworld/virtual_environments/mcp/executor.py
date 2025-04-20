@@ -271,9 +271,7 @@ class MCPToolExecutor(ToolActionExecutor):
                     server_name == "playwright"
                     and self.mcp_servers[server_name]["instance"]
                 ):  # 不重启已初始化 server 的 instance
-                    print(
-                        f"---------------------------self.server {server_name} exists."
-                    )
+                    logger.warning(f">>> self.server {server_name} exists.")
                     result = await self.mcp_servers[server_name]["instance"].call_tool(
                         action_name, params
                     )
@@ -281,7 +279,6 @@ class MCPToolExecutor(ToolActionExecutor):
                     server = await self._get_or_create_server(server_name)
                     # Call the tool on the server
                     result = await server.call_tool(action_name, params)
-                    print("resc-----------------------")
 
                 # server = await self._get_or_create_server(server_name)
                 # # Call the tool on the server

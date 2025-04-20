@@ -231,7 +231,7 @@ class VideoServer(MCPServerBase):
                 inputs = []
                 cur_frames = video_frames[i : min(i + frame_nums, len(video_frames))]
                 content = cls.create_video_content(
-                    cls._video_analyze.format(task=question), cur_frames
+                    instance._video_analyze.format(task=question), cur_frames
                 )
                 inputs.append({"role": "user", "content": content})
                 try:
@@ -286,7 +286,7 @@ class VideoServer(MCPServerBase):
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
             content = cls.create_video_content(
-                cls._video_extract_subtitles, video_frames
+                instance._video_extract_subtitles, video_frames
             )
             inputs.append({"role": "user", "content": content})
 
@@ -333,7 +333,7 @@ class VideoServer(MCPServerBase):
 
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
-            content = cls.create_video_content(cls._video_summarize, video_frames)
+            content = cls.create_video_content(instance._video_summarize, video_frames)
             inputs.append({"role": "user", "content": content})
 
             response = llm.completion(
