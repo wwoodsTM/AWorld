@@ -28,6 +28,7 @@ Please give me clear step-by-step instructions to complete the entire task. To s
 - For Reddit information: tools to access posts, comments, and subreddits
 - For complex reasoning tasks: complex_problem_reasoning
 - For downloading external files: download_files
+  - when downloading files failed, just skip it and continue
 """
 
 execute_system_prompt = """

@@ -232,7 +232,6 @@ class CodeServer(MCPServerBase):
             logger.error(f"Code generation error: {traceback.format_exc()}")
             return json.dumps({"error": error_msg})
 
-    @mcp
     @classmethod
     def execute_code(
         cls,

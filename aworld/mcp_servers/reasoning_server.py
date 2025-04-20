@@ -112,6 +112,123 @@ class ReasoningServer(MCPServerBase):
             )
             return f"Error performing reasoning: {str(e)}"
 
+    @mcp
+    @classmethod
+    def complex_problem_reasoning(
+        cls,
+        question: str = Field(
+            description="The input question for complex problem reasoning, such as math and code contest problem",
+        ),
+        original_task: str = Field(
+            default="",
+            description="The original task description. This argument could be fetched from the <task>TASK</task> tag",
+        ),
+    ) -> str:
+        """
+        Perform complex problem reasoning using OpenAI o3-mini model.
+
+        Args:
+            question: The input question for complex problem reasoning
+            original_task: The original task description (optional)
+
+        Returns:
+            str: The reasoning result from the model
+        """
+        # Get the singleton instance and ensure server is initialized
+        instance = cls.get_instance()
+
+        try:
+            # Prepare the prompt with both the question and original task if provided
+            prompt = question
+            if original_task:
+                prompt = f"Original Task: {original_task}\n\nQuestion: {question}"
+
+            # Call the LLM model for reasoning
+            response = instance._llm.provider.completion(
+                model="o3-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert at solving complex problems including math, code contests, riddles, and puzzles. Provide detailed step-by-step reasoning and a clear final answer.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,  # Lower temperature for more deterministic reasoning
+            )
+
+            # Extract the reasoning result
+            reasoning_result = response.content
+
+            logger.info(f"Complex reasoning completed successfully")
+            return reasoning_result
+
+        except Exception as e:
+            logger.error(
+                f"Error in complex problem reasoning: {traceback.format_exc()}"
+            )
+            return f"Error performing reasoning: {str(e)}"
+
+    @mcp
+    @classmethod
+    def unit_conversion_reasoning(
+        cls,
+        answer_to_be_converted: str = Field(description="The answer to be converted"),
+        question: str = Field(
+            description="The input question for unit conversion reasoning, such as converting units of measurement",
+        ),
+        original_task: str = Field(
+            default="",
+            description="The original task description. This argument could be fetched from the <task>TASK</task> tag",
+        ),
+    ) -> str:
+        """
+        Perform unit conversion reasoning using OpenAI o3-mini model.
+
+        Args:
+            question: The input question for unit conversion reasoning
+            original_task: The original task description (optional)
+
+        Returns:
+            str: The reasoning result from the model
+        """
+        # Get the singleton instance and ensure server is initialized
+        instance = cls.get_instance()
+
+        try:
+            # Prepare the prompt with both the question and original task if provided
+            prompt = question
+            if original_task:
+                prompt = (
+                    f"Original Task: {original_task}\n\n"
+                    f"Question: {question}\n\n"
+                    f"Answer to be converted: {answer_to_be_converted}"
+                )
+
+            # Call the LLM model for reasoning
+            response = instance._llm.provider.completion(
+                model="o3-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert at performing unit conversions. Provide detailed step-by-step reasoning and a clear final answer.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+
+            # Extract the reasoning result
+            reasoning_result = response.content
+
+            logger.info(f"Unit conversion reasoning completed successfully")
+            return reasoning_result
+
+        except Exception as e:
+            logger.error(
+                f"Error in unit conversion reasoning: {traceback.format_exc()}"
+            )
+            return f"Error performing reasoning: {str(e)}"
+
 
 if __name__ == "__main__":
     port = parse_port()

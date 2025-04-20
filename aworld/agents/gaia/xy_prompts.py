@@ -36,7 +36,7 @@ Example:
    - CLOSE ALL TAB: remeber to call browser_tab_close function at last step when the task done
 - For academic research: Use search_arxiv_paper_by_title_or_ids and download_arxiv_paper
 - For obtaining structured document content:
-  - PDF: read_pdf
+  - PDF: read_pdf, sometimes pdf files may not be readable, first extract image then use image ocr instead
   - Word: read_docx
   - Excel: read_excel
   - PowerPoint: read_pptx
@@ -63,6 +63,7 @@ Example:
 Solution: [YOUR_SOLUTION]
 
 ===== BEST PRACTICES =====
+MUST RESPOND WITH ONLY A SINGLE TOOL-CALL FOR EACH REQUEST! DONNOT RETURN MULTIPLE TOOL-CALLS!
 <tips>
 - Use specific search queries that target exactly what you need
 - If a search snippet is not helpful, but the link is from a reliable source, visit the link for more details.
@@ -91,6 +92,7 @@ Instruction: [SPECIFIC ACTION TO TAKE]
 3. Start with information gathering before attempting solutions
 4. Verify critical information through multiple methods
 5. Adapt the plan when obstacles are encountered
+  - NEVER suggest manual operations
 
 <tips>
 - **ALWAYS** begin with broad information gathering using search tools

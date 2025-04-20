@@ -219,7 +219,7 @@ class DownloadServer(MCPServerBase):
                 file_name=filename,
                 file_size=0,
                 success=False,
-                error=error_msg,
+                error="download failed",
             ).model_dump_json()
 
 
