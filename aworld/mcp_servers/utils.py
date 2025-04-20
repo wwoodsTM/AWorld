@@ -40,18 +40,23 @@ from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 
 
-def get_llm_config_from_os_environ(llm_model_name="gpt-4o", **kwargs) -> AgentConfig:
+def get_llm_config_from_os_environ(
+    llm_model_name="gpt-4o", port: str = None, **kwargs
+) -> AgentConfig:
     """
     Get LLM configuration from environment variables
     Returns:
         AgentConfig: corresponding AgentConfig object
     """
+    if not port:
+        port = os.getenv("LLM_TOOL_PORT", 3455)
+
     return AgentConfig(
         llm_provider="openai",
         llm_model_name=llm_model_name,
-        llm_base_url="http://localhost:3457",
+        llm_base_url=f"http://localhost:{port}",
         llm_api_key="dummy-key",
-        # llm_temperature=0.0,
+        llm_temperature=0.15,
     )
 
 

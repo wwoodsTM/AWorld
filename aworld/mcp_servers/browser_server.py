@@ -113,7 +113,7 @@ class BrowserServer(MCPServerBase):
             task=task,
             llm=ChatOpenAI(
                 model="gpt-4o",
-                base_url="http://localhost:3457",
+                base_url="http://localhost:3455",
                 api_key="dummy-key",
             ),
             browser_context=browser_context,

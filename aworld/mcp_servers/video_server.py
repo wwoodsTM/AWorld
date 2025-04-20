@@ -254,7 +254,7 @@ class VideoServer(MCPServerBase):
         except Exception as e:
             return cls.handle_error(e, "Video Analysis")
 
-    @mcp
+    # @mcp
     @classmethod
     def extract_video_subtitles(
         cls,
@@ -302,7 +302,7 @@ class VideoServer(MCPServerBase):
         except Exception as e:
             return cls.handle_error(e, "Video Subtitle Extraction")
 
-    @mcp
+    # @mcp
     @classmethod
     def summarize_video(
         cls,

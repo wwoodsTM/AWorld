@@ -191,7 +191,6 @@ class ImageServer(MCPServerBase):
         )
         return content
 
-    @mcp
     @classmethod
     def ocr_image(
         cls,

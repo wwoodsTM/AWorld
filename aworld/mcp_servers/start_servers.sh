@@ -1,9 +1,11 @@
 #!/bin/bash
 
+PORT=${1:-2000}
+
 handle_interrupt() {
     echo "Caught SIGINT (Ctrl+C). Executing cleanup commands..."
     echo "Shutting down localhost ports..."
-    lsof -i :2000-2001 | awk 'NR>1 {print $2}' | sort -u | xargs -r kill -9
+    lsof -i :2000-2004 | awk 'NR>1 {print $2}' | sort -u | xargs -r kill -9
     echo "Cleanup done."
     exit 1
 }
@@ -14,7 +16,7 @@ trap handle_interrupt SIGINT
 # include the list of servers
 server_pids=()
 
-python launcher.py --port 2000 --sse-path "/sse" &
+python ~/Desktop/vscode/AWorld/aworld/mcp_servers/launcher.py --port $PORT &
 LAUNCHER_PID=$!
 server_pids+=($LAUNCHER_PID)
 echo "Started Aworld MCP Server with PID $LAUNCHER_PID on port 2000 with SSE path /sse"

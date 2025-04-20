@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "aworld": {
+    "aworld_0": {
       "url": "http://localhost:2000/sse"
     },
     "amap-amap-sse": {
