@@ -7,17 +7,19 @@ import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
-from aworld.core.agent.agent_desc import get_agent_desc
-from aworld.core.envs.tool_desc import get_tool_desc
-from aworld.logs.util import logger
-from aworld.mcp.utils import mcp_tool_desc_transform
-from aworld.models.llm import get_llm_model, call_llm_model
-from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
+from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.common import Observation, ActionModel
+from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.core.factory import Factory
+from aworld.logs.util import logger
+from aworld.mcp.utils import mcp_tool_desc_transform
+from aworld.memory.base import MemoryItem
+from aworld.memory.main import Memory
+from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.model_response import ModelResponse
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
@@ -157,7 +159,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         super(Agent, self).__init__(conf, **kwargs)
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
-        self.memory = []
+        self.memory = Memory.from_config({"memory_store": kwargs.pop("memory_store") if kwargs.get("memory_store") else "inmemory"})
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
@@ -174,7 +176,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)
-        self.memory = []
+        self.memory = Memory.from_config({"memory_store": options.pop("memory_store") if options.get("memory_store") else "inmemory"})
 
     @property
     def llm(self):
@@ -254,19 +256,18 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             content += output_prompt
 
         cur_msg = {'role': 'user', 'content': content}
-        # query from memory, TODO: memory.query()
-        histories = self.memory[-max_step:]
+        # query from memory,
+        histories = self.memory.get_last_n(max_step)
         if histories:
             # default use the first tool call
             for history in histories:
-                messages.append(history.message)
-                if history.tool_calls:
-                    messages.append({'role': 'assistant', 'content': '', 'tool_calls': [history.tool_calls[0]]})
+                if "tool_calls" in history.metadata:
+                    messages.append({'role': history.metadata['role'], 'content': history.content, 'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
-                    messages.append({'role': 'assistant', 'content': history.content})
+                    messages.append({'role': history.metadata['role'], 'content': history.content, "tool_call_id": history.metadata.get("tool_call_id")})
 
-            if histories[-1].tool_calls:
-                tool_id = histories[-1].tool_calls[0].id
+            if "tool_calls" in histories[-1].metadata:
+                tool_id = histories[-1].metadata["tool_calls"][0].id
                 if tool_id:
                     cur_msg['role'] = 'tool'
                     cur_msg['tool_call_id'] = tool_id
@@ -483,6 +484,14 @@ class AgentExecutor(object):
                                                 output_prompt=agent.output_prompt)
 
             self._log_messages(messages)
+            agent.memory.add(MemoryItem(
+                content=messages[-1]['content'],
+                metadata={
+                    "role": messages[-1]['role'],
+                    "agent_name": agent.name(),
+                    "tool_call_id": messages[-1].get("tool_call_id")
+                }
+            ))
 
             llm_response = None
             try:
@@ -502,9 +511,14 @@ class AgentExecutor(object):
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
+                        agent.memory.add(MemoryItem(
+                            content=llm_response.content,
+                            metadata= {
+                                "role": "assistant",
+                                "agent_name": agent.name(),
+                                "tool_calls": llm_response.tool_calls,
+                            }
+                        ))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
@@ -543,6 +557,15 @@ class AgentExecutor(object):
                                                 sys_prompt=agent.system_prompt,
                                                 agent_prompt=agent.agent_prompt,
                                                 output_prompt=agent.output_prompt)
+
+            agent.memory.add(MemoryItem(
+                content=messages[-1]['content'],
+                metadata={
+                    "role": messages[-1]['role'],
+                    "agent_name": agent.name(),
+                    "tool_call_id":  messages[-1].get("tool_call_id")
+                }
+            ))
             llm_response = None
             try:
                 # TODO: models interface update
@@ -562,9 +585,12 @@ class AgentExecutor(object):
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
+                        agent.memory.add(MemoryItem(content=llm_response.content,
+                                                    metadata={
+                                                        "agent": agent.name(),
+                                                        "message": messages[-1],
+                                                        "tool_calls": llm_response.tool_calls
+                                                    }))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")

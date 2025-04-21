@@ -146,5 +146,4 @@ def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
 
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(async_func(*args, **kwargs))
-
     return result
