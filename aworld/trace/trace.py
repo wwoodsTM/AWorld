@@ -228,6 +228,13 @@ class Span(ABC):
         Returns:
             The trace ID of the span.
         """
+    
+    @abstractmethod
+    def get_span_id( self) -> str:
+        """Returns the ID of the span.
+        Returns:
+            The ID of the span.
+        """
 
     def _add_to_open_spans(self) -> None:
         """Add the current span to OPEN_SPANS."""
@@ -255,6 +262,10 @@ class NoOpSpan(Span):
         escaped: bool = False,
     ) -> None:
         pass
+    def get_trace_id( self) -> str:
+        return ""
+    def get_span_id( self) -> str:
+        return ""
 
 class NoOpTracer(Tracer):
     """No-op implementation of `Tracer`."""
@@ -300,6 +311,12 @@ def get_tracer_provider() -> TraceProvider:
     if _GLOBAL_TRACER_PROVIDER is None:
         raise ValueError("No tracer provider has been set.")
     return _GLOBAL_TRACER_PROVIDER
+
+def get_tracer_provider_silent():
+    try:
+        return get_tracer_provider()
+    except Exception:
+        return None
 
 def log_trace_error():
     """
