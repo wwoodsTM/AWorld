@@ -16,6 +16,7 @@ get_log_provider().instrumentLogging(logger)
 
 GLOBAL_TRACE_MANAGER: TraceManager = TraceManager()
 span = GLOBAL_TRACE_MANAGER.span
+func_span = GLOBAL_TRACE_MANAGER.func_span
 auto_tracing = GLOBAL_TRACE_MANAGER.auto_tracing
 get_current_span = GLOBAL_TRACE_MANAGER.get_current_span
 new_manager = GLOBAL_TRACE_MANAGER.get_current_span
