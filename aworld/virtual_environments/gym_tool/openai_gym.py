@@ -6,8 +6,8 @@ from typing import Dict, Any, Tuple, SupportsFloat, List, Union
 from aworld.config import ConfigDict, ToolConfig
 from aworld.config.common import Tools
 from aworld.config.tool_action import GymAction
-from aworld.core.common import Observation, ActionModel
-from aworld.core.envs.tool import Tool, ToolFactory
+from aworld.framework.common import Observation, ActionModel
+from aworld.framework.envs.tool import Tool, ToolFactory
 from aworld.utils.import_package import import_packages
 from aworld.virtual_environments.utils import build_observation
 

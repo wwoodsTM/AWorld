@@ -5,7 +5,7 @@ import logging
 import sys
 from typing import Dict, List
 
-from aworld.core.factory import Factory
+from aworld.framework.factory import Factory
 from aworld.logs.util import logger
 
 

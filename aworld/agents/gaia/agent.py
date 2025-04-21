@@ -7,13 +7,13 @@ import traceback
 from typing import Dict, Any, List, Union
 
 from aworld.config.common import Agents
-from aworld.core.agent.base import Agent, AgentFactory
+from aworld.framework.agent.base import Agent, AgentFactory
 from aworld.models.utils import tool_desc_transform
 from aworld.models.llm import call_llm_model
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.core.common import Observation, ActionModel
+from aworld.framework.common import Observation, ActionModel
 from aworld.logs.util import logger
-from aworld.core.envs.tool_desc import get_tool_desc
+from aworld.framework.envs.tool_desc import get_tool_desc
 from aworld.agents.gaia.prompts import *
 from aworld.agents.gaia.utils import extract_pattern
 

@@ -2,13 +2,13 @@
 # Copyright (c) 2025 inclusionAI.
 import os
 
-from aworld.core.agent.base import AgentFactory
+from aworld.framework.agent.base import AgentFactory
 from aworld.config.common import Tools, Agents
-from aworld.core.client import Client
+from aworld.framework.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.config.conf import AgentConfig, TaskConfig, ModelConfig
-from aworld.core.agent.swarm import Swarm
-from aworld.core.task import Task
+from aworld.framework.agent.swarm import Swarm
+from aworld.framework.task import Task
 from aworld.dataset.mock import mock_dataset
 
 # Need OPENAI_API_KEY

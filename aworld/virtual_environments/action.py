@@ -4,7 +4,7 @@
 import abc
 from typing import Tuple, Any
 
-from aworld.core.common import ActionModel, ActionResult
+from aworld.framework.common import ActionModel, ActionResult
 
 
 class ExecutableAction(object):

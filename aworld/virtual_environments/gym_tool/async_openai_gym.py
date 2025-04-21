@@ -8,8 +8,8 @@ from pydantic import BaseModel
 from aworld.config import ConfigDict
 from aworld.config.common import Tools
 from aworld.config.tool_action import GymAction
-from aworld.core.common import ActionModel, Observation
-from aworld.core.envs.tool import AsyncTool, ToolFactory
+from aworld.framework.common import ActionModel, Observation
+from aworld.framework.envs.tool import AsyncTool, ToolFactory
 from aworld.utils.import_package import import_packages
 
 

@@ -10,11 +10,11 @@ from pydantic import ValidationError
 
 from aworld.agents.travel.prompts import PROMPT_TEMPLATE
 from aworld.config.common import Tools
-from aworld.core.agent.base import AgentFactory, Agent, AgentResult
+from aworld.framework.agent.base import AgentFactory, Agent, AgentResult
 from aworld.agents.browser.utils import convert_input_messages, extract_json_from_model_output, estimate_messages_tokens
 from aworld.agents.browser.common import AgentState, AgentStepInfo, AgentHistory, PolicyMetadata, AgentBrain
 from aworld.config.conf import AgentConfig
-from aworld.core.common import Observation, ActionModel, ActionResult
+from aworld.framework.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.agents.browser.prompts import AgentMessagePrompt
 from aworld.agents.browser.agent import Trajectory

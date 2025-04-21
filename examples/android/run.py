@@ -3,11 +3,11 @@
 
 from aworld.agents import AndroidAgent
 from aworld.config import AgentConfig
-from aworld.core.agent.base import AgentFactory
-from aworld.core.client import Client
-from aworld.core.common import Agents, Tools
-from aworld.core.envs.tool import ToolFactory
-from aworld.core.task import Task
+from aworld.framework.agent.base import AgentFactory
+from aworld.framework.client import Client
+from aworld.framework.common import Agents, Tools
+from aworld.framework.envs.tool import ToolFactory
+from aworld.framework.task import Task
 from aworld.virtual_environments.conf import AndroidToolConfig
 
 

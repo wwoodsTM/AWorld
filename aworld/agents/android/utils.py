@@ -12,8 +12,8 @@ from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, SystemM
 from openai import RateLimitError
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from aworld.core.agent.base import AgentResult
-from aworld.core.common import ActionResult, Observation
+from aworld.framework.agent.base import AgentResult
+from aworld.framework.common import ActionResult, Observation
 
 
 class MessageMetadata(BaseModel):

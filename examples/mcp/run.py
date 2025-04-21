@@ -2,8 +2,8 @@
 # Copyright (c) 2025 inclusionAI.
 
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.core.agent.base import Agent
-from aworld.core.task import Task
+from aworld.framework.agent.base import Agent
+from aworld.framework.task import Task
 
 if __name__ == '__main__':
     agent_config = AgentConfig(

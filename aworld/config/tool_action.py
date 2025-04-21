@@ -3,7 +3,7 @@
 
 from enum import Enum
 
-from aworld.core.common import ToolActionInfo, ParamInfo
+from aworld.framework.common import ToolActionInfo, ParamInfo
 
 
 class ToolAction(Enum):

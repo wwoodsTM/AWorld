@@ -12,11 +12,11 @@ from aworld.config.conf import AgentConfig
 from pydantic import BaseModel
 
 from aworld.config import ConfigDict
-from aworld.core.agent.base import Agent, agent_executor, is_agent_by_name, AgentFactory
-from aworld.core.common import Observation, ActionModel
-from aworld.core.envs.tool import Tool, ToolFactory
-from aworld.core.agent.swarm import Swarm
-from aworld.core.envs.tool_desc import is_tool_by_name
+from aworld.framework.agent.base import Agent, agent_executor, is_agent_by_name, AgentFactory
+from aworld.framework.common import Observation, ActionModel
+from aworld.framework.envs.tool import Tool, ToolFactory
+from aworld.framework.agent.swarm import Swarm
+from aworld.framework.envs.tool_desc import is_tool_by_name
 from aworld.logs.util import logger, color_log, Color
 
 
@@ -128,8 +128,7 @@ class Task(object):
     def _daemon_run(self) -> None:
         if self._use_demon and self.daemon_target and callable(self.daemon_target):
             import threading
-            t = threading.Thread(target=self.daemon_target, name="daemon")
-            t.setDaemon(True)
+            t = threading.Thread(target=self.daemon_target, name="daemon", daemon=True)
             t.start()
 
     def run(self):

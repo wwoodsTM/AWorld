@@ -6,7 +6,7 @@ from typing import List, Optional
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from aworld.agents.browser.common import AgentStepInfo
-from aworld.core.common import Observation, ActionResult
+from aworld.framework.common import Observation, ActionResult
 
 PROMPT_TEMPLATE = """
 You are an AI agent designed to automate browser tasks. Your goal is to accomplish the ultimate task following the rules.

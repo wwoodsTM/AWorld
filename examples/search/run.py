@@ -5,9 +5,9 @@ import os
 from aworld.config.conf import AgentConfig, ModelConfig
 
 from aworld.config.common import Tools
-from aworld.core.agent.base import Agent
-from aworld.core.agent.swarm import Swarm
-from aworld.core.task import Task
+from aworld.framework.agent.base import Agent
+from aworld.framework.agent.swarm import Swarm
+from aworld.framework.task import Task
 
 search_sys_prompt = "You are a helpful search agent."
 search_prompt = """

@@ -2,9 +2,9 @@
 # Copyright (c) 2025 inclusionAI.
 from typing import Dict, List
 
-from aworld.core.agent.agent_desc import agent_handoffs_desc
-from aworld.core.agent.base import Agent, AgentFactory
-from aworld.core.common import ActionModel, Observation
+from aworld.framework.agent.agent_desc import agent_handoffs_desc
+from aworld.framework.agent.base import Agent, AgentFactory
+from aworld.framework.common import ActionModel, Observation
 from aworld.logs.util import logger
 
 

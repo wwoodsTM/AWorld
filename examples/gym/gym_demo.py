@@ -4,14 +4,14 @@ import asyncio
 import time
 
 from aworld.config.common import Tools, Agents
-from aworld.core.client import Client
-from aworld.core.agent.base import Agent, AgentFactory
+from aworld.framework.client import Client
+from aworld.framework.agent.base import Agent, AgentFactory
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.core.envs.tool import AsyncTool, ToolFactory
-from aworld.core.task import Task
+from aworld.framework.envs.tool import AsyncTool, ToolFactory
+from aworld.framework.task import Task
 from aworld.virtual_environments.gym_tool.async_openai_gym import OpenAIGym as AOpenAIGym
 
 

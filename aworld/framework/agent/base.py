@@ -7,8 +7,8 @@ import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
-from aworld.core.agent.agent_desc import get_agent_desc
-from aworld.core.envs.tool_desc import get_tool_desc
+from aworld.framework.agent.agent_desc import get_agent_desc
+from aworld.framework.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.models.llm import get_llm_model, call_llm_model
@@ -16,8 +16,8 @@ from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
-from aworld.core.common import Observation, ActionModel
-from aworld.core.factory import Factory
+from aworld.framework.common import Observation, ActionModel
+from aworld.framework.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 

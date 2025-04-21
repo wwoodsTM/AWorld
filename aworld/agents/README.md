@@ -24,9 +24,9 @@ import json
 from typing import Dict, Any, List, Union
 
 from aworld.config.conf import AgentConfig
-from aworld.core.agent.base import AgentFactory, Agent
-from aworld.core.common import Observation, ActionModel
-from aworld.core.envs.tool_desc import get_tool_desc_by_name
+from aworld.framework.agent.base import AgentFactory, Agent
+from aworld.framework.common import Observation, ActionModel
+from aworld.framework.envs.tool_desc import get_tool_desc_by_name
 from aworld.models.utils import tool_desc_transform
 
 sys_prompt = "You are a helpful search agent."
@@ -131,8 +131,8 @@ On the basis of the above agent(SearchAgent), we provide a multi-agent example:
 from typing import Dict, Any, List, Union
 
 from aworld.config.conf import AgentConfig
-from aworld.core.agent.base import AgentFactory, Agent
-from aworld.core.common import Observation, ActionModel
+from aworld.framework.agent.base import AgentFactory, Agent
+from aworld.framework.common import Observation, ActionModel
 
 summary_sys_prompt = "You are a helpful general summary agent."
 
@@ -194,9 +194,9 @@ The OPENAI_API_KEY and OPENAI_ENDPOINT can be used as a parameter, example in th
 ```python
 
 from aworld.config.conf import AgentConfig
-from aworld.core.client import Client
-from aworld.core.agent.swarm import Swarm
-from aworld.core.task import Task
+from aworld.framework.client import Client
+from aworld.framework.agent.swarm import Swarm
+from aworld.framework.task import Task
 
 if __name__ == '__main__':
     task = "search 1+1=?"

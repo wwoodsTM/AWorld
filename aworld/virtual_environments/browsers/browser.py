@@ -14,10 +14,10 @@ from typing import Any, Dict, Tuple, List, Union
 from aworld.config import ConfigDict
 from aworld.config.common import Tools
 from aworld.config.tool_action import BrowserAction
-from aworld.core.common import Observation, ActionModel, ActionResult
+from aworld.framework.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
-from aworld.core.envs.tool import action_executor, ToolFactory
-from aworld.core.envs.tool import Tool
+from aworld.framework.envs.tool import action_executor, ToolFactory
+from aworld.framework.envs.tool import Tool
 from aworld.utils.import_package import is_package_installed
 from aworld.virtual_environments.browsers.action.executor import BrowserToolActionExecutor
 from aworld.virtual_environments.browsers.util.dom import DomTree

@@ -10,7 +10,7 @@ from typing import Any, Optional, Dict, List
 from openai import RateLimitError
 from pydantic import BaseModel, ConfigDict, Field
 
-from aworld.core.common import ActionResult
+from aworld.framework.common import ActionResult
 
 
 class PolicyMetadata(BaseModel):

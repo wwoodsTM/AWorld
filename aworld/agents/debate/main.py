@@ -3,8 +3,8 @@ from typing import Optional, AsyncGenerator, Any, Coroutine
 
 from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.debate_agent import DebateAgent
-from aworld.core.agent.base import BaseAgent
-from aworld.core.common import Observation
+from aworld.framework.agent.base import BaseAgent
+from aworld.framework.common import Observation
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.output import Output, WorkSpace

@@ -12,7 +12,7 @@ AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Ag
 
 ![AWorld Framework](readme_assets/framework.png)
 
-## [Core](aworld/core/README.md) concepts:
+## [Core](aworld/framework/README.md) concepts:
 - `agent`: AI-powered components that autonomously make decisions, use tools, do collaboration, and so on.
 - `swarm`: define the topology structure of a multiple agents system. 
 - `environment`: the runtime supporting communication among agents and tools.
@@ -27,10 +27,11 @@ python setup.py install
 
 ## Usage
 ### Quick Start
+
 ```python
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.core.agent.base import Agent
-from aworld.core.task import Task
+from aworld.framework.agent.base import Agent
+from aworld.framework.task import Task
 
 if __name__ == '__main__':
     agent_config = AgentConfig(
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
 
         # Set via environment variable or direct configuration
-        llm_api_key="YOUR_API_KEY", 
+        llm_api_key="YOUR_API_KEY",
         llm_base_url="https://api.openai.com/v1"
     )
 
@@ -47,7 +48,7 @@ if __name__ == '__main__':
         conf=agent_config,
         name="search_agent",
         system_prompt=search_sys_prompt,
-        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
+        mcp_servers=["amap-amap-sse"]  # MCP server name for agent to use
     )
 
     # Define a task
@@ -113,14 +114,15 @@ Here is a multi-agent example of running a level2 task from the [GAIA](https://h
 
 ```python
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
-from aworld.core.client import Client
-from aworld.core.agent.swarm import Swarm
-from aworld.core.common import Agents, Tools
-from aworld.core.task import Task
+from aworld.framework.client import Client
+from aworld.framework.agent.swarm import Swarm
+from aworld.framework.common import Agents, Tools
+from aworld.framework.task import Task
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
 
 import os
+
 # Need OPENAI_API_KEY
 os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`

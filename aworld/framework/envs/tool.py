@@ -9,9 +9,9 @@ from pydantic import BaseModel
 
 from aworld.config.conf import ToolConfig, load_config, ConfigDict
 from aworld.config.tool_action import ToolAction
-from aworld.core.envs.action_factory import ActionFactory
-from aworld.core.common import Observation, ActionModel, ActionResult
-from aworld.core.factory import Factory
+from aworld.framework.envs.action_factory import ActionFactory
+from aworld.framework.common import Observation, ActionModel, ActionResult
+from aworld.framework.factory import Factory
 from aworld.logs.util import logger
 from aworld.utils.common import convert_to_snake
 
