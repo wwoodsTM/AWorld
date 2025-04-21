@@ -199,6 +199,44 @@ class YoutubeServer(MCPServerBase):
 
             file_path = Path(os.path.join(output_path, filename))
             file_path.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Output path: {file_path}")
+
+            # check if video already exists with folder: /tmp/mcp_downloads
+            video_id = url.split("?v=")[-1].split("&")[0] if "?v=" in url else ""
+            base_path = "/tmp/mcp_downloads/"
+
+            # checker function
+            def find_existing_video(search_dir, video_id):
+                if not video_id:
+                    return None
+
+                for item in os.listdir(search_dir):
+                    item_path = os.path.join(search_dir, item)
+
+                    if os.path.isfile(item_path) and video_id in item:
+                        return item_path
+
+                    elif os.path.isdir(item_path):
+                        found = find_existing_video(item_path, video_id)
+                        if found:
+                            return found
+
+                return None
+
+            existing_file = find_existing_video(base_path, video_id)
+            if existing_file:
+                result = YoutubeDownloadResults(
+                    file_path=existing_file,
+                    file_name=os.path.basename(existing_file),
+                    file_size=os.path.getsize(existing_file),
+                    content_type="mp4",
+                    success=True,
+                    error=None,
+                )
+                logger.info(
+                    f"Found {video_id} is already downloaded in: {existing_file}"
+                )
+                return result.model_dump_json()
 
             logger.info(f"Downloading file from {url} to {file_path}")
 
