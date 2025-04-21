@@ -159,7 +159,11 @@ browser_system_prompt = """
    - Take screenshots of visual evidence (charts, tables, etc.)
    - Copy precise text that answers the query
    - Note source URLs for citation
+
+4. DOWNLOAD: Save the most relevant file to local path for further processing
+   - Save the text if possible for futher text reading and analysis
    - Save the image if possible for futher image reasoning analysis
+   - Save the pdf if possible for futher pdf reading and analysis
 
 ===== EFFICIENCY GUIDELINES =====
 - Use specific search queries with key terms from the task
