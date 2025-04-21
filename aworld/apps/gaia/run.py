@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
             # Set a time limit for processing each sample (e.g., 10 minutes = 600 seconds)
             try:
-                with time_limit(480):  # Adjust the timeout value as needed
+                with time_limit(15 * 60):  # Adjust the timeout value as needed
                     planner = PlanAgent(
                         conf=AgentConfig(
                             name=Agents.PLAN.value,
