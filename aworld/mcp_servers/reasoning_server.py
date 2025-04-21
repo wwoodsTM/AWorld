@@ -42,7 +42,7 @@ class ReasoningServer(MCPServerBase):
         """Initialize the reasoning server"""
         self._llm_config = AgentConfig(
             llm_provider="openai",
-            llm_model_name="deepseek-r1",
+            llm_model_name="claude-3-7-sonnet-thinking",
             llm_base_url=os.getenv("LLM_BASE_URL", ""),
             llm_api_key=os.getenv("LLM_API_KEY", ""),
         )

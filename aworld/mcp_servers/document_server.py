@@ -179,7 +179,7 @@ class PowerPointSlide(BaseModel):
     """Model representing a slide in a PowerPoint presentation"""
 
     slide_number: int
-    image: str  # Base64 encoded image
+    image_path: str
 
 
 class PowerPointDocument(BaseModel):
@@ -929,15 +929,18 @@ class DocumentServer(MCPServerBase):
                 # Save slide image
                 img_path = os.path.join(temp_dir, f"slide_{i+1}.jpg")
                 slide_img.save(img_path, "JPEG")
+                slides_data.append(
+                    PowerPointSlide(slide_number=i + 1, image_path=img_path)
+                )
 
                 # Convert to base64 using ImageServer's class method
-                base64_image = ImageServer.encode_images(img_path)
-                slides_data.append(
-                    PowerPointSlide(
-                        slide_number=i + 1,
-                        image=f"data:image/jpeg;base64,{base64_image}",
-                    )
-                )
+                # base64_image = ImageServer.encode_images([img_path])
+                # slides_data.append(
+                #     PowerPointSlide(
+                #         slide_number=i + 1,
+                #         image=f"data:image/jpeg;base64,{base64_image}",
+                #     )
+                # )
 
             # Create result
             result = PowerPointDocument(
@@ -1268,7 +1271,12 @@ if __name__ == "__main__":
     document_server = DocumentServer.get_instance()
     logger.info("DocumentServer initialized and ready to handle requests")
 
-    result = document_server.unzip_file(
-        "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip",
-        "/Users/arac/Desktop/",
+    # result = document_server.unzip_file(
+    #     "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip",
+    #     "/Users/arac/Desktop/",
+    # )
+
+    result = document_server.read_pptx(
+        "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx"
     )
+    logger.success(result)

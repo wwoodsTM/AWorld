@@ -165,6 +165,10 @@ browser_system_prompt = """
    - Save the image if possible for futher image reasoning analysis
    - Save the pdf if possible for futher pdf reading and analysis
 
+5. ROBOT DETECTION:
+   - If the page is a robot detection page, abort immediately
+   - Navigate to the most authoritative source for similar information instead
+
 ===== EFFICIENCY GUIDELINES =====
 - Use specific search queries with key terms from the task
 - Avoid getting distracted by tangential information
