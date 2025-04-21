@@ -17,6 +17,7 @@ import os
 import traceback
 from typing import List
 
+from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
@@ -63,7 +64,10 @@ class AudioServer(MCPServerBase):
         self._llm_config = get_llm_config_from_os_environ(
             llm_model_name="gpt-4o-transcribe", server_name="Audio Server"
         )
-        self._llm = get_llm_model(self._llm_config)
+        self._llm = OpenAI(
+            base_url=os.getenv("LLM_BASE_URL", ""),
+            api_key=os.getenv("LLM_API_KEY", ""),
+        )
         logger.info("AudioServer initialized")
 
     @classmethod
@@ -145,7 +149,6 @@ class AudioServer(MCPServerBase):
 
         # Get the singleton instance and ensure server is initialized
         instance = cls.get_instance()
-        real_llm = instance._llm.provider.provider
 
         results = []
         for audio_url in audio_urls:
@@ -157,7 +160,7 @@ class AudioServer(MCPServerBase):
 
                 # Use the file for transcription
                 with open(file_path, "rb") as audio_file:
-                    transcription = real_llm.audio.transcriptions.create(
+                    transcription = instance._llm.audio.transcriptions.create(
                         file=audio_file,
                         model="gpt-4o-transcribe",
                         response_format="text",
@@ -203,6 +206,8 @@ if __name__ == "__main__":
     port = parse_port()
 
     audio_server = AudioServer.get_instance()
-    logger.info("AudioServer initialized and ready to handle requests")
-
-    run_mcp_server("Audio Server", funcs=[audio_server.transcribe_audio], port=port)
+    result = audio_server.transcribe_audio(
+        audio_urls=[
+            "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/2b3ef98c-cc05-450b-a719-711aee40ac65.mp3"
+        ]
+    )
