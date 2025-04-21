@@ -17,6 +17,7 @@ Main functions:
 import base64
 import os
 import traceback
+from collections import Counter
 from io import BytesIO
 from typing import Any, Dict, List
 
@@ -32,7 +33,7 @@ from aworld.mcp_servers.utils import (
     parse_port,
     run_mcp_server,
 )
-from aworld.models.llm import get_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model
 
 
 class ImageServer(MCPServerBase):
@@ -44,6 +45,7 @@ class ImageServer(MCPServerBase):
     """
 
     _instance = None
+    _name = "image"
     _llm_config = None
     _image_ocr_prompt = None
     _image_reasoning_prompt = None
@@ -243,10 +245,12 @@ class ImageServer(MCPServerBase):
             content = cls.create_image_contents(prompt, image_base64)
             inputs.append({"role": "user", "content": content})
 
-            response = llm.completion(
+            response = call_llm_model(
+                llm,
                 messages=inputs,
                 temperature=0,
             )
+            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
             reasoning_result = handle_llm_response(
                 response.content, "image_reasoning_result"
             )

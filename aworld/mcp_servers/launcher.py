@@ -115,7 +115,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Launch MCP servers")
     parser.add_argument(
-        "--port", type=int, default=2000, help="Port to run the MCP server on"
+        "--port", type=int, default=20000, help="Port to run the MCP server on"
     )
     parser.add_argument(
         "--sse-path", type=str, default="/sse", help="SSE path for the MCP server"

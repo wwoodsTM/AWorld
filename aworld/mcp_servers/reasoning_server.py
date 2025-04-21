@@ -10,6 +10,7 @@ Main functions:
 
 import os
 import traceback
+from collections import Counter
 
 from pydantic import Field
 
@@ -28,6 +29,7 @@ class ReasoningServer(MCPServerBase):
     """
 
     _instance = None
+    _name = "reasoning"
     _llm = None
     _llm_config = None
 
@@ -99,6 +101,7 @@ class ReasoningServer(MCPServerBase):
                 ],
                 temperature=0.2,  # Lower temperature for more deterministic reasoning
             )
+            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
 
             # Extract the reasoning result
             reasoning_result = response.content
@@ -160,6 +163,7 @@ class ReasoningServer(MCPServerBase):
                 ],
                 temperature=0.2,
             )
+            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
 
             # Extract the reasoning result
             reasoning_result = response.content

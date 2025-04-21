@@ -4,6 +4,7 @@ import math
 import time
 import traceback
 import uuid
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
@@ -17,6 +18,7 @@ from aworld.core.common import ActionModel, Observation
 from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.envs.tool_desc import is_tool_by_name
 from aworld.logs.util import Color, color_log, logger
+from aworld.models.model_response import TOKEN_USAGE
 
 
 @dataclass
@@ -103,6 +105,8 @@ class Task(object):
         self.tools_conf = tools_conf
         self.endless_threshold = endless_threshold
 
+        self.token_usage: dict[str, int] = TOKEN_USAGE
+
         self.daemon_target = kwargs.pop("daemon_target", None)
         self._use_demon = False if not conf else conf.get("use_demon", False)
         self._exception = None
@@ -161,6 +165,7 @@ class Task(object):
             else:
                 logger.error(f"Unknown topology type: {self.swarm.topology_type}")
         finally:
+            color_log(f"{self.name} task token usage: {self.token_usage}", color=Color.pink)
             # resources clean
             if self.tools:
                 for _, tool in self.tools.items():
@@ -210,6 +215,7 @@ class Task(object):
                             "time_cost": (time.time() - start),
                         }
 
+                    self.token_usage = dict(Counter(cur_agent.token_usage) + Counter(self.token_usage))
                     if self.is_agent(policy[0]):
                         status, info = self._agent(agent, observation, policy, step)
                         if status == "normal":
@@ -639,6 +645,7 @@ class Task(object):
                 "success": False,
             }
         # color_log(f"{cur_agent.name()} policy: {agent_policy}")
+        self.token_usage = dict(Counter(cur_agent.token_usage) + Counter(self.token_usage))
         return "normal", agent_policy
 
     def _social_tool_call(self, policy: List[ActionModel], step: int):

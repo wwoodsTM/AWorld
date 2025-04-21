@@ -9,6 +9,9 @@ servers should implement.
 from abc import ABC, abstractmethod
 from typing import Callable, List
 
+from aworld.logs.util import color_log, Color
+from aworld.models.model_response import TOKEN_USAGE
+
 
 def mcp(func):
     """Decorator to mark a method as an MCP function"""
@@ -25,6 +28,8 @@ class MCPServerBase(ABC):
     """
 
     _instance = None
+    _name = ""
+    _token_usage = TOKEN_USAGE
 
     @classmethod
     def get_instance(cls, *args, **kwargs):
@@ -63,7 +68,8 @@ class MCPServerBase(ABC):
         Clean up resources used by the server.
         This method should be overridden by subclasses if they need to perform cleanup.
         """
-        pass
+        if self._name:
+            color_log(f"{self._name} token usage: {self._token_usage}", color=Color.pink)
 
     @abstractmethod
     def _init_server(self) -> None:
