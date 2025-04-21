@@ -16,6 +16,7 @@ Main functions:
 import base64
 import os
 import traceback
+from collections import Counter
 from typing import Any, Dict, List
 
 import cv2
@@ -30,7 +31,7 @@ from aworld.mcp_servers.utils import (
     parse_port,
     run_mcp_server,
 )
-from aworld.models.llm import get_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model
 
 
 class VideoServer(MCPServerBase):
@@ -42,6 +43,7 @@ class VideoServer(MCPServerBase):
     """
 
     _instance = None
+    _name = "video"
     _llm_config = None
 
     def __new__(cls):
@@ -235,10 +237,12 @@ class VideoServer(MCPServerBase):
                 )
                 inputs.append({"role": "user", "content": content})
                 try:
-                    response = llm.completion(
+                    response = call_llm_model(
+                        llm,
                         messages=inputs,
                         temperature=0,
                     )
+                    instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
                     video_analysis_result = handle_llm_response(
                         response.content, "video_analysis_result"
                     )

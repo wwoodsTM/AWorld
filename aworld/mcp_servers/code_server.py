@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import traceback
 import uuid
+from collections import Counter
 from typing import Dict, List, Optional
 
 import pyglove as pg
@@ -63,6 +64,7 @@ class CodeServer(MCPServerBase):
     """
 
     _instance = None
+    _name = "code"
     _llm = None
     _llm_config = None
 
@@ -207,6 +209,7 @@ class CodeServer(MCPServerBase):
                 temperature=0.1,
                 # max_tokens=16 * 1024,
             )
+            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
 
             generated_code = response.content.strip() if response.content else ""
 

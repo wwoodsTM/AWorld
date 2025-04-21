@@ -31,7 +31,6 @@ import tempfile
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-import magic
 import requests
 from mcp.server import FastMCP
 
@@ -81,7 +80,7 @@ def run_mcp_server(
     return mcp
 
 
-def parse_port():
+def parse_port(default_port: int = None):
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -90,6 +89,7 @@ def parse_port():
     parser.add_argument(
         "--port",
         type=int,
+        default=default_port,
         help=f"Listening to port. Must be specified.",
     )
     args = parser.parse_args()
@@ -137,6 +137,8 @@ def get_mime_type(file_path: str, default_mime: Optional[str] = None) -> str:
         str: Detected MIME type
     """
     # Try using python-magic for accurate MIME type detection
+    import magic
+
     try:
         mime = magic.Magic(mime=True)
         return mime.from_file(file_path)
