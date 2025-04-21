@@ -1,0 +1,120 @@
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel, Field
+from tornado.process import task_id
+
+from aworld.output.base import Output, MessageOutput
+from aworld.output.artifact import Artifact
+from aworld.output.workspace import WorkSpace
+from aworld.output.message_panel import MessagePanel
+
+
+class OutputRenderer(BaseModel):
+    """Base class for output renderers"""
+    
+    async def render(self, output: Output) -> None:
+        """Render the output"""
+        raise NotImplementedError
+
+
+class MessagePanelRenderer(OutputRenderer):
+    """Renderer for message panel outputs"""
+    
+    panel: MessagePanel = None
+    
+    def __init__(self, panel_id: Optional[str] = None):
+        super().__init__()
+        self.panel = MessagePanel.create(panel_id)
+    
+    async def render(self, output: Output) -> None:
+        """Render output to message panel"""
+        await self.panel.add_output(output)
+
+
+class WorkspaceRenderer(OutputRenderer):
+    """Renderer for workspace outputs"""
+    workspace: WorkSpace = Field(default=None, description="internal workspace")
+    
+    def __init__(self, workspace: WorkSpace):
+        super().__init__()
+        self.workspace = workspace
+    
+    async def render(self, output: Output) -> None:
+        """Render output to workspace"""
+        if isinstance(output, Artifact):
+            # Case 1: Output is an Artifact
+            await self.workspace.add_artifact(artifact=output)
+        elif hasattr(output, 'parts'):
+            # Case 2: Output contains Artifacts in parts
+            for part in output.parts:
+                if isinstance(part, Artifact):
+                    await self.workspace.add_artifact(artifact=part)
+
+
+class OutputChannel(BaseModel):
+    """Channel for managing and dispatching outputs"""
+
+    task_id: str
+    outputs: List[Output] = []
+    
+    # Renderers for different output types
+    message_renderer: Optional[MessagePanelRenderer] = None
+    workspace_renderer: Optional[WorkspaceRenderer] = None
+
+    @classmethod
+    def create(cls, task_id: str, workspace: Optional[WorkSpace] = None) -> "OutputChannel":
+        """
+        Create and initialize a new OutputChannel
+        
+        Args:
+            chat_id: Unique identifier for the chat/session
+            workspace: Optional workspace for handling artifacts
+            
+        Returns:
+            Initialized OutputChannel instance
+        """
+        channel = cls(task_id=task_id)
+        channel.setup_renderers(workspace=workspace)
+        return channel
+
+    def setup_renderers(self, workspace: Optional[WorkSpace] = None):
+        """Setup output renderers"""
+        self.message_renderer = MessagePanelRenderer("panel#" + self.task_id)
+        if workspace:
+            self.workspace_renderer = WorkspaceRenderer(workspace)
+
+    async def add_output(self, output: Output) -> None:
+        """Add and dispatch an output"""
+        # Store output
+        self.outputs.append(output)
+        
+        # Dispatch to appropriate renderer
+        await self._dispatch_output(output)
+
+    async def _dispatch_output(self, output: Output) -> None:
+        """
+        Dispatch output to appropriate renderer based on type
+        
+        Rules:
+        1. If output is an Artifact -> workspace_renderer
+        2. If output contains Artifacts in parts -> workspace_renderer
+        3. Otherwise -> message_panel
+        """
+        should_dispatch_to_workspace = False
+        
+        # Case 1: Check if output itself is an Artifact
+        if isinstance(output, Artifact):
+            should_dispatch_to_workspace = True
+            
+        # Case 2: Check if output contains Artifacts in parts
+        elif hasattr(output, 'parts'):
+            for part in output.parts:
+                if isinstance(part, Artifact):
+                    should_dispatch_to_workspace = True
+                    break
+        
+        # Dispatch based on the check results
+        if should_dispatch_to_workspace and self.workspace_renderer:
+            await self.workspace_renderer.render(output)
+        elif self.message_renderer:
+            # Case 3: Default to message panel
+            await self.message_renderer.render(output)

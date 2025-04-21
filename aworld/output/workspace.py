@@ -222,6 +222,34 @@ class WorkSpace(BaseModel):
 
         return artifacts  # Return the list of created artifacts
 
+    async def add_artifact(
+            self,
+            artifact: Artifact
+    ) -> None:
+        """
+        Create a new artifact
+
+        Args:
+            artifact: Artifact
+
+        Returns:
+            List of created artifact objects
+        """
+
+        # Add to workspace
+        self.artifacts.append(artifact)
+        # Store in repository
+        self._store_artifact(artifact)
+
+        # Update workspace time
+        self.updated_at = datetime.now().isoformat()
+
+        # Save workspace state to create new version
+        self.save()
+
+        await self._notify_observers("create", artifact)
+
+
     def get_artifact(self, artifact_id: str) -> Optional[Artifact]:
         """Get artifact with the specified ID"""
         for artifact in self.artifacts:

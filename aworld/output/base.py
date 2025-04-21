@@ -85,7 +85,7 @@ class MessageOutput(Output):
         elif self.source is not None and isinstance(self.source, Generator):
             self.reason_generator, self.response_generator = self.__split_reasoning_and_response__()
         elif self.source is not None and isinstance(self.source, str):
-            self.reasoning, self.response = self.__resolve_think__(self.source, self.json_parse)    
+            self.reasoning, self.response = self.__resolve_think__(self.source)
         return self
 
     async def get_finished_reasoning(self):
@@ -251,7 +251,7 @@ class MessageOutput(Output):
             content,
             flags=re.DOTALL,
         )
-        llm_result = self.__resolve_json__(llm_result, True)
+        llm_result = self.__resolve_json__(llm_result, self.json_parse)
 
         return llm_think, llm_result
 
@@ -266,7 +266,10 @@ class MessageOutput(Output):
 class Event(Output):
     pass
 
-class ToolOutput(Output):
+class ToolCallOutput(Output):
+    pass
+
+class ToolResultOutput(Output):
     pass
 
 
@@ -278,7 +281,7 @@ class SearchItem(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="metadata")
 
 
-class SearchOutput(ToolOutput):
+class SearchOutput(ToolResultOutput):
     query: str = Field(..., description="Search query string")
     results: list[SearchItem] = Field(default_factory=list, description="List of search results")
 
