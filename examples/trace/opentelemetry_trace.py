@@ -1,6 +1,13 @@
 import os
-import aworld.trace as trace
 
+os.environ["MONITOR_SERVICE_NAME"] = "otlp_example"
+os.environ["LOGFIRE_WRITE_TOKEN"] = (
+    "Your logfire write token, "
+    "create guide refer to "
+    "https://logfire.pydantic.dev/docs/how-to-guides/create-write-tokens/"
+)
+
+import aworld.trace as trace
 from aworld.logs.util import logger
 
 @trace.func_span(span_name="test_func", attributes={"test_attr": "test_value"}, extract_args=["param1"], add_attr = "add_attr_value")
@@ -18,14 +25,10 @@ def traced_func3(param1: str = None, param2: int = None):
     logger.info("this is a traced func3")
 
 def main():
-    trace.trace_configure(
-        backends=["logfire"],
-        write_token="Your logfire write token, create guide refer to https://logfire.pydantic.dev/docs/how-to-guides/create-write-tokens/"
-    )
-
-    trace.auto_tracing("examples.trace.*", 0.01)
 
     logger.info("this is a no trace log")
+
+    trace.auto_tracing("examples.trace.*", 0.01)
 
     with trace.span("hello") as span:
         span.set_attribute("parent_test_attr", "pppppp")

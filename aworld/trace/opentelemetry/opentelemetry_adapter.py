@@ -28,7 +28,6 @@ from aworld.trace.trace import (
     Span,
     set_tracer_provider
 )
-
 from ..constants import ATTRIBUTES_MESSAGE_KEY
 
 
@@ -242,6 +241,7 @@ def configure_otlp_provider(
         write_token: The write token to use.
         **kwargs: Additional keyword arguments to pass to the provider.
     """
+    from aworld.metrics.opentelemetry.opentelemetry_adapter import build_otel_resource
     backends = backends or ["logfire"]
     processor = SynchronousMultiSpanProcessor()
     for backend in backends:
@@ -251,7 +251,8 @@ def configure_otlp_provider(
         elif backend == "console":
             from opentelemetry.sdk.trace.export import ConsoleSpanExporter
             processor.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
-    set_tracer_provider(OTLPTraceProvider(SDKTracerProvider(active_span_processor=processor)))
+    set_tracer_provider(OTLPTraceProvider(SDKTracerProvider(active_span_processor=processor,
+                                                            resource=build_otel_resource())))
 
 
 def _configure_logfire_exporter(write_token: str, base_url: str = None) -> None:

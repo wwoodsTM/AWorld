@@ -144,11 +144,8 @@ classDiagram
 ```
 
 ## OutputChannel Example
-
-```python
-
-```
-
+- [simple_use.py](../../examples/output/output_channel/simple_use.py)
+- [producer_consumer.py](../../examples/output/output_channel/producer_consumer.py)
 ## Workspace Example
 see
-[run.py](../../examples/output/workspace/run.py)
+- [run.py](../../examples/output/workspace/run.py)

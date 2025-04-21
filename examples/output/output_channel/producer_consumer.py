@@ -7,6 +7,7 @@ from aworld.output.base import OutputPart
 from aworld.output.observer import on_artifact_create
 from aworld.output.output_channel import OutputChannel
 from aworld.logs.util import logger
+from aworld.output.utils import consume_channel_messages
 
 
 @on_artifact_create(workspace_id="workspace-producer-consumer", 
@@ -55,48 +56,19 @@ class Consumer:
         self.channel = channel
 
     async def consume_messages(self):
-        """Consume messages from the message panel"""
-        logger.info("Starting message consumption")
-        message_panel = self.channel.message_renderer.panel
-        
-        try:
-            async for message in message_panel.get_messages_async():
-                logger.info(f"Consumer: Found message: {message}")
-                if isinstance(message, MessageOutput):
-                    ## parts
-                    if message.parts:
-                        await self.log_message(message.parts)
-                    ## parts
-                    elif message.reason_generator or message.response_generator:
-                        if message.reason_generator:
-                            await self.log_message(message.reason_generator)
-                        if message.reason_generator:
-                            await self.log_message(message.response_generator)
-                    else:
-                        await self.log_message(message.reasoning)
-                        await self.log_message(message.response)
+        """
+        you can use this function to consume messages from the channel; 
+        of course, you can also use the channel.message_renderer.panel.get_messages_async() to get the messages.
+        or expand this function to meet your own needs.
+        """
+        def __log_item(item):
+            if isinstance(item, OutputPart):
+                logger.info(f"- Part content: {item.content}, metadata: {item.metadata}")
+            else:
+                logger.info(f"- Part content: {item}")
 
-        except Exception as e:
-            logger.error(f"Error during message consumption: {e}")
+        await consume_channel_messages(self.channel, __log_item)
 
-    async def log_message(self, item):
-        if not item:
-            return
-        if isinstance(item, AsyncGenerator):
-            async for part in item:
-                if isinstance(part, OutputPart):
-                    logger.info(f"- Part content: {part.content}, metadata: {part.metadata}")
-                else:
-                    logger.info(f"- Part content: {item}")
-
-        elif isinstance(item, Generator) or isinstance(item,list):
-            for part in item:
-                if isinstance(part, OutputPart):
-                    logger.info(f"- Part content: {part.content}, metadata: {part.metadata}")
-                else:
-                    logger.info(f"- Part content: {item}")
-        elif isinstance(item, str):
-            logger.info(f"- Part content: {item}")
 
 
 async def run():
