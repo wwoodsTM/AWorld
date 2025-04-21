@@ -18,6 +18,7 @@ from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
 from aworld.core.envs.tool_desc import is_tool_by_name
 from aworld.logs.util import logger, color_log, Color
+from aworld.output import OutputChannel
 
 
 @dataclass
@@ -30,6 +31,7 @@ class TaskModel:
     tools_conf: Dict[str, Union[Dict[str, Any], ConfigDict, AgentConfig]] = field(default_factory=dict)
     swarm: Swarm = None
     agent: Agent = None
+    outputs: OutputChannel = None
     endless_threshold: int = 3
 
 

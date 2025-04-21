@@ -1,6 +1,7 @@
-from aworld.output.base import Output,SearchOutput,SearchItem,ToolOutput,CommonOutput,MessageOutput
+from aworld.output.base import Output,SearchOutput,SearchItem,ToolResultOutput,CommonOutput,MessageOutput,ToolCallOutput
 from aworld.output.artifact import Artifact, ArtifactType
 from aworld.output.code_artifact import CodeArtifact, ShellArtifact
+from aworld.output.output_channel import OutputChannel
 from aworld.output.workspace import WorkSpace
 from aworld.output.observer import WorkspaceObserver,get_observer
 from aworld.output.storage.artifact_repository import ArtifactRepository, LocalArtifactRepository
@@ -18,5 +19,7 @@ __all__ = [
     "SearchOutput",
     "SearchItem",
     "MessageOutput",
-    "ToolOutput",
+    "ToolCallOutput",
+    "ToolResultOutput",
+    "OutputChannel",
 ]
