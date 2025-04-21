@@ -141,7 +141,7 @@ if __name__ == "__main__":
                         input=question,
                         swarm=swarm,
                         conf=TaskConfig(task_id=sample["task_id"]),
-                        endless_threshold=6,
+                        endless_threshold=20,
                     )
                     result = client.submit(task=[task])
 
