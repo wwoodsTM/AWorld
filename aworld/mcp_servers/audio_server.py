@@ -145,7 +145,7 @@ class AudioServer(MCPServerBase):
 
         # Get the singleton instance and ensure server is initialized
         instance = cls.get_instance()
-        real_llm = instance._llm.provider
+        real_llm = instance._llm.provider.provider
 
         results = []
         for audio_url in audio_urls:
