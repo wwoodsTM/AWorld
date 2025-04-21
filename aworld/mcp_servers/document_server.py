@@ -1162,6 +1162,104 @@ class DocumentServer(MCPServerBase):
         except Exception as e:
             return cls.handle_error(e, "HTML file reading", document_path)
 
+    @mcp
+    @classmethod
+    def unzip_file(
+        cls,
+        zip_path: str = Field(description="Path to the ZIP file to extract"),
+        extract_to: str = Field(
+            default=None,
+            description="Directory to extract files to. If None, extracts to the same directory as the ZIP file",
+        ),
+        password: str = Field(
+            default=None, description="Password for encrypted ZIP files (if needed)"
+        ),
+    ) -> str:
+        """
+        Extract contents from a ZIP file to a specified directory.
+
+        Args:
+            zip_path: Path to the ZIP file to extract
+            extract_to: Directory to extract files to (defaults to same directory as ZIP)
+            password: Password for encrypted ZIP files (if needed)
+
+        Returns:
+            JSON string with extraction results
+        """
+        # Handle Field objects if they're passed directly
+        if hasattr(zip_path, "default") and not isinstance(zip_path, str):
+            zip_path = zip_path.default
+
+        if (
+            hasattr(extract_to, "default")
+            and extract_to is not None
+            and not isinstance(extract_to, str)
+        ):
+            extract_to = extract_to.default
+
+        if (
+            hasattr(password, "default")
+            and password is not None
+            and not isinstance(password, str)
+        ):
+            password = password.default
+
+        error = cls.check_file_readable(zip_path)
+        if error:
+            return DocumentError(error=error, file_path=zip_path).model_dump_json()
+
+        try:
+            import zipfile
+
+            # Determine extraction directory
+            if not extract_to:
+                extract_to = os.path.dirname(zip_path)
+
+            # Create extraction directory if it doesn't exist
+            os.makedirs(extract_to, exist_ok=True)
+
+            # Track extraction results
+            extracted_files = []
+            failed_files = []
+
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                # Get list of all files in the archive
+                file_list = zip_ref.namelist()
+
+                # Extract each file
+                for file in file_list:
+                    try:
+                        # Handle password if provided
+                        if password:
+                            zip_ref.extract(
+                                file, path=extract_to, pwd=password.encode()
+                            )
+                        else:
+                            zip_ref.extract(file, path=extract_to)
+
+                        extracted_files.append(
+                            {"name": file, "path": os.path.join(extract_to, file)}
+                        )
+                    except Exception as e:
+                        failed_files.append({"name": file, "error": str(e)})
+
+            # Prepare result
+            result = {
+                "success": True,
+                "zip_file": zip_path,
+                "extract_directory": extract_to,
+                "total_files": len(file_list),
+                "extracted_count": len(extracted_files),
+                "failed_count": len(failed_files),
+                "extracted_files": extracted_files,
+                "failed_files": failed_files,
+            }
+
+            return json.dumps(result, cls=ComplexEncoder)
+
+        except Exception as e:
+            return cls.handle_error(e, "ZIP extraction", zip_path)
+
 
 # Main function
 if __name__ == "__main__":
@@ -1170,18 +1268,7 @@ if __name__ == "__main__":
     document_server = DocumentServer.get_instance()
     logger.info("DocumentServer initialized and ready to handle requests")
 
-    run_mcp_server(
-        "Document Server",
-        funcs=[
-            document_server.read_text,
-            document_server.read_json,
-            document_server.read_xml,
-            document_server.read_pdf,
-            document_server.read_docx,
-            document_server.read_excel,
-            document_server.read_pptx,
-            document_server.read_source_code,
-            document_server.read_html_text,
-        ],
-        port=port,
+    result = document_server.unzip_file(
+        "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip",
+        "/Users/arac/Desktop/",
     )
