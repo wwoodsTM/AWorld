@@ -257,7 +257,6 @@ def _configure_logfire_exporter(write_token: str, base_url: str = None) -> None:
 
     base_url = base_url or "https://logfire-us.pydantic.dev"
     headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': write_token}
-    print("=========headers", headers)
     session = requests.Session()
     session.headers.update(headers)
     return OTLPSpanExporter(
