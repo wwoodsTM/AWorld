@@ -3,6 +3,8 @@ from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from tornado.process import task_id
 
+from aworld.events.event import Event
+from aworld.events.pub_event import publish_event
 from aworld.output.base import Output, MessageOutput
 from aworld.output.artifact import Artifact
 from aworld.output.workspace import WorkSpace
@@ -51,6 +53,26 @@ class WorkspaceRenderer(OutputRenderer):
                 if isinstance(part, Artifact):
                     await self.workspace.add_artifact(artifact=part)
 
+
+class OutputChannelEvent(Event):
+    event_code: str = Field(default=None, description="event_code")
+    event_group: str = Field(default=None, description="event_group")
+    task_id: str = Field(default=None, description="channel_id")
+    type: str = Field(default=None, description="output type")
+    output: Output = Field(default=None, description="output")
+    renderer_target: str = Field(default=None, description="renderer_target")
+
+    @classmethod
+    def from_output(cls, channel: "OutputChannel", output: Output, renderer_target: str):
+        # Create and return a new instance of OutputChannelEvent
+        return cls(
+            event_code="OUTPUT_CHANNEL_EVENT",
+            event_group="default",
+            task_id=channel.task_id,
+            type=output.output_type(),
+            output=output,
+            renderer_target=renderer_target
+        )
 
 class OutputChannel(BaseModel):
     """Channel for managing and dispatching outputs"""
@@ -121,13 +143,17 @@ class OutputChannel(BaseModel):
         # Dispatch based on the check results
         if should_dispatch_to_workspace and self.workspace_renderer:
             await self.workspace_renderer.render(output)
+            # publish_event(await self.build_event(output, 'workspace'))
         elif self.message_renderer:
             # Case 3: Default to message panel
             await self.message_renderer.render(output)
+            # publish_event(await self.build_event(output, 'message'))
+
+    async def build_event(self, output: Output, render_type):
+        return OutputChannelEvent.from_output(self, output,render_type )
 
     async def get_messages_async(self):
         return self.message_renderer.panel.get_messages_async()
 
     async def mark_completed(self):
-        print("f mark_completed....")
         await self.message_renderer.panel.mark_completed()

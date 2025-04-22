@@ -35,6 +35,14 @@ class Output(BaseModel):
             self.parts = []
         return self
 
+    def add_part(self, content: Any):
+        if self.parts is None:
+            self.parts = []
+        self.parts.append(OutputPart(content=content))
+
+    def output_type(self):
+        return "default"
+
 
 class ToolCallOutput(Output):
 
@@ -42,7 +50,14 @@ class ToolCallOutput(Output):
     def from_tool_call(cls, tool_call: ToolCall):
         return cls(data = tool_call)
 
+    def output_type(self):
+        return "tool_call"
+
 class ToolResultOutput(Output):
+
+    def output_type(self):
+        return "tool_call_result"
+
     pass
 
 
@@ -293,9 +308,8 @@ class MessageOutput(Output):
             return json.loads(content)
         return content
 
-
-class Event(Output):
-    pass
+    def output_type(self):
+        return "message_output"
 
 class StepOutput(Output):
     name: str
@@ -311,11 +325,9 @@ class StepOutput(Output):
 
     def is_finished(self) -> bool:
         return self.status == 'FINISHED'
-    
-    def add_content(self, content: Any):
-        if self.parts is None:
-            self.parts = []
-        self.parts.append(OutputPart(content=content))
+
+    def output_type(self):
+        return "step_output"
 
 
 
@@ -355,3 +367,6 @@ class SearchOutput(ToolResultOutput):
             query=query,
             results=search_items
         )
+
+    def output_type(self):
+        return "search_output"

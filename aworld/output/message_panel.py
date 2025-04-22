@@ -25,7 +25,6 @@ class MessagePanel(BaseModel):
 
     async def add_output(self, output: Output) -> None:
         """Add an output to the panel"""
-        logging.info("")
         self.messages.append(output)
         await self._queue.put(output)
 
@@ -52,7 +51,6 @@ class MessagePanel(BaseModel):
 
     async def mark_completed(self) -> None:
         """Mark the panel as completed"""
-        print("f mark_completed....")
         await self._queue.put(None)
     @classmethod
     def create(cls, panel_id: str = "") -> "MessagePanel":

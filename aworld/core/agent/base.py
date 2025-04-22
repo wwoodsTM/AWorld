@@ -22,7 +22,7 @@ from aworld.models.llm import get_llm_model, call_llm_model
 from aworld.models.model_response import ModelResponse
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import MessageOutput
-from aworld.output.base import StepOutput
+from aworld.output.base import StepOutput, Output
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
 INPUT = TypeVar('INPUT')
@@ -527,10 +527,11 @@ class AgentExecutor(object):
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
-            output.add_content(MessageOutput(source=llm_response, json_parse=False))
+            output.add_part(MessageOutput(source=llm_response, json_parse=False))
             agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True
+            output.mark_finished()
             return agent_result.actions
         else:
             try:
@@ -590,12 +591,14 @@ class AgentExecutor(object):
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.add(MemoryItem(content=llm_response.content,
-                                                    metadata={
-                                                        "agent": agent.name(),
-                                                        "message": messages[-1],
-                                                        "tool_calls": llm_response.tool_calls
-                                                    }))
+                        agent.memory.add(MemoryItem(
+                            content=llm_response.content,
+                            metadata={
+                                "role": "assistant",
+                                "agent_name": agent.name(),
+                                "tool_calls": llm_response.tool_calls,
+                            }
+                        ))
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
