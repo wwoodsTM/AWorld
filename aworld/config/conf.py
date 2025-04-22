@@ -3,12 +3,12 @@
 import os
 import traceback
 import uuid
+from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel
-from enum import Enum
 
 from aworld.logs.util import logger
 
@@ -31,7 +31,8 @@ def load_config(file_name: str, dir_name: str = None) -> Dict[str, Any]:
         current_dir = Path(__file__).parent.absolute()
         file_path = os.path.join(current_dir, file_name)
     if not os.path.exists(file_path):
-        logger.debug(f"{file_path} not exists, please check it.")
+        # logger.debug(f"{file_path} not exists, please check it.")
+        pass
 
     configs = dict()
     try:
@@ -39,7 +40,8 @@ def load_config(file_name: str, dir_name: str = None) -> Dict[str, Any]:
             yaml_data = yaml.safe_load(file)
         configs.update(yaml_data)
     except FileNotFoundError:
-        logger.debug(f"Can not find the file: {file_path}")
+        # logger.debug(f"Can not find the file: {file_path}")
+        pass
     except Exception as e:
         logger.warning(f"{file_name} read fail.\n", traceback.format_exc())
     return configs
@@ -62,7 +64,7 @@ def wipe_secret_info(config: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
             key_list.append(key)
         for key in key_list:
             if key.strip('"') in keys:
-                conf[key] = '-^_^-'
+                conf[key] = "-^_^-"
             else:
                 _wipe_secret_plain_value(conf[key])
         return conf
@@ -71,14 +73,16 @@ def wipe_secret_info(config: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
         return config
     return _wipe_secret(config)
 
+
 class ClientType(Enum):
     SDK = "sdk"
     HTTP = "http"
 
+
 class ModelConfig(BaseModel):
     llm_provider: str = None
     llm_model_name: str = None
-    llm_temperature: float = 1.
+    llm_temperature: float = 1.0
     llm_base_url: str = None
     llm_api_key: str = None
     llm_client_type: ClientType = ClientType.SDK
@@ -93,7 +97,7 @@ class AgentConfig(BaseModel):
     # for compatibility
     llm_provider: str = None
     llm_model_name: str = None
-    llm_temperature: float = 1.
+    llm_temperature: float = 1.0
     llm_base_url: str = None
     llm_api_key: str = None
     llm_client_type: ClientType = ClientType.SDK
@@ -136,6 +140,7 @@ class ToolConfig(BaseModel):
 
 class ConfigDict(dict):
     """Object mode operates dict, can read non-existent attributes through `get` method."""
+
     __setattr__ = dict.__setitem__
     __getattr__ = dict.__getitem__
 

@@ -11,6 +11,7 @@ Main functions:
 
 import asyncio
 import json
+import os
 import traceback
 
 from browser_use import Agent
@@ -23,6 +24,7 @@ from pydantic import Field
 from aworld.agents.gaia.xy_prompts import browser_system_prompt
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
+from aworld.mcp_servers.utils import OpenRouterModel
 
 
 def check_log_level(level_name):
@@ -112,9 +114,9 @@ class BrowserServer(MCPServerBase):
         agent = Agent(
             task=task,
             llm=ChatOpenAI(
-                model="gpt-4o",
-                base_url="http://localhost:3455",
-                api_key="dummy-key",
+                model=OpenRouterModel.CLAUDE_37_SONNET,
+                base_url=os.getenv("LLM_BASE_URL"),
+                api_key=os.getenv("LLM_API_KEY"),
             ),
             browser_context=browser_context,
             extend_system_message=browser_system_prompt,

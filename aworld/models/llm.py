@@ -2,6 +2,7 @@ import os
 from typing import Any, AsyncGenerator, Dict, Generator, List, Optional, Union
 
 from langchain_openai import ChatOpenAI
+
 from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig, ClientType
 from aworld.logs.util import logger
@@ -84,9 +85,9 @@ class LLMModel:
         kwargs["model_name"] = model_name
 
         # Fill parameters for llm provider
-        kwargs['sync_enabled'] = conf.llm_sync_enabled if conf else True
-        kwargs['async_enabled'] = conf.llm_async_enabled if conf else True
-        kwargs['client_type'] = conf.llm_client_type if conf else ClientType.SDK
+        kwargs["sync_enabled"] = conf.llm_sync_enabled if conf else True
+        kwargs["async_enabled"] = conf.llm_async_enabled if conf else True
+        kwargs["client_type"] = conf.llm_client_type if conf else ClientType.SDK
 
         # Create model provider based on provider_name
         self._create_provider(**kwargs)
@@ -135,8 +136,15 @@ class LLMModel:
                     )
                     break
 
-        if provider and provider in PROVIDER_CLASSES and identified_provider and identified_provider != provider:
-            logger.warning(f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider")
+        if (
+            provider
+            and provider in PROVIDER_CLASSES
+            and identified_provider
+            and identified_provider != provider
+        ):
+            logger.warning(
+                f"Provider mismatch: {provider} != {identified_provider}, using {provider} as provider"
+            )
             identified_provider = provider
 
         return identified_provider
@@ -358,6 +366,14 @@ def call_llm_model(
     Returns:
         Model response or response generator.
     """
+    if isinstance(temperature, str):
+        try:
+            temperature = float(temperature)
+        except ValueError:
+            raise ValueError(
+                "Temperature must be a float or a string representing a float."
+            )
+
     if stream:
         return llm_model.stream_completion(
             messages=messages,
@@ -374,6 +390,7 @@ def call_llm_model(
             stop=stop,
             **kwargs,
         )
+
 
 async def acall_llm_model(
     llm_model: LLMModel,

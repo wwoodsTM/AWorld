@@ -29,12 +29,8 @@ from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
-from aworld.mcp_servers.utils import (
-    get_llm_config_from_os_environ,
-    parse_port,
-    run_mcp_server,
-)
-from aworld.models.llm import get_llm_model
+from aworld.mcp_servers.utils import OpenRouterModel, get_llm_config_from_os_environ
+from aworld.models.llm import call_llm_model, get_llm_model
 
 
 class CodeGenerationResult(BaseModel):
@@ -78,7 +74,7 @@ class CodeServer(MCPServerBase):
     def _init_server(self):
         """Initialize the code server"""
         self._llm_config = get_llm_config_from_os_environ(
-            llm_model_name="gpt-4o", server_name="Code Server"
+            model_name=OpenRouterModel.CLAUDE_37_SONNET
         )
         self._llm = get_llm_model(self._llm_config)
         logger.info("CodeServer initialized")
@@ -181,13 +177,13 @@ class CodeServer(MCPServerBase):
 
             # Get the singleton instance and ensure server is initialized
             instance = cls.get_instance()
-            llm = instance._llm
 
             # Prepare the prompt for code generation
             system_prompt = (
                 f"You are an expert {language} programmer. Generate clean, efficient, and well-documented "
                 f"{language} code based on the user's requirements. Include comments explaining key parts of the code. "
-                "Return ONLY the code without any additional text or explanations outside the code."
+                "Return ONLY the code without any additional text or explanations outside the code. "
+                "If your code includes print statements, make sure to flush the output with print(..., flush=True)."
             )
 
             user_prompt = prompt
@@ -204,12 +200,14 @@ class CodeServer(MCPServerBase):
                 {"role": "user", "content": user_prompt},
             ]
 
-            response = llm.completion(
+            response = call_llm_model(
+                llm_model=instance._llm,
                 messages=messages,
-                temperature=0.1,
-                # max_tokens=16 * 1024,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
-            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
+            instance._token_usage = dict(
+                Counter(response.usage) + Counter(instance._token_usage)
+            )
 
             generated_code = response.content.strip() if response.content else ""
 
@@ -369,13 +367,12 @@ class CodeServer(MCPServerBase):
 
 
 if __name__ == "__main__":
-    port = parse_port()
-
     code_server = CodeServer.get_instance()
     logger.info("CodeServer initialized and ready to handle requests")
-
-    run_mcp_server(
-        "Code Generation and Execution Server",
-        funcs=[code_server.generate_code, code_server.execute_code],
-        port=port,
+    code = code_server.generate_code(
+        prompt="Write a Python function to calculate the factorial of a number 5. Print the result in stdout.",
+        language="python",
     )
+    logger.success(code)
+    result = code_server.execute_code(code=code, language="python")
+    logger.success(result)

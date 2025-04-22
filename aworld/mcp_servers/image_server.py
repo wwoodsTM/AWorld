@@ -27,13 +27,12 @@ from pydantic import Field
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
+    OpenRouterModel,
     get_file_from_source,
     get_llm_config_from_os_environ,
     handle_llm_response,
-    parse_port,
-    run_mcp_server,
 )
-from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.llm import call_llm_model, get_llm_model
 
 
 class ImageServer(MCPServerBase):
@@ -46,6 +45,7 @@ class ImageServer(MCPServerBase):
 
     _instance = None
     _name = "image"
+    _llm = None
     _llm_config = None
     _image_ocr_prompt = None
     _image_reasoning_prompt = None
@@ -60,8 +60,9 @@ class ImageServer(MCPServerBase):
     def _init_server(self):
         """Initialize the Image server and configuration"""
         self._llm_config = get_llm_config_from_os_environ(
-            llm_model_name="gpt-4o", server_name="Image Server"
+            model_name=OpenRouterModel.CLAUDE_37_SONNET
         )
+        self._llm = get_llm_model(self._llm_config)
 
         self._image_ocr_prompt = (
             "Input is a base64 encoded image. Read text from image if present. "
@@ -193,6 +194,7 @@ class ImageServer(MCPServerBase):
         )
         return content
 
+    @mcp
     @classmethod
     def ocr_image(
         cls,
@@ -212,9 +214,10 @@ class ImageServer(MCPServerBase):
             )
             inputs.append({"role": "user", "content": content})
 
-            response = llm.completion(
+            response = call_llm_model(
+                llm_model=llm,
                 messages=inputs,
-                temperature=0,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
             image_text = handle_llm_response(response.content, "image_text")
         except (ValueError, IOError, RuntimeError) as e:
@@ -236,7 +239,6 @@ class ImageServer(MCPServerBase):
     ) -> str:
         """Solve the question by careful reasoning given the image(s) in given filepath or url."""
         instance = cls.get_instance()
-        llm = get_llm_model(instance._llm_config)
 
         inputs = []
         try:
@@ -246,11 +248,13 @@ class ImageServer(MCPServerBase):
             inputs.append({"role": "user", "content": content})
 
             response = call_llm_model(
-                llm,
+                llm_model=instance._llm,
                 messages=inputs,
-                temperature=0,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
-            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
+            instance._token_usage = dict(
+                Counter(response.usage) + Counter(instance._token_usage)
+            )
             reasoning_result = handle_llm_response(
                 response.content, "image_reasoning_result"
             )
@@ -265,16 +269,7 @@ class ImageServer(MCPServerBase):
 
 # Main function
 if __name__ == "__main__":
-    port = parse_port()
-
     image_server = ImageServer.get_instance()
     logger.info("ImageServer initialized and ready to handle requests")
-
-    run_mcp_server(
-        "Image Server",
-        funcs=[
-            image_server.ocr_image,
-            image_server.reasoning_image,
-        ],
-        port=port,
-    )
+    result = image_server.reasoning_image(["/Users/arac/Desktop/qw.jpg"])
+    logger.success(result)

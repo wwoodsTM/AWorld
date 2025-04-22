@@ -3,14 +3,14 @@
 
 import abc
 import traceback
-from typing import Dict, Tuple, Any, TypeVar, Generic, List, Union
+from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union
 
 from pydantic import BaseModel
 
-from aworld.config.conf import ToolConfig, load_config, ConfigDict
+from aworld.config.conf import ConfigDict, ToolConfig, load_config
 from aworld.config.tool_action import ToolAction
+from aworld.core.common import ActionModel, ActionResult, Observation
 from aworld.core.envs.action_factory import ActionFactory
-from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
 from aworld.utils.common import convert_to_snake
@@ -24,9 +24,12 @@ class Tool(Generic[AgentInput, ToolInput]):
 
     We follow the gym/gymnasium protocol to be compatible with gym games, can also build special env tool in the framework.
     """
+
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs) -> None:
+    def __init__(
+        self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs
+    ) -> None:
         self.conf = conf
         if isinstance(conf, ConfigDict):
             pass
@@ -39,7 +42,9 @@ class Tool(Generic[AgentInput, ToolInput]):
             logger.warning(f"Unknown conf type: {type(conf)}")
         self._finished = False
 
-        self._name = kwargs.pop('name', self.conf.get("name", convert_to_snake(self.__class__.__name__)))
+        self._name = kwargs.pop(
+            "name", self.conf.get("name", convert_to_snake(self.__class__.__name__))
+        )
         action_executor.register(name=self.name(), tool=self)
         self.action_executor = action_executor
 
@@ -51,12 +56,15 @@ class Tool(Generic[AgentInput, ToolInput]):
         return self._name
 
     @abc.abstractmethod
-    def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
-        AgentInput, dict[str, Any]]:
+    def reset(
+        self, *, seed: int | None = None, options: Dict[str, str] | None = None
+    ) -> Tuple[AgentInput, dict[str, Any]]:
         """Resets the initial internal state, returning an initial state and extended info."""
 
     @abc.abstractmethod
-    def step(self, action: ToolInput, **kwargs) -> Tuple[AgentInput, float, bool, bool, Dict[str, Any]]:
+    def step(
+        self, action: ToolInput, **kwargs
+    ) -> Tuple[AgentInput, float, bool, bool, Dict[str, Any]]:
         """Run one step of the tool's in env using the actions.
 
         Args:
@@ -84,9 +92,12 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
 
     We follow the gym/gymnasium protocol to be compatible with gym games, can also build special env tool in the framework.
     """
+
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs) -> None:
+    def __init__(
+        self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs
+    ) -> None:
         self.conf = conf
         if isinstance(conf, ConfigDict):
             pass
@@ -109,12 +120,15 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
         """Tool unique name."""
 
     @abc.abstractmethod
-    async def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
-        AgentInput, dict[str, Any]]:
+    async def reset(
+        self, *, seed: int | None = None, options: Dict[str, str] | None = None
+    ) -> Tuple[AgentInput, dict[str, Any]]:
         """Resets the initial internal state, returning an initial state and extended info."""
 
     @abc.abstractmethod
-    async def step(self, action: ToolInput, **kwargs) -> Tuple[AgentInput, float, bool, bool, Dict[str, Any]]:
+    async def step(
+        self, action: ToolInput, **kwargs
+    ) -> Tuple[AgentInput, float, bool, bool, Dict[str, Any]]:
         """Run one step of the tool's in env using the actions.
 
         Args:
@@ -158,7 +172,7 @@ class ToolsManager(Factory):
         elif isinstance(conf, BaseModel):
             conf = conf.model_dump()
 
-        user_conf = kwargs.pop('conf', None)
+        user_conf = kwargs.pop("conf", None)
         if user_conf:
             if isinstance(user_conf, BaseModel):
                 conf.update(user_conf.model_dump())
@@ -169,10 +183,13 @@ class ToolsManager(Factory):
         self._tool_conf[name] = conf
 
         # must is a dict
-        conf['name'] = name
+        conf["name"] = name
         conf = ConfigDict(conf)
 
-        if kwargs.get("reuse", conf.get('reuse', False)) is True and name in self._tool_instance:
+        if (
+            kwargs.get("reuse", conf.get("reuse", False)) is True
+            and name in self._tool_instance
+        ):
             return self._tool_instance[name]
 
         if name in self._cls:
@@ -181,7 +198,7 @@ class ToolsManager(Factory):
         else:
             # default browser env tool
             logger.warning("Empty tool name, default use 'browser'")
-            asyn = kwargs.get('async', False)
+            asyn = kwargs.get("async", False)
             name = "async_browser" if asyn else "browser"
             tool = self._cls[name](conf=conf, **kwargs)
         action_executor.register(name, tool)
@@ -192,7 +209,14 @@ class ToolsManager(Factory):
             tool = "async_" + tool
         return self._tool_with_action.get(tool)
 
-    def register(self, name: str, desc: str, supported_action: ToolAction = None, conf_file_name: str = None, **kwargs):
+    def register(
+        self,
+        name: str,
+        desc: str,
+        supported_action: ToolAction = None,
+        conf_file_name: str = None,
+        **kwargs,
+    ):
         """Register a tool to tool factory.
 
         Args:
@@ -207,7 +231,7 @@ class ToolsManager(Factory):
         conf_file_name = conf_file_name if conf_file_name else f"{name}_tool.yaml"
         conf = load_config(conf_file_name, kwargs.get("dir"))
         if not conf:
-            logger.warning(f"can not load conf from {conf_file_name}")
+            # logger.warning(f"can not load conf from {conf_file_name}")
             # use general tool config
             conf = ToolConfig().model_dump()
         name = prefix + name
@@ -227,26 +251,36 @@ class ToolActionExecutor(object):
         self.tools: Dict[str, Tool[Observation, List[ActionModel]]] = {}
 
     def register(
-            self,
-            name: str,
-            tool: Union[Tool[Observation, List[ActionModel]], AsyncTool[Observation, List[ActionModel]]]):
+        self,
+        name: str,
+        tool: Union[
+            Tool[Observation, List[ActionModel]],
+            AsyncTool[Observation, List[ActionModel]],
+        ],
+    ):
         self.tools[name] = tool
 
     @abc.abstractmethod
-    def execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[List[ActionResult], Any]:
+    def execute_action(
+        self, actions: List[ActionModel], **kwargs
+    ) -> Tuple[List[ActionResult], Any]:
         """"""
         return self.execute_env_action(actions, self.tool, **kwargs)
 
     @abc.abstractmethod
-    async def async_execute_action(self, actions: List[ActionModel], **kwargs) -> Tuple[List[ActionResult], Any]:
+    async def async_execute_action(
+        self, actions: List[ActionModel], **kwargs
+    ) -> Tuple[List[ActionResult], Any]:
         """"""
         return await self.async_execute_env_action(actions, self.tool, **kwargs)
 
     @abc.abstractmethod
-    def execute_env_action(self,
-                           actions: List[ActionModel],
-                           tool: Tool[Observation, List[ActionModel]],
-                           **kwargs) -> Tuple[List[ActionResult], Any]:
+    def execute_env_action(
+        self,
+        actions: List[ActionModel],
+        tool: Tool[Observation, List[ActionModel]],
+        **kwargs,
+    ) -> Tuple[List[ActionResult], Any]:
         """"""
         action_results = []
         ctx = None
@@ -266,16 +300,20 @@ class ToolActionExecutor(object):
                 action_result, ctx = self.do_act(action, tool, **kwargs)
             except:
                 logger.warning(traceback.format_exc())
-                action_result = ActionResult(error=traceback.format_exc(), success=False)
+                action_result = ActionResult(
+                    error=traceback.format_exc(), success=False
+                )
             action_result.action_name = action.action_name
             action_result.tool_name = action.tool_name
             action_results.append(action_result)
         return action_results, ctx
 
-    async def async_execute_env_action(self,
-                                       actions: List[ActionModel],
-                                       tool: Tool[Observation, List[ActionModel]],
-                                       **kwargs) -> Tuple[List[ActionResult], Any]:
+    async def async_execute_env_action(
+        self,
+        actions: List[ActionModel],
+        tool: Tool[Observation, List[ActionModel]],
+        **kwargs,
+    ) -> Tuple[List[ActionResult], Any]:
         """"""
         action_results = []
         ctx = None
@@ -294,31 +332,46 @@ class ToolActionExecutor(object):
                 action_result, ctx = await self.async_do_act(action, tool, **kwargs)
             except:
                 logger.warning(traceback.format_exc())
-                action_result = ActionResult(error=traceback.format_exc(), success=False)
+                action_result = ActionResult(
+                    error=traceback.format_exc(), success=False
+                )
             action_result.action_name = action.action_name
             action_result.tool_name = action.tool_name
             action_results.append(action_result)
         return action_results, ctx
 
-    def do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]], **kwargs):
+    def do_act(
+        self,
+        action_model: ActionModel,
+        tool: Tool[Observation, List[ActionModel]],
+        **kwargs,
+    ):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name
             if action_name not in ActionFactory:
-                raise ValueError(f'Action {action_model.action_name} not found in ActionFactory')
+                raise ValueError(
+                    f"Action {action_model.action_name} not found in ActionFactory"
+                )
 
         action = ActionFactory(action_name)
         action_result, page = action.act(action_model, tool=tool, **kwargs)
         logger.info(f"{tool.name()}-{action_model.action_name} execute finished")
         return action_result, page
 
-    async def async_do_act(self, action_model: ActionModel, tool: Tool[Observation, List[ActionModel]],
-                           **kwargs):
+    async def async_do_act(
+        self,
+        action_model: ActionModel,
+        tool: Tool[Observation, List[ActionModel]],
+        **kwargs,
+    ):
         action_name = action_model.action_name
         if action_name not in ActionFactory:
             action_name = action_model.tool_name + action_model.action_name
             if action_name not in ActionFactory:
-                raise ValueError(f'Action {action_model.action_name} not found in ActionFactory')
+                raise ValueError(
+                    f"Action {action_model.action_name} not found in ActionFactory"
+                )
 
         action = ActionFactory(action_name)
         action_result, page = await action.async_act(action_model, tool=tool, **kwargs)

@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from typing import TypeVar, Generic, Dict, Any
+from typing import Any, Dict, Generic, TypeVar
 
 from aworld.logs.util import logger
 
@@ -24,7 +24,7 @@ class Factory(Generic[T]):
         Returns:
             Object instance.
         """
-        exception = kwargs.pop('except', False)
+        exception = kwargs.pop("except", False)
         if not name in self._cls:
             if not exception:
                 return None
@@ -66,15 +66,17 @@ class Factory(Generic[T]):
         def func(cls):
             asyn = kwargs.pop("asyn", False)
             prefix = "async_" if asyn else ""
-            if len(prefix) > 0:
-                logger.info(f"{name} has an async type, will add `async_` prefix.")
+            # if len(prefix) > 0:
+            #     logger.info(f"{name} has an async type, will add `async_` prefix.")
 
             if prefix + name in self._cls:
                 equal = True
                 if asyn:
                     equal = self._asyn[prefix + name] == asyn
-                if equal:
-                    logger.warning(f"{name} already in {self._type} factory, will override it.")
+                # if equal:
+                #     logger.warning(
+                #         f"{name} already in {self._type} factory, will override it."
+                #     )
 
             self._asyn[prefix + name] = asyn
             self._cls[prefix + name] = cls

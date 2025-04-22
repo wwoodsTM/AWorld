@@ -22,13 +22,7 @@ from pydantic import BaseModel, Field
 
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
-from aworld.mcp_servers.utils import (
-    get_file_from_source,
-    get_llm_config_from_os_environ,
-    parse_port,
-    run_mcp_server,
-)
-from aworld.models.llm import get_llm_model
+from aworld.mcp_servers.utils import get_file_from_source
 
 
 class AudioTranscriptionResult(BaseModel):
@@ -50,7 +44,6 @@ class AudioServer(MCPServerBase):
 
     _instance = None
     _llm = None
-    _llm_config = None
 
     def __new__(cls):
         """Implement singleton pattern"""
@@ -61,12 +54,9 @@ class AudioServer(MCPServerBase):
 
     def _init_server(self):
         """Initialize the audio server"""
-        self._llm_config = get_llm_config_from_os_environ(
-            llm_model_name="gpt-4o-transcribe", server_name="Audio Server"
-        )
         self._llm = OpenAI(
-            base_url=os.getenv("LLM_BASE_URL", ""),
-            api_key=os.getenv("LLM_API_KEY", ""),
+            base_url=os.getenv("LLM_BASE_URL_ZZZ", ""),
+            api_key=os.getenv("LLM_API_KEY_ZZZ", ""),
         )
         logger.info("AudioServer initialized")
 
@@ -203,11 +193,10 @@ class AudioServer(MCPServerBase):
 
 
 if __name__ == "__main__":
-    port = parse_port()
-
     audio_server = AudioServer.get_instance()
     result = audio_server.transcribe_audio(
         audio_urls=[
             "/Users/arac/Desktop/gaia-benchmark/GAIA/2023/validation/2b3ef98c-cc05-450b-a719-711aee40ac65.mp3"
         ]
     )
+    logger.success(result)

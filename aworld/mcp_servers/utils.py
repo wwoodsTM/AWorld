@@ -28,34 +28,57 @@ import os
 import random
 import re
 import tempfile
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
 from mcp.server import FastMCP
 
-from aworld.config.conf import AgentConfig, ModelConfig
+from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 
 
+class OpenRouterModel(object):
+    """OpenRouter model names"""
+
+    GPT_4O: str = "openai/gpt-4o"
+    GPT_41: str = "openai/gpt-4.1"
+    GPT_O4_MINI: str = "openai/o4-mini"
+    GEMINI_2_FLASH: str = "google/gemini-2.0-flash-001"
+    CLAUDE_37_SONNET: str = "anthropic/claude-3.7-sonnet"
+    CLAUDE_37_SONNET_THINKING: str = "anthropic/claude-3.7-sonnet:thinking"
+
+
 def get_llm_config_from_os_environ(
-    llm_model_name="gpt-4o", port: str = None, **kwargs
+    model_name: str = OpenRouterModel.CLAUDE_37_SONNET,
 ) -> AgentConfig:
     """
     Get LLM configuration from environment variables
     Returns:
         AgentConfig: corresponding AgentConfig object
     """
-    if not port:
-        port = os.getenv("LLM_TOOL_PORT", 3455)
+    if model_name and len(model_name.split("/")) == 2:
+        provider = os.getenv("LLM_PROVIDER", "openai")
+        base_url = os.getenv("LLM_BASE_URL")
+        api_key = os.getenv("LLM_API_KEY")
+    else:
+        # use zzz instead
+        provider = "openai"
+        base_url = os.getenv("LLM_BASE_URL_ZZZ")
+        api_key = os.getenv("LLM_API_KEY_ZZZ")
+
+    try:
+        temperature = float(os.getenv("LLM_TEMPERATURE", 0.3))
+    except ValueError:
+        temperature = 0.3
 
     return AgentConfig(
-        llm_provider="openai",
-        llm_model_name=llm_model_name,
-        llm_base_url=f"http://localhost:{port}",
-        llm_api_key="dummy-key",
-        llm_temperature=0.15,
+        llm_provider=provider,
+        llm_model_name=model_name,
+        llm_base_url=base_url,
+        llm_api_key=api_key,
+        llm_temperature=temperature,
     )
 
 
@@ -289,30 +312,5 @@ def get_file_from_source(
 
 
 if __name__ == "__main__":
-    from aworld.mcp_servers.search_server import SearchServer
-
-    search_server = SearchServer().get_instance()
-    result = search_server.search_google("hello world")
-    logger.success(f"{json.dumps(result, indent=4, ensure_ascii=False)}")
-    # mcp_tools = asyncio.run(
-    #     mcp_tool_desc_transform(
-    #         [
-    #             "arxiv",
-    #             "audio",
-    #             "code",
-    #             "document",
-    #             "download",
-    #             "github",
-    #             "googlemaps",
-    #             "playwright",
-    #             "image",
-    #             "math",
-    #             "reddit",
-    #             "search",
-    #             "video",
-    #             "reasoning",
-    #             "wayback",
-    #         ],
-    #     )
-    # )
-    # logger.success(f"{json.dumps(mcp_tools, indent=4, ensure_ascii=False)}")
+    mcp_tools = asyncio.run(mcp_tool_desc_transform(["aworld"]))
+    logger.success(f"{json.dumps(mcp_tools, indent=4, ensure_ascii=False)}")

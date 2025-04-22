@@ -17,7 +17,7 @@ from aworld.core.factory import Factory
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.models.llm import call_llm_model, get_llm_model
-from aworld.models.model_response import ModelResponse, TOKEN_USAGE
+from aworld.models.model_response import TOKEN_USAGE, ModelResponse
 from aworld.models.utils import agent_desc_transform, tool_desc_transform
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
@@ -472,7 +472,7 @@ class AgentManager(Factory):
         conf_file_name = conf_file_name if conf_file_name else f"{name}.yaml"
         conf = load_config(conf_file_name, kwargs.get("dir"))
         if not conf:
-            logger.warning(f"{conf_file_name} not find, will use default")
+            # logger.warning(f"{conf_file_name} not find, will use default")
             # use general tool config
             conf = AgentConfig().model_dump()
         self._agent_conf[name] = conf
