@@ -1,9 +1,7 @@
 import types
 import inspect
 
-import aworld
-
-from typing import Union, Optional, Any, Type, Sequence, Callable
+from typing import Union, Optional, Any, Type, Sequence, Callable, Iterable
 from aworld.trace.trace import (
     AttributeValueType,
     Span, Tracer,
@@ -11,6 +9,7 @@ from aworld.trace.trace import (
     get_tracer_provider,
     log_trace_error
 )
+from aworld.version_gen import __version__
 from aworld.trace.auto_trace import AutoTraceModule, install_auto_tracing
 from aworld.trace.stack_info import get_user_stack_info
 from aworld.trace.constants import (
@@ -24,6 +23,7 @@ from aworld.trace.msg_format import (
     KnownFormattingError,
     warn_fstring_await
 )
+from aworld.trace.function_trace import trace_func
 from .opentelemetry.opentelemetry_adapter import configure_otlp_provider
 
 
@@ -57,7 +57,7 @@ class TraceManager:
 
     def __init__(self, tracer_name: str = None) -> None:
         self._tracer_name = tracer_name or "aworld"
-        self._version = aworld.__version__
+        self._version = __version__
 
     def _create_auto_span(self,
                           name: str,
@@ -135,6 +135,34 @@ class TraceManager:
             log_trace_error()
             return ContextSpan(span_name=span_name, tracer=NoOpTracer(), attributes=attributes)
 
+    def func_span(self,
+                   msg_template: Union[str, Callable] = None,
+                   *,
+                   attributes: dict[str, AttributeValueType] = None,
+                   span_name: str = None,
+                   extract_args: Union[bool, Iterable[str]] = False,
+                    **kwargs
+                   ) -> Callable:
+        """
+        A decorator that traces the execution of a function.
+        Args:
+            msg_template: The message template to use.
+            attributes: The attributes to add to the span.
+            span_name: The name of the span.
+            extract_args: Whether to extract arguments from the function call.
+            **kwargs: Additional attributes to add to the span.
+        Returns:
+            A decorator that traces the execution of a function.
+        """
+        if callable(msg_template):
+            #  @trace_func
+            #  def foo():
+            return self.func_span()(msg_template)
+
+        attributes = attributes or {}
+        attributes.update(kwargs)
+        return trace_func(self, msg_template, attributes, span_name, extract_args)
+
 
 class ContextSpan(Span):
     """A context manager that wraps an existing `Span` object.
@@ -208,6 +236,10 @@ class ContextSpan(Span):
     def get_trace_id(self) -> str:
         if self._span:
             return self._span.get_trace_id()
+
+    def get_span_id( self) -> str:
+        if self._span:
+            return self._span.get_span_id()
 
 
 def format_span_msg(
