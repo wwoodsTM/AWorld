@@ -17,8 +17,8 @@ from pydantic import Field
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
-from aworld.mcp_servers.utils import parse_port, run_mcp_server
-from aworld.models.llm import get_llm_model
+from aworld.mcp_servers.utils import OpenRouterModel, get_llm_config_from_os_environ
+from aworld.models.llm import call_llm_model, get_llm_model
 
 
 class ReasoningServer(MCPServerBase):
@@ -42,11 +42,8 @@ class ReasoningServer(MCPServerBase):
 
     def _init_server(self):
         """Initialize the reasoning server"""
-        self._llm_config = AgentConfig(
-            llm_provider="openai",
-            llm_model_name="claude-3-7-sonnet-thinking",
-            llm_base_url=os.getenv("LLM_BASE_URL", ""),
-            llm_api_key=os.getenv("LLM_API_KEY", ""),
+        self._llm_config = get_llm_config_from_os_environ(
+            model_name=OpenRouterModel.CLAUDE_37_SONNET_THINKING
         )
         self._llm = get_llm_model(self._llm_config)
         logger.info("ReasoningServer initialized")
@@ -90,8 +87,8 @@ class ReasoningServer(MCPServerBase):
                 prompt = f"Original Task: {original_task}\n\nQuestion: {question}"
 
             # Call the LLM model for reasoning
-            response = instance._llm.provider.completion(
-                model="o3-mini",
+            response = call_llm_model(
+                llm_model=instance._llm,
                 messages=[
                     {
                         "role": "system",
@@ -99,9 +96,11 @@ class ReasoningServer(MCPServerBase):
                     },
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.2,  # Lower temperature for more deterministic reasoning
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
-            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
+            instance._token_usage = dict(
+                Counter(response.usage) + Counter(instance._token_usage)
+            )
 
             # Extract the reasoning result
             reasoning_result = response.content
@@ -152,8 +151,8 @@ class ReasoningServer(MCPServerBase):
                 )
 
             # Call the LLM model for reasoning
-            response = instance._llm.provider.completion(
-                model="o3-mini",
+            response = call_llm_model(
+                llm_model=instance._llm,
                 messages=[
                     {
                         "role": "system",
@@ -161,9 +160,11 @@ class ReasoningServer(MCPServerBase):
                     },
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.2,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
-            instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
+            instance._token_usage = dict(
+                Counter(response.usage) + Counter(instance._token_usage)
+            )
 
             # Extract the reasoning result
             reasoning_result = response.content

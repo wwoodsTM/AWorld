@@ -1,13 +1,11 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
+import argparse
 import json
 import os
 import signal
-import time
 from contextlib import contextmanager
-
-from sympy.parsing.sympy_parser import null
 
 from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
 from aworld.agents.gaia.xy_prompts import *
@@ -19,6 +17,7 @@ from aworld.core.client import Client
 from aworld.core.task import Task
 from aworld.dataset.gaia.benchmark import GAIABenchmark
 from aworld.logs.util import logger
+from aworld.mcp_servers.utils import OpenRouterModel, get_llm_config_from_os_environ
 
 
 class TimeoutException(Exception):
@@ -39,18 +38,11 @@ def time_limit(seconds):
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Launch MCP servers with random port allocation"
     )
     parser.add_argument(
-        "--port",
-        type=int,
-        help=f"Listening to port. Must be specified.",
-    )
-    parser.add_argument(
-        "--n",
+        "--start",
         type=int,
         default=0,
     )
@@ -59,9 +51,8 @@ if __name__ == "__main__":
         type=int,
     )
     args = parser.parse_args()
-    port = args.port
-    start_idx = args.n
-    end_idx = min(args.n + 40, 165) if args.end is None else args.end
+    start_idx = args.start
+    end_idx = min(args.start + 40, 165) if args.end is None else args.end
 
     # Initialize client
     client = Client()
@@ -111,29 +102,21 @@ if __name__ == "__main__":
             try:
                 with time_limit(15 * 60):  # Adjust the timeout value as needed
                     planner = PlanAgent(
-                        conf=AgentConfig(
+                        conf=get_llm_config_from_os_environ(
+                            model_name=OpenRouterModel.CLAUDE_37_SONNET,
                             name=Agents.PLAN.value,
-                            llm_provider="openai",
-                            llm_model_name="gpt-4o",
-                            llm_base_url=f"http://localhost:{port}",
-                            llm_api_key="dummy-key",
-                            llm_temperature=0.15,
                         ),
                         step_reset=False,
                     )
                     executor = ExecuteAgent(
-                        conf=AgentConfig(
+                        conf=get_llm_config_from_os_environ(
+                            model_name=OpenRouterModel.CLAUDE_37_SONNET,
                             name=Agents.EXECUTE.value,
-                            llm_provider="openai",
-                            llm_model_name="gpt-4o",
-                            llm_base_url=f"http://localhost:{port}",
-                            llm_api_key="dummy-key",
-                            llm_temperature=0.15,
                             system_prompt=execute_system_prompt,
                         ),
                         step_reset=False,
                         tool_names=[],
-                        mcp_servers=["aworld_0"],
+                        mcp_servers=["aworld"],
                     )
 
                     swarm = Swarm((planner, executor), sequence=False)

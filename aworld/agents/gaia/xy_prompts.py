@@ -30,37 +30,6 @@ Example:
 - Actual Query: "What is the population of the United States in 2022?"
 - Search Query: "population of the United States daterange:20220101-20221231"
 
-===== TOOL SELECTION GUIDELINES =====
-- For web searches: Use search_google for precise, targeted queries
-- For browser use: Use browser for general web navigation, accessing web pages, navigating through links, and extracting content
-   - CLOSE ALL TAB: remeber to call browser_tab_close function at last step when the task done
-- For academic research: Use search_arxiv_paper_by_title_or_ids and download_arxiv_paper
-- For obtaining structured document content:
-  - PDF: read_pdf, sometimes pdf files may not be readable, first extract image then use image ocr instead
-  - Word: read_docx
-  - Excel: read_excel
-  - PowerPoint: read_pptx
-  - Text: read_text
-  - JSON: read_json
-  - XML: read_xml
-- For code execution: generate_code and execute_code
-- For mathematical operations:
-  - Basic calculations: basic_math
-  - Statistical analysis: statistics
-  - Geometric problems: geometry
-  - Trigonometry: trigonometry
-  - Equation solving: solve_equation
-- For visual analysis: ocr_image and reasoning_image
-- For audio processing: transcribe_audio
-- For youtube task: download_youtube_files first, then video analysis
-- For video analysis: analyze_video, extract_video_subtitles, summarize_video
-- For location data: geocode, distance_matrix, directions, place_details, place_search, get_latlng, get_postcode
-- For GitHub interactions: tools for repositories, code search, and issues
-- For Reddit information: tools to access posts, comments, and subreddits
-- For complex reasoning tasks, such as riddle, game or competition-level STEM(including code) problems: complex_problem_reasoning
-- For unit conversions and answer formatting: unit_conversion_reasoning
-- For downloading external files: download_files, including pdf, mp3, mp4, etc. in the format urls. For example: https://https://xx.yy.zz/ff/aa-bb-cc.pdf
-
 ===== RESPONSE FORMAT =====
 Solution: [YOUR_SOLUTION]
 
@@ -176,4 +145,38 @@ browser_system_prompt = """
 - Document each significant finding clearly and concisely
 
 Your goal is to extract precisely the information needed with minimal browsing steps.
+"""
+
+
+tool_selection_guidelines = """
+# ===== TOOL SELECTION GUIDELINES =====
+# - For web searches: Use search_google for precise, targeted queries
+# - For browser use: Use browser for general web navigation, accessing web pages, navigating through links, and extracting content
+#    - CLOSE ALL TAB: remeber to call browser_tab_close function at last step when the task done
+# - For academic research: Use search_arxiv_paper_by_title_or_ids and download_arxiv_paper
+# - For obtaining structured document content:
+#   - PDF: read_pdf, sometimes pdf files may not be readable, first extract image then use image ocr instead
+#   - Word: read_docx
+#   - Excel: read_excel
+#   - PowerPoint: read_pptx
+#   - Text: read_text
+#   - JSON: read_json
+#   - XML: read_xml
+# - For code execution: generate_code and execute_code
+# - For mathematical operations:
+#   - Basic calculations: basic_math
+#   - Statistical analysis: statistics
+#   - Geometric problems: geometry
+#   - Trigonometry: trigonometry
+#   - Equation solving: solve_equation
+# - For visual analysis: ocr_image and reasoning_image
+# - For audio processing: transcribe_audio
+# - For youtube task: download_youtube_files first, then video analysis
+# - For video analysis: analyze_video, extract_video_subtitles, summarize_video
+# - For location data: geocode, distance_matrix, directions, place_details, place_search, get_latlng, get_postcode
+# - For GitHub interactions: tools for repositories, code search, and issues
+# - For Reddit information: tools to access posts, comments, and subreddits
+# - For complex reasoning tasks, such as riddle, game or competition-level STEM(including code) problems: complex_problem_reasoning
+# - For unit conversions and answer formatting: unit_conversion_reasoning
+# - For downloading external files: download_files, including pdf, mp3, mp4, etc. in the format urls. For example: https://https://xx.yy.zz/ff/aa-bb-cc.pdf
 """

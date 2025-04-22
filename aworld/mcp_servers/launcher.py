@@ -33,7 +33,7 @@ class MCPLauncher:
     Manages the lifecycle of MCP server processes.
     """
 
-    def __init__(self, sse_path="/sse", port=2000):
+    def __init__(self, sse_path="/sse", port=20000):
         """
         Initialize the MCP launcher.
 
@@ -112,7 +112,6 @@ def main():
     Main entry point for the MCP Launcher.
     Starts the MCP server and handles graceful shutdown.
     """
-
     parser = argparse.ArgumentParser(description="Launch MCP servers")
     parser.add_argument(
         "--port", type=int, default=20000, help="Port to run the MCP server on"

@@ -122,7 +122,7 @@ class BrowserServer(MCPServerBase):
             extend_system_message=browser_system_prompt,
         )
         try:
-            browser_execution: AgentHistoryList = await agent.run(max_steps=20)
+            browser_execution: AgentHistoryList = await agent.run(max_steps=50)
             if (
                 browser_execution is not None
                 and browser_execution.is_done()

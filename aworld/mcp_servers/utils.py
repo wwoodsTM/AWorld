@@ -51,7 +51,7 @@ class OpenRouterModel(object):
 
 
 def get_llm_config_from_os_environ(
-    model_name: str = OpenRouterModel.CLAUDE_37_SONNET,
+    model_name: str = OpenRouterModel.CLAUDE_37_SONNET, **kwargs
 ) -> AgentConfig:
     """
     Get LLM configuration from environment variables
@@ -79,6 +79,7 @@ def get_llm_config_from_os_environ(
         llm_base_url=base_url,
         llm_api_key=api_key,
         llm_temperature=temperature,
+        **kwargs,
     )
 
 

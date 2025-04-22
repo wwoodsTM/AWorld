@@ -25,13 +25,12 @@ from pydantic import Field
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
 from aworld.mcp_servers.utils import (
+    OpenRouterModel,
     get_file_from_source,
     get_llm_config_from_os_environ,
     handle_llm_response,
-    parse_port,
-    run_mcp_server,
 )
-from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.llm import call_llm_model, get_llm_model
 
 
 class VideoServer(MCPServerBase):
@@ -44,6 +43,7 @@ class VideoServer(MCPServerBase):
 
     _instance = None
     _name = "video"
+    _llm = None
     _llm_config = None
 
     def __new__(cls):
@@ -56,8 +56,9 @@ class VideoServer(MCPServerBase):
     def _init_server(self):
         """Initialize the Video server and configuration"""
         self._llm_config = get_llm_config_from_os_environ(
-            llm_model_name="gpt-4o", server_name="Video Server"
+            model_name=OpenRouterModel.CLAUDE_37_SONNET
         )
+        self._llm = get_llm_model(self._llm_config)
 
         # Initialize prompt templates
         self._video_analyze = (
@@ -221,7 +222,6 @@ class VideoServer(MCPServerBase):
 
             # Get the singleton instance
             instance = cls.get_instance()
-            llm = get_llm_model(instance._llm_config)
 
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
@@ -238,11 +238,13 @@ class VideoServer(MCPServerBase):
                 inputs.append({"role": "user", "content": content})
                 try:
                     response = call_llm_model(
-                        llm,
+                        instance._llm,
                         messages=inputs,
-                        temperature=0,
+                        temperature=os.getenv("LLM_TEMPERATURE", 0.3),
                     )
-                    instance._token_usage = dict(Counter(response.usage) + Counter(instance._token_usage))
+                    instance._token_usage = dict(
+                        Counter(response.usage) + Counter(instance._token_usage)
+                    )
                     video_analysis_result = handle_llm_response(
                         response.content, "video_analysis_result"
                     )
@@ -285,7 +287,6 @@ class VideoServer(MCPServerBase):
 
             # Get the singleton instance
             instance = cls.get_instance()
-            llm = get_llm_model(instance._llm_config)
 
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
@@ -294,9 +295,10 @@ class VideoServer(MCPServerBase):
             )
             inputs.append({"role": "user", "content": content})
 
-            response = llm.completion(
+            response = call_llm_model(
+                instance._llm,
                 messages=inputs,
-                temperature=0,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
             video_subtitles = handle_llm_response(response.content, "video_subtitles")
 
@@ -333,16 +335,16 @@ class VideoServer(MCPServerBase):
 
             # Get the singleton instance
             instance = cls.get_instance()
-            llm = get_llm_model(instance._llm_config)
 
             inputs = []
             video_frames = cls.get_video_frames(video_url, sample_rate)
             content = cls.create_video_content(instance._video_summarize, video_frames)
             inputs.append({"role": "user", "content": content})
 
-            response = llm.completion(
+            response = call_llm_model(
+                instance._llm,
                 messages=inputs,
-                temperature=0,
+                temperature=os.getenv("LLM_TEMPERATURE", 0.3),
             )
             video_summary = handle_llm_response(response.content, "video_summary")
 
@@ -354,17 +356,9 @@ class VideoServer(MCPServerBase):
 
 
 if __name__ == "__main__":
-    port = parse_port()
-
     video_server = VideoServer.get_instance()
     logger.info("VideoServer initialized and ready to handle requests")
-
-    run_mcp_server(
-        "Video Server",
-        funcs=[
-            video_server.analyze_video,
-            video_server.extract_video_subtitles,
-            video_server.summarize_video,
-        ],
-        port=port,
+    result = video_server.analyze_video(
+        ["./video.mp4"], question="What is this video about?", sample_rate=2
     )
+    logger.success(result)
