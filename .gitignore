@@ -69,6 +69,7 @@ docs/_build/
 docs/api/
 
 # Data files (customize as needed)
+*.json
 *.csv
 *.dat
 *.out
