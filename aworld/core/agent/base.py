@@ -52,6 +52,7 @@ class AgentResult(BaseModel):
     current_state: Any
     actions: List[ActionModel]
     is_call_tool: bool = True
+    is_use_call_tool: bool = False
 
 
 class MemoryModel(BaseModel):
@@ -163,6 +164,8 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
         self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
         self.output_prompt: str = kwargs.get("output_prompt") if kwargs.get("output_prompt") else conf.output_prompt
+        # todo:tool_promot
+        self.tool_prompt: str = kwargs.get("tool_prompt") if kwargs.get("tool_prompt") else conf.tool_prompt
 
         self.need_reset = kwargs.get('need_reset') if kwargs.get('need_reset') else conf.need_reset
         # whether to keep contextual information, False means keep, True means reset in every step by the agent call
@@ -172,6 +175,8 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             "black_tool_actions") else self.conf.get('black_tool_actions', {})
         self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
         self.executor = executor if executor else agent_executor
+        # todo:tool_promot
+        self.use_call_tool = kwargs.get('use_call_tool') if kwargs.get('use_call_tool') else conf.use_call_tool
         agent_executor.register(self.name(), self)
 
     def reset(self, options: Dict[str, Any]):
@@ -206,6 +211,9 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             logger.error(f"mcp_is_tool error: {e}")
             return []
 
+    def use_tool_list(self, resp: ModelResponse) -> List[Dict[str, Any]]:
+        return self.tool_parse(resp)
+
     def desc_transform(self):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
@@ -234,6 +242,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                            sys_prompt: str = None,
                            agent_prompt: str = None,
                            output_prompt: str = None,
+                           tool_prompt: str = None,
                            max_step: int = 100,
                            **kwargs):
         """Transform the original content to LLM messages of native format.
@@ -246,31 +255,39 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         Returns:
             Message list for LLM.
         """
+        # todo:tool_promot
         messages = []
         if sys_prompt:
-            messages.append({'role': 'system', 'content': sys_prompt})
+            if self.use_call_tool:
+                messages.append({'role': 'system', 'content': sys_prompt})
+            else:
+                messages.append({'role': 'system', 'content': sys_prompt.format(tool_list=self.tools)})
 
         if agent_prompt:
             content = agent_prompt.format(task=content)
         if output_prompt:
             content += output_prompt
-
+        # todo:tool_promot 如何在上一轮为promot tool的时候对content进行加工
         cur_msg = {'role': 'user', 'content': content}
         # query from memory,
         histories = self.memory.get_last_n(max_step)
         if histories:
             # default use the first tool call
             for history in histories:
-                if "tool_calls" in history.metadata:
+                if self.use_call_tool and "tool_calls" in history.metadata:
                     messages.append({'role': history.metadata['role'], 'content': history.content, 'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
                     messages.append({'role': history.metadata['role'], 'content': history.content, "tool_call_id": history.metadata.get("tool_call_id")})
 
-            if "tool_calls" in histories[-1].metadata:
+            if self.use_call_tool and "tool_calls" in histories[-1].metadata:
                 tool_id = histories[-1].metadata["tool_calls"][0].id
                 if tool_id:
                     cur_msg['role'] = 'tool'
                     cur_msg['tool_call_id'] = tool_id
+
+            if not self.use_call_tool and "is_use_call_tool" in histories[-1].metadata and "tool_calls" in histories[-1].metadata and tool_prompt:
+                cur_msg['content'] = tool_prompt.format(action_list=histories[-1].metadata["tool_calls"],
+                                                             result=content)
 
         if image_urls:
             urls = [{'type': 'text', 'text': content}]
@@ -281,16 +298,45 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         messages.append(cur_msg)
         return messages
 
+    def tool_parse(self, resp: ModelResponse) -> List[Dict[str, Any]]:
+        # todo:tool_promot
+        tool_list = []
+        try:
+            if resp and hasattr(resp, 'content') and resp.content:
+                content = resp.content.strip()
+            else:
+                return tool_list
+            content = content.replace('\n', '').replace('\r', '')
+            response_json = json.loads(content)
+            if "use_tool_list" in response_json:
+                use_tool_list = response_json["use_tool_list"]
+                if use_tool_list:
+                    for use_tool in use_tool_list:
+                        tool_name = use_tool["tool"]
+                        arguments = use_tool["arguments"]
+                        if tool_name and arguments:
+                            tool_list.append(use_tool)
+
+            return tool_list
+        except Exception as e:
+            logger.warn(f"tool_parse error: {e}")
+            return tool_list
+
+        return tool_list
+
     def response_parse(self, resp: ModelResponse) -> AgentResult:
+        # todo:tool_promot
         """Default parse response by LLM."""
         results = []
         if not resp:
             logger.warning("LLM no valid response!")
             return AgentResult(actions=[], current_state=None)
 
+        use_tool_list = self.tool_parse(resp)
         is_call_tool = False
+        is_use_call_tool = False
         content = '' if resp.content is None else resp.content
-        if resp.tool_calls:
+        if self.use_call_tool and resp.tool_calls:
             is_call_tool = True
             for tool_call in resp.tool_calls:
                 full_name: str = tool_call.function.name
@@ -312,12 +358,37 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                                                action_name=action_name,
                                                params=params,
                                                policy_info=content))
+        elif use_tool_list and len(use_tool_list) > 0:
+            is_call_tool = True
+            is_use_call_tool = True
+            for use_tool in use_tool_list:
+                full_name = use_tool["tool"]
+                if not full_name:
+                    logger.warning("tool call response no tool name.")
+                    continue
+                params = use_tool["arguments"]
+                if not params:
+                    logger.warning("tool call response no tool params.")
+                    continue
+                names = full_name.split("__")
+                tool_name = names[0]
+                if is_agent_by_name(tool_name):
+                    param_info = params.get('content', "") + ' ' + params.get('info', '')
+                    results.append(ActionModel(agent_name=tool_name,
+                                               params=params,
+                                               policy_info=content + param_info))
+                else:
+                    action_name = '__'.join(names[1:]) if len(names) > 1 else ''
+                    results.append(ActionModel(tool_name=tool_name,
+                                               action_name=action_name,
+                                               params=params,
+                                               policy_info=content))
         else:
             if content:
                 content = content.replace("```json", "").replace("```", "")
             # no tool call, agent name is itself.
             results.append(ActionModel(agent_name=self.name(), policy_info=content))
-        return AgentResult(actions=results, current_state=None, is_call_tool=is_call_tool)
+        return AgentResult(actions=results, current_state=None, is_call_tool=is_call_tool, is_use_call_tool=is_use_call_tool)
 
     @abc.abstractmethod
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
@@ -481,7 +552,8 @@ class AgentExecutor(object):
                                                 image_urls=images,
                                                 sys_prompt=agent.system_prompt,
                                                 agent_prompt=agent.agent_prompt,
-                                                output_prompt=agent.output_prompt)
+                                                output_prompt=agent.output_prompt,
+                                                tool_prompt= agent.tool_prompt)
 
             self._log_messages(messages)
             agent.memory.add(MemoryItem(
@@ -495,30 +567,54 @@ class AgentExecutor(object):
 
             llm_response = None
             try:
-                llm_response = call_llm_model(
-                    agent.llm,
-                    messages=messages,
-                    model=agent.model_name,
-                    temperature=agent.conf.llm_config.llm_temperature,
-                    tools=agent.tools if agent.tools else None
-                )
+                # todo:tool_promot
+                if agent.use_call_tool:
+                    llm_response = call_llm_model(
+                        agent.llm,
+                        messages=messages,
+                        model=agent.model_name,
+                        temperature=agent.conf.llm_config.llm_temperature,
+                        tools=agent.tools if agent.tools else None
+                    )
+                else:
+                    llm_response = call_llm_model(
+                        agent.llm,
+                        messages=messages,
+                        model=agent.model_name,
+                        temperature=agent.conf.llm_config.llm_temperature
+                    )
+
                 logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
             finally:
                 if llm_response:
+                    use_tools = agent.use_tool_list(llm_response)
+                    is_use_call_tool = len(use_tools) > 0
                     if llm_response.error:
                         logger.info(f"llm result error: {llm_response.error}")
                     else:
-                        agent.memory.add(MemoryItem(
-                            content=llm_response.content,
-                            metadata= {
-                                "role": "assistant",
-                                "agent_name": agent.name(),
-                                "tool_calls": llm_response.tool_calls,
-                            }
-                        ))
+                        if agent.use_call_tool:
+                            agent.memory.add(MemoryItem(
+                                content=llm_response.content,
+                                metadata={
+                                    "role": "assistant",
+                                    "agent_name": agent.name(),
+                                    "tool_calls": llm_response.tool_calls
+                                }
+                            ))
+                        else:
+                            agent.memory.add(MemoryItem(
+                                content=llm_response.content,
+                                metadata={
+                                    "role": "assistant",
+                                    "agent_name": agent.name(),
+                                    "tool_calls": use_tools,
+                                    "is_use_call_tool": is_use_call_tool
+                                }
+                            ))
+
                 else:
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
@@ -556,7 +652,8 @@ class AgentExecutor(object):
                                                 image_urls=images,
                                                 sys_prompt=agent.system_prompt,
                                                 agent_prompt=agent.agent_prompt,
-                                                output_prompt=agent.output_prompt)
+                                                output_prompt=agent.output_prompt,
+                                                tool_prompt = agent.tool_prompt)
 
             agent.memory.add(MemoryItem(
                 content=messages[-1]['content'],
@@ -568,14 +665,24 @@ class AgentExecutor(object):
             ))
             llm_response = None
             try:
+                # todo:tool_promot
                 # TODO: models interface update
-                llm_response = call_llm_model(
-                    agent.llm,
-                    messages=messages,
-                    model=agent.model_name,
-                    temperature=agent.conf.llm_config.llm_temperature,
-                    tools=agent.tools if agent.tools else None
-                )
+                if agent.use_call_tool:
+                    llm_response = call_llm_model(
+                        agent.llm,
+                        messages=messages,
+                        model=agent.model_name,
+                        temperature=agent.conf.llm_config.llm_temperature,
+                        tools=agent.tools if agent.tools else None
+                    )
+                else:
+                    llm_response = call_llm_model(
+                        agent.llm,
+                        messages=messages,
+                        model=agent.model_name,
+                        temperature=agent.conf.llm_config.llm_temperature
+                    )
+
                 logger.info(f"Execute response: {llm_response.message}")
             except Exception as e:
                 logger.warn(traceback.format_exc())

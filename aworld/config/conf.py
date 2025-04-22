@@ -110,8 +110,12 @@ class AgentConfig(BaseModel):
     system_prompt: Optional[str] = None
     agent_prompt: Optional[str] = None
     output_prompt: Optional[str] = None
+    # todo:tool_promot
+    tool_prompt: Optional[str] = None
     working_dir: Optional[str] = None
     enable_recording: bool = False
+    # todo:tool_promot
+    use_call_tool: bool = False
     ext: dict = {}
 
 
