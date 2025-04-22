@@ -59,7 +59,7 @@ Example:
 - For Reddit information: tools to access posts, comments, and subreddits
 - For complex reasoning tasks, such as riddle, game or competition-level STEM(including code) problems: complex_problem_reasoning
 - For unit conversions and answer formatting: unit_conversion_reasoning
-- For downloading external files: download_files
+- For downloading external files: download_files, including pdf, mp3, mp4, etc. in the format urls. For example: https://https://xx.yy.zz/ff/aa-bb-cc.pdf
 
 ===== RESPONSE FORMAT =====
 Solution: [YOUR_SOLUTION]
