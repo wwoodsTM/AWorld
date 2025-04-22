@@ -4,18 +4,9 @@
 import logging
 
 
-class DefaultValueFilter(logging.Filter):
-    def filter(self, record):
-        if not hasattr(record, 'trace_id'):
-            record.trace_id = ''
-        if not hasattr(record, 'span_id'):
-            record.span_id = ''
-        return True
-
-logger = logging.getLogger("common")
-logger.addFilter(DefaultValueFilter())
-LOG_FORMAT = '%(asctime)s - [%(trace_id)s] - [%(span_id)s] - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+logger = logging.getLogger("common")
 
 
 
