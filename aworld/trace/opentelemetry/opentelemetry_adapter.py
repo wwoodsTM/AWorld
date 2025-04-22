@@ -3,7 +3,7 @@ import traceback
 import time
 import requests
 from threading import Lock
-from typing import Any, Iterator, Sequence
+from typing import Any, Iterator, Sequence, Optional, TYPE_CHECKING
 from contextvars import Token
 from urllib.parse import urljoin
 import opentelemetry.context as otlp_context_api
@@ -30,8 +30,6 @@ from aworld.trace.trace import (
 )
 
 from ..constants import ATTRIBUTES_MESSAGE_KEY
-from typing import Optional
-from typing import TYPE_CHECKING
 
 
 class OTLPTraceProvider(TraceProvider):

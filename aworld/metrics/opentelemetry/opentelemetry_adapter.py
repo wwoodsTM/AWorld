@@ -1,8 +1,18 @@
+import requests
+from urllib.parse import urljoin
 from typing import Optional, Sequence
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, ConsoleMetricExporter
-from aworld.metrics.metric import Gauge, Histogram, MetricProvider, Counter, MetricExporter, UpDownCounter
+from aworld.metrics.metric import(
+    Gauge,
+    Histogram,
+    MetricProvider,
+    Counter,
+    MetricExporter,
+    UpDownCounter,
+    set_metric_provider
+)
 
 
 class OpentelemetryMetricProvider(MetricProvider):
@@ -18,9 +28,9 @@ class OpentelemetryMetricProvider(MetricProvider):
         super().__init__()
         if not exporter:
             exporter = ConsoleMetricExporter()
-        self.exporter = exporter
+        self._exporter = exporter
         self._otel_provider = MeterProvider(
-            metric_readers=[PeriodicExportingMetricReader(exporter=self.exporter, export_interval_millis=5000)])
+            metric_readers=[PeriodicExportingMetricReader(exporter=self._exporter, export_interval_millis=5000)])
         metrics.set_meter_provider(self._otel_provider)
         self._meter = self._otel_provider.get_meter("aworld")
 
@@ -86,7 +96,7 @@ class OpentelemetryMetricProvider(MetricProvider):
         """
         Shutdown the metric provider.
         """
-        pass
+        self._exporter.shutdown()
 
 
 class OpentelemetryCounter(Counter):
@@ -239,3 +249,33 @@ class OpentelemetryHistogram(Histogram):
         if labels is None:
             labels = {}
         self._histogram.record(value, labels)
+
+
+def configure_otlp_provider(backend: Sequence[str] = None,
+                            base_url: str = None,
+                            write_token: str = None,
+                            **kwargs
+) -> None:
+    """
+    Configure the OpenTelemetry provider.
+    Args:
+        backends: The backends to use.
+        base_url: The base URL of the backend.
+        write_token: The write token of the backend.
+        **kwargs: The keyword arguments to pass to the backend.
+    """
+    if backend == "console":
+        set_metric_provider(OpentelemetryMetricProvider())
+    elif backend == "logfire":
+        from opentelemetry.exporter.otlp.proto.http import Compression
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+        base_url = base_url or "https://logfire-us.pydantic.dev"
+        headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': write_token}
+        session = requests.Session()
+        session.headers.update(headers)
+        exporter = OTLPMetricExporter(
+            endpoint=urljoin(base_url, '/v1/metrics'),
+            session=session,
+            compression=Compression.Gzip,
+        )
+        set_metric_provider(OpentelemetryMetricProvider(exporter))

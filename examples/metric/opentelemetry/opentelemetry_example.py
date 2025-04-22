@@ -1,11 +1,12 @@
 import random
 import time
-from aworld.metrics.metric import set_metric_provider,MetricType
-from aworld.metrics.opentelemetry.opentelemetry_adapter import OpentelemetryMetricProvider
+from aworld.metrics.metric import MetricType
 from aworld.metrics.context_manager import MetricContext, ApiMetricTracker
 from aworld.metrics.template import MetricTemplate
 
-set_metric_provider(OpentelemetryMetricProvider())
+MetricContext.configure(provider="otlp",
+                        backend="logfire",
+                        write_token="pylf_v1_us_8tmvXFmjxfLSYC1fyPT5mCJlR9r46vRWJ49GTNFB2syS")
 
 my_counter = MetricTemplate(
     type=MetricType.COUNTER,
