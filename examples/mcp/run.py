@@ -9,21 +9,23 @@ if __name__ == '__main__':
     agent_config = AgentConfig(
         llm_provider="openai",
         llm_model_name="gpt-4o",
-        llm_api_key="YOUR_API_KEY",
-        llm_base_url="http://localhost:5080"
+        llm_api_key="sk-zk275220716ee96209ceb688938ebab7a2067e414723d0e2",
+        llm_base_url="https://api.zhizengzeng.com/v1"
     )
 
-    search_sys_prompt = "You can use tools to calculate numbers and answer questions"
+    search_sys_prompt = "You are a helpful agent."
     search = Agent(
         conf=agent_config,
         name="search_agent",
-        system_prompt=search_sys_prompt,
-        #mcp_servers=["amap-amap-sse"],  # MCP server name for agent to use
-        mcp_servers = ["simple-calculator"]  # MCP server name for agent to use
+        # todo:tool_promot
+        system_prompt=search_sys_prompt,  # sys_prompt,
+        mcp_servers=["amap-amap-sse"],  # MCP server name for agent to use
+        use_call_tool=False
+        # mcp_servers = ["simple-calculator"]  # MCP server name for agent to use
     )
 
     # Define a task
     Task(
         #input="Hotels within 1 kilometer of West Lake in Hangzhou", agent=search, conf=TaskConfig()
-        input="30,000 divided by 1.2 ", agent=search, conf=TaskConfig()
+        input="杭州西湖一公里以内的3星级酒店,列出10家即可", agent=search, conf=TaskConfig()
     ).run()
