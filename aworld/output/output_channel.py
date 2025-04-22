@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from tornado.process import task_id
@@ -6,6 +7,7 @@ from aworld.output.base import Output, MessageOutput
 from aworld.output.artifact import Artifact
 from aworld.output.workspace import WorkSpace
 from aworld.output.message_panel import MessagePanel
+from aworld.utils.common import sync_exec
 
 
 class OutputRenderer(BaseModel):
@@ -82,7 +84,11 @@ class OutputChannel(BaseModel):
         if workspace:
             self.workspace_renderer = WorkspaceRenderer(workspace)
 
-    async def add_output(self, output: Output) -> None:
+    def add_output(self, output: Output) -> None:
+        """Add and dispatch an output"""
+        sync_exec(self.async_add_output, output)
+
+    async def async_add_output(self, output: Output) -> None:
         """Add and dispatch an output"""
         # Store output
         self.outputs.append(output)
@@ -118,3 +124,10 @@ class OutputChannel(BaseModel):
         elif self.message_renderer:
             # Case 3: Default to message panel
             await self.message_renderer.render(output)
+
+    async def get_messages_async(self):
+        return self.message_renderer.panel.get_messages_async()
+
+    async def mark_completed(self):
+        print("f mark_completed....")
+        await self.message_renderer.panel.mark_completed()

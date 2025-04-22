@@ -20,25 +20,24 @@ async def handle_code_artifacts(artifact, **kwargs):
 class Producer:
     def __init__(self, task_id: str, workspace: WorkSpace):
         self.channel = OutputChannel.create(task_id=task_id, workspace=workspace)
-        self.task = TaskModel(name=f"task_{task_id}", outputs=self.channel)
 
     async def produce_message_parts(self, parts: List[OutputPart]):
         """Produce a message output"""
         message = MessageOutput(parts=parts)
         await asyncio.sleep(0.1)
-        await self.task.outputs.add_output(message)
+        await self.channel.async_add_output(message)
         logger.info("Producer: Created message output")
 
     async def produce_message(self, source: str):
         """Produce a message output"""
         message = MessageOutput(source=source)
         await asyncio.sleep(0.1)
-        await self.task.outputs.add_output(message)
+        await self.channel.async_add_output(message)
         logger.info("Producer: Created message output")
 
     async def mark_message_complete(self):
         """Mark the message panel as completed"""
-        await self.task.outputs.message_renderer.panel.mark_completed()
+        await self.channel.message_renderer.panel.mark_completed()
 
     async def produce_artifact(self, artifact_type: ArtifactType, content: str, metadata: dict):
         """Produce an artifact output"""
@@ -48,7 +47,7 @@ class Producer:
             metadata=metadata
         )
         await asyncio.sleep(0.3)
-        await self.task.outputs.add_output(artifact)
+        await self.channel.async_add_output(artifact)
         logger.info(f"Producer: Created {artifact_type} artifact")
 
 class Consumer:
@@ -61,7 +60,7 @@ class Consumer:
         of course, you can also use the channel.message_renderer.panel.get_messages_async() to get the messages.
         or expand this function to meet your own needs.
         """
-        def __log_item(item):
+        async def __log_item(item):
             if isinstance(item, OutputPart):
                 logger.info(f"- Part content: {item.content}, metadata: {item.metadata}")
             else:

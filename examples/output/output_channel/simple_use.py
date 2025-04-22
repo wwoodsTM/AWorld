@@ -20,11 +20,6 @@ async def run():
         workspace=workspace
     )
 
-    task = TaskModel(
-        name="task_1",
-        outputs=channel
-    )
-
     # Add a message output with parts
     message = MessageOutput(
         parts=[
@@ -32,7 +27,7 @@ async def run():
             OutputPart(content="Part 2", metadata={"type": "code"})
         ]
     )
-    await task.outputs.add_output(message)
+    await channel.async_add_output(message)
     
 
     # Add an artifact
@@ -41,7 +36,7 @@ async def run():
         content="print('Hello World')",
         metadata={"language": "python"}
     )
-    await task.outputs.add_output(code_artifact)
+    await channel.async_add_output(code_artifact)
 
 
 

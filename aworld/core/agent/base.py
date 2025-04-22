@@ -21,6 +21,8 @@ from aworld.memory.main import Memory
 from aworld.models.llm import get_llm_model, call_llm_model
 from aworld.models.model_response import ModelResponse
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
+from aworld.output import MessageOutput
+from aworld.output.base import StepOutput
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
 INPUT = TypeVar('INPUT')
@@ -470,6 +472,8 @@ class AgentExecutor(object):
             observation: Observation source from a tool or an agent.
             agent: The special agent instance.
         """
+        if kwargs.get("output") and isinstance(kwargs.get("output"), StepOutput):
+            output = kwargs["output"]
         agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
         agent._finished = False
         if is_abstract_method(agent, 'policy'):
@@ -523,6 +527,7 @@ class AgentExecutor(object):
                     logger.error(f"{agent.name()} failed to get LLM response")
                     raise RuntimeError(f"{agent.name()} failed to get LLM response")
 
+            output.add_content(MessageOutput(source=llm_response, json_parse=False))
             agent_result = sync_exec(agent.resp_parse_func, llm_response)
             if not agent_result.is_call_tool:
                 agent._finished = True

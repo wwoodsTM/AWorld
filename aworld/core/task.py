@@ -18,7 +18,9 @@ from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.core.agent.swarm import Swarm
 from aworld.core.envs.tool_desc import is_tool_by_name
 from aworld.logs.util import logger, color_log, Color
-from aworld.output import OutputChannel
+from aworld.output import OutputChannel, WorkSpace
+from aworld.output.base import StepOutput
+from aworld.utils.common import sync_exec
 
 
 @dataclass
@@ -31,7 +33,6 @@ class TaskModel:
     tools_conf: Dict[str, Union[Dict[str, Any], ConfigDict, AgentConfig]] = field(default_factory=dict)
     swarm: Swarm = None
     agent: Agent = None
-    outputs: OutputChannel = None
     endless_threshold: int = 3
 
 
@@ -47,6 +48,8 @@ class Task(object):
                  tool_names: List[str] = [],
                  tools_conf: Dict[str, Union[Dict[str, Any], ConfigDict, AgentConfig]] = {},
                  endless_threshold: int = 3,
+                 outputs: OutputChannel = None,
+                 task_id: str = None,
                  *args,
                  **kwargs):
         """Task instance init.
@@ -105,6 +108,11 @@ class Task(object):
         self.daemon_target = kwargs.pop('daemon_target', None)
         self._use_demon = False if not conf else conf.get('use_demon', False)
         self._exception = None
+        task_id = task_id or str(uuid.uuid4())
+        self.outputs = outputs or  OutputChannel.create(
+            task_id=task_id,
+            workspace= WorkSpace.from_local_storages(workspace_id=f"workspace-{task_id}")
+        )
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -134,7 +142,7 @@ class Task(object):
             t.setDaemon(True)
             t.start()
 
-    def run(self):
+    def run(self) -> OutputChannel:
         # init tool state by reset(), and ignore them observation
         observation = None
         info = dict()
@@ -152,9 +160,11 @@ class Task(object):
         self.swarm.reset(observation.content, self.tool_names)
 
         if self.swarm.topology_type == 'social':
-            return self._social_process(observation, info)
+            self._social_process(observation, info)
+            return self.outputs
         elif self.swarm.topology_type == 'sequence':
-            return self._sequence_process(observation, info)
+            self._sequence_process(observation, info)
+            return self.outputs
 
     def _sequence_process(self, observation: Observation, info: Dict[str, Any]):
         """Multi-agent sequence general process workflow.
@@ -179,12 +189,17 @@ class Task(object):
                 cur_agent = agent
                 while step < max_steps:
                     terminated = False
+                    output = StepOutput(name=f"{cur_agent.name()}-Step{step}", step_num=step, type="agent", status="START")
+                    self.outputs.add_output(output)
 
                     observation = self.swarm.action_to_observation(policy, observations)
+                    logger.info(f"Step#{step} start: observation = {observation.content}")
+                
                     policy: List[ActionModel] = cur_agent.executor.execute_agent(observation,
                                                                                  agent=cur_agent,
                                                                                  conf=cur_agent.conf,
-                                                                                 step=step)
+                                                                                 step=step,
+                                                                                 output=output)
                     observation.content = None
                     color_log(f"{cur_agent.name()} policy: {policy}")
                     if not policy:
@@ -201,6 +216,7 @@ class Task(object):
                                 observations.append(observation)
                         elif status == 'break':
                             observation = self.swarm.action_to_observation(policy, observations)
+                            sync_exec(self.outputs.mark_completed)
                             break
                         elif status == 'return':
                             return info

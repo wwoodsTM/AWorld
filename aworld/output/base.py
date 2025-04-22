@@ -1,12 +1,12 @@
-import abc
+import json
 import logging
 from builtins import anext
-import json
-import time
-from typing import Any, Dict, Generator, AsyncGenerator, Union, Optional, TypedDict
+from datetime import datetime
+from typing import Any, Dict, Generator, AsyncGenerator, Optional
 
-from openpyxl.styles.builtins import output
 from pydantic import Field, BaseModel, model_validator
+
+from aworld.models.model_response import ModelResponse, ToolCall
 
 
 class OutputPart(BaseModel):
@@ -24,6 +24,7 @@ class OutputPart(BaseModel):
 class Output(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="metadata")
     parts: Any = Field(default_factory=list, exclude=True, description="parts of Output")
+    data: Any = Field(default=None, exclude=True, description="Output Data")
 
     @model_validator(mode='after')
     def setup_defaults(self):
@@ -34,21 +35,32 @@ class Output(BaseModel):
             self.parts = []
         return self
 
-class CommonOutput(Output):
-    data: Any = Field(default=None, exclude=True, description="Output Data")
+
+class ToolCallOutput(Output):
+
+    @classmethod
+    def from_tool_call(cls, tool_call: ToolCall):
+        return cls(data = tool_call)
+
+class ToolResultOutput(Output):
+    pass
+
 
 class MessageOutput(Output):
 
     """
     MessageOutput structure of LLM output
     if you want to get the only response, you must first call reasoning_generator or set parameter only_response to True , then call response_generator
-    if you model not reasoning, you do not need care about reasoning_generator and reasoning    
+    if you model not reasoning, you do not need care about reasoning_generator and reasoning
+    TODO 1:n pub/sub stream
 
     1. source: async/sync generator of the message
     2. reasoning_generator: async/sync reasoning generator of the message
     3. response_generator: async/sync response generator of the message;
     4. reasoning: reasoning of the message
     5. response: response of the message
+    6. tool_calls
+
     """
 
     source: Any = Field(default=None, exclude=True, description="Source of the message")
@@ -61,8 +73,9 @@ class MessageOutput(Output):
     """
     reasoning: str = Field(default=None, description="reasoning of the message")
     response: Any = Field(default=None, description="response of the message")
+    tool_calls: list[ToolCallOutput] = Field(default_factory=list, description="tool_calls")
 
-    
+
     """
     other config
     """
@@ -78,14 +91,23 @@ class MessageOutput(Output):
         """
         Setup generators for reasoning and response
         """
-        if self.source is not None and isinstance(self.source, AsyncGenerator):
+        source = self.source
+
+        # if ModelResponse
+        if isinstance(self.source, ModelResponse):
+            source = self.source.content
+            if self.source.tool_calls:
+                [self.tool_calls.append(ToolCallOutput.from_tool_call(tool_call)) for tool_call in
+                 self.source.tool_calls]
+
+        if source is not None and isinstance(source, AsyncGenerator):
             # Create empty generators first, they will be initialized when actually used
             self.reason_generator = self.__aget_reasoning_generator()
             self.response_generator = self.__aget_response_generator()
-        elif self.source is not None and isinstance(self.source, Generator):
+        elif source is not None and isinstance(source, Generator):
             self.reason_generator, self.response_generator = self.__split_reasoning_and_response__()
-        elif self.source is not None and isinstance(self.source, str):
-            self.reasoning, self.response = self.__resolve_think__(self.source)
+        elif source is not None and isinstance(source, str):
+            self.reasoning, self.response = self.__resolve_think__(source)
         return self
 
     async def get_finished_reasoning(self):
@@ -125,18 +147,19 @@ class MessageOutput(Output):
         try:
             while True:
                 chunk = await anext(self.source)
-                if chunk.startswith(self.reasoning_format_start):
+                chunk_content = self.get_chunk_content(chunk)
+                if chunk_content.startswith(self.reasoning_format_start):
                     is_in_reasoning = True
-                    reasoning_buffer = chunk
-                    yield chunk
-                elif chunk.endswith(self.reasoning_format_end) and is_in_reasoning:
-                    reasoning_buffer += chunk
-                    yield chunk
+                    reasoning_buffer = chunk_content
+                    yield chunk_content
+                elif chunk_content.endswith(self.reasoning_format_end) and is_in_reasoning:
+                    reasoning_buffer += chunk_content
+                    yield chunk_content
                     self.reasoning = reasoning_buffer
                     break
                 elif is_in_reasoning:
-                    reasoning_buffer += chunk
-                    yield chunk
+                    reasoning_buffer += chunk_content
+                    yield chunk_content
         except StopAsyncIteration:
             logging.info("StopAsyncIteration")
 
@@ -157,16 +180,22 @@ class MessageOutput(Output):
         if self.has_reasoning and not self.reasoning:
             async for reason in self.reason_generator:
                 pass
- 
+
         try:
             while True:
                 chunk = await anext(self.source)
-                response_buffer += chunk
-                yield chunk
+                chunk_content = self.get_chunk_content(chunk)
+                response_buffer += chunk_content
+                yield chunk_content
         except StopAsyncIteration:
             self.finished = True
             self.response = self.__resolve_json__(response_buffer, self.json_parse)
 
+    def get_chunk_content(self, chunk):
+        if chunk in ModelResponse:
+            return chunk.content
+        else:
+            return chunk
     def __split_reasoning_and_response__(self) -> tuple[Generator[str, None, None], Generator[str, None, None]]: # type: ignore
         """
         Split source into reasoning and response generators for sync source
@@ -192,18 +221,19 @@ class MessageOutput(Output):
             try:
                 while True:
                     chunk = next(self.source)
-                    if chunk.startswith(self.reasoning_format_start):
+                    chunk_content = self.get_chunk_content(chunk)
+                    if chunk_content.startswith(self.reasoning_format_start):
                         is_in_reasoning = True
-                        reasoning_buffer = chunk
-                        yield chunk
-                    elif chunk.endswith(self.reasoning_format_end) and is_in_reasoning:
-                        reasoning_buffer += chunk
+                        reasoning_buffer = chunk_content
+                        yield chunk_content
+                    elif chunk_content.endswith(self.reasoning_format_end) and is_in_reasoning:
+                        reasoning_buffer += chunk_content
                         self.reasoning = reasoning_buffer
-                        yield chunk
+                        yield chunk_content
                         break
                     elif is_in_reasoning:
-                        yield chunk
-                        reasoning_buffer += chunk
+                        yield chunk_content
+                        reasoning_buffer += chunk_content
             except StopIteration:
                 print("StopIteration")
                 self.reasoning = reasoning_buffer
@@ -222,9 +252,10 @@ class MessageOutput(Output):
             try:
                 while True:
                     chunk = next(self.source)
-                    response_buffer += chunk
+                    chunk_content = self.get_chunk_content(chunk)
+                    response_buffer += chunk_content
                     self.response = response_buffer
-                    yield chunk
+                    yield chunk_content
             except StopIteration:
                 self.response = self.__resolve_json__(response_buffer,self.json_parse)
                 self.finished = True
@@ -266,11 +297,26 @@ class MessageOutput(Output):
 class Event(Output):
     pass
 
-class ToolCallOutput(Output):
-    pass
+class StepOutput(Output):
+    name: str
+    step_num: int
+    type: str
+    status: Optional[str] = Field(default="START", description="step_status")
+    started_at: str = Field(default_factory=lambda: datetime.now().isoformat(), description="started at")
+    updated_at: str = Field(default_factory=lambda: datetime.now().isoformat(), description="updated at")
+    finished_at: str = Field(default_factory=lambda: datetime.now().isoformat(), description="finished at")
 
-class ToolResultOutput(Output):
-    pass
+    def mark_finished(self):
+        self.status = 'FINISHED'
+
+    def is_finished(self) -> bool:
+        return self.status == 'FINISHED'
+    
+    def add_content(self, content: Any):
+        if self.parts is None:
+            self.parts = []
+        self.parts.append(OutputPart(content=content))
+
 
 
 class SearchItem(BaseModel):
