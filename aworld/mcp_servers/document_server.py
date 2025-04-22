@@ -45,13 +45,12 @@ from docx2markdown._docx_to_markdown import docx_to_markdown
 from PIL import Image, ImageDraw, ImageFont
 from pptx import Presentation
 from pydantic import BaseModel, Field
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from tabulate import tabulate
 
 from aworld.logs.util import logger
 from aworld.mcp_servers.abc.base import MCPServerBase, mcp
-from aworld.mcp_servers.image_server import ImageServer
-from aworld.mcp_servers.utils import parse_port, run_mcp_server
+from aworld.mcp_servers.utils import parse_port
 from aworld.utils import import_package, import_packages
 
 
@@ -249,7 +248,7 @@ class DocumentServer(MCPServerBase):
         """Initialize the document server with required packages"""
         import_package("cv2", install_name="opencv-python")
         import_package("fitz", install_name="PyMuPDF")
-        import_packages(["xmltodict", "pandas", "docx2markdown", "PyPDF2"])
+        import_packages(["xmltodict", "pandas", "docx2markdown", "pypdf"])
         import_package("bs4", install_name="beautifulsoup4")
         import_package("html2text", install_name="html2text")
         import_package("tabulate")

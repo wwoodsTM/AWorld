@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any, AsyncGenerator, Dict, Generator, List, Optional, Union
 
 from langchain_openai import ChatOpenAI
@@ -350,6 +351,8 @@ def call_llm_model(
     max_tokens: int = None,
     stop: List[str] = None,
     stream: bool = False,
+    max_retries: int = 5,
+    retry_delay: float = 1.0,
     **kwargs,
 ) -> Union[ModelResponse, Generator[ModelResponse, None, None]]:
     """Convenience function to call LLM model.
@@ -361,6 +364,8 @@ def call_llm_model(
         max_tokens: Maximum number of tokens to generate.
         stop: List of stop sequences.
         stream: Whether to return a streaming response.
+        max_retries: Maximum number of retry attempts (default: 3).
+        retry_delay: Delay between retries in seconds (default: 1.0).
         **kwargs: Other parameters.
 
     Returns:
@@ -374,22 +379,94 @@ def call_llm_model(
                 "Temperature must be a float or a string representing a float."
             )
 
-    if stream:
-        return llm_model.stream_completion(
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stop=stop,
-            **kwargs,
-        )
-    else:
-        return llm_model.completion(
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stop=stop,
-            **kwargs,
-        )
+    attempt = 0
+    last_error = None
+
+    while attempt < max_retries:
+        try:
+            if stream:
+                return llm_model.stream_completion(
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stop=stop,
+                    **kwargs,
+                )
+            else:
+                return llm_model.completion(
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stop=stop,
+                    **kwargs,
+                )
+        except Exception as e:
+            attempt += 1
+            last_error = e
+            logger.warning(
+                f"LLM API call failed (attempt {attempt}/{max_retries}): {str(e)}"
+            )
+
+            if attempt >= max_retries:
+                logger.error(
+                    f"All {max_retries} retry attempts failed. Last error: {str(e)}"
+                )
+                raise
+
+            # Wait before retrying
+            time.sleep(retry_delay)
+
+    # This should never be reached due to the raise in the loop, but just in case
+    raise last_error
+
+
+# def call_llm_model(
+#     llm_model: LLMModel,
+#     messages: List[Dict[str, str]],
+#     temperature: float = 0.0,
+#     max_tokens: int = None,
+#     stop: List[str] = None,
+#     stream: bool = False,
+#     **kwargs,
+# ) -> Union[ModelResponse, Generator[ModelResponse, None, None]]:
+#     """Convenience function to call LLM model.
+
+#     Args:
+#         llm_model: LLM model instance.
+#         messages: Message list.
+#         temperature: Temperature parameter.
+#         max_tokens: Maximum number of tokens to generate.
+#         stop: List of stop sequences.
+#         stream: Whether to return a streaming response.
+#         **kwargs: Other parameters.
+
+#     Returns:
+#         Model response or response generator.
+#     """
+#     if isinstance(temperature, str):
+#         try:
+#             temperature = float(temperature)
+#         except ValueError:
+#             raise ValueError(
+#                 "Temperature must be a float or a string representing a float."
+#             )
+
+#     if stream:
+#         return llm_model.stream_completion(
+#             messages=messages,
+#             temperature=temperature,
+#             max_tokens=max_tokens,
+#             stop=stop,
+#             **kwargs,
+#         )
+#     else:
+#         return llm_model.completion(
+#             messages=messages,
+#             temperature=temperature,
+#             max_tokens=max_tokens,
+#             stop=stop,
+#             **kwargs,
+#         )
 
 
 async def acall_llm_model(

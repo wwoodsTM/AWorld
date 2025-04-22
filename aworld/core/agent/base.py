@@ -522,7 +522,7 @@ class AgentExecutor(object):
                             logger.info(f"[agent] Image URL: {image_url[:30]}...")
             else:
                 content = str(msg["content"])
-                chunk_size = 500
+                chunk_size = 99999999
                 for j in range(0, len(content), chunk_size):
                     chunk = content[j : j + chunk_size]
                     if j == 0:

@@ -2,9 +2,9 @@
 # Copyright (c) 2025 inclusionAI.
 
 import os
-import sys
 import re
 import subprocess
+import sys
 
 import aworld
 from aworld.utils.import_package import import_package
@@ -12,9 +12,9 @@ from aworld.utils.import_package import import_package
 # if no setuptools, install first
 import_package("setuptools")
 
-from setuptools import setup, find_packages
-from setuptools.command.sdist import sdist
+from setuptools import find_packages, setup
 from setuptools.command.install import install
+from setuptools.command.sdist import sdist
 from setuptools.dist import Distribution
 
 from aworld.logs.util import logger
@@ -38,6 +38,7 @@ class VersionInfo(object):
 
 def check_output(cmd):
     import subprocess
+
     output = subprocess.check_output(cmd)
     return output.decode("utf-8")
 
@@ -45,15 +46,19 @@ def check_output(cmd):
 def get_build_date():
     import datetime
     import time
+
     ts = time.time()
-    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def build_version_template():
     import getpass
-    return version_template.format(BUILD_USER=getpass.getuser(),
-                                   BUILD_VERSION=aworld.__version__,
-                                   BUILD_DATE=get_build_date())
+
+    return version_template.format(
+        BUILD_USER=getpass.getuser(),
+        BUILD_VERSION=aworld.__version__,
+        BUILD_DATE=get_build_date(),
+    )
 
 
 def call_process(cmd, raise_on_error=True, logging=True):
@@ -78,11 +83,13 @@ def call_process(cmd, raise_on_error=True, logging=True):
 class AWorldPackage(sdist):
     def run(self):
         import os
+
         home = os.path.join(os.path.dirname(__file__), "aworld")
         with open(os.path.join(home, "version.py"), "w") as f:
             version_info = build_version_template()
             f.write(version_info)
         from aworld.version_gen import generate_version_info
+
         generate_version_info(scenario="AWORLD_SDIST")
         sdist.run(self)
 
@@ -111,7 +118,7 @@ class AWorldInstaller(install):
         self._install_reqs(reqs, ignore_error=True)
 
         try:
-            subprocess.check_call('playwright install', shell=True, timeout=60)
+            subprocess.check_call("playwright install", shell=True, timeout=60)
         except Exception as e:
             logger.error(f"Fail to execute playwright install\n {e}")
         logger.info(f"Successfully installed aworld-{aworld.__version__}")
@@ -120,7 +127,7 @@ class AWorldInstaller(install):
         if self._extra is None:
             return False
 
-        modules = [mod.strip() for mod in self._extra.split(',')]
+        modules = [mod.strip() for mod in self._extra.split(",")]
         try:
             modules.index(module)
             return True
@@ -138,7 +145,9 @@ class AWorldInstaller(install):
                     call_process(cmd)
                     logger.info(f"Installing optional package {req} have succeeded.")
                 except:
-                    logger.warning(f"Installing optional package {req} is failed, Ignored.")  # ignore
+                    logger.warning(
+                        f"Installing optional package {req} is failed, Ignored."
+                    )  # ignore
         elif reqs:
             cmd = f"{sys.executable} -m pip install {info} {' '.join(reqs)}"
             call_process(cmd)
@@ -149,7 +158,7 @@ def parse_requirements(req_fname):
     requirements = {}
     module_name = "unknown"
     for line in open(req_fname, "r"):
-        match = re.match(r'#+\s+\[(\w+)\]\s+#+', line.strip())
+        match = re.match(r"#+\s+\[(\w+)\]\s+#+", line.strip())
         if match:
             # the beginning of a module
             module_name = match.group(1)
@@ -180,7 +189,7 @@ def get_install_requires(extra, requirements):
                 continue
             modules.append(mod)
     else:
-        for mod in extra.split(','):
+        for mod in extra.split(","):
             mod = mod.strip()
             if mod != AWorldInstaller.BASE:
                 modules.append(mod)
@@ -203,48 +212,53 @@ class BinaryDistribution(Distribution):
         return True
 
 
-requirements = parse_requirements('aworld/requirements.txt')
+requirements = parse_requirements("aworld/requirements.txt")
+mcp_requirements = parse_requirements("aworld/mcp_servers/requirements.txt")
+requirements.update(mcp_requirements)
 extra = os.getenv(AWorldInstaller.EXTRA_ENV, None)
 
 setup(
-    name='aworld',
+    name="aworld",
     version=aworld.__version__,
-    description='Ant Agent Package',
-    url='https://github.com/inclusionAI/AWorld',
-    author='Ant AI',
-    author_email='',
-    long_description='',
+    description="Ant Agent Package",
+    url="https://github.com/inclusionAI/AWorld",
+    author="Ant AI",
+    author_email="",
+    long_description="",
     long_description_content_type="text/markdown",
-    packages=find_packages(where=".", exclude=['tests', 'tests.*', '*.tests', '*.tests.*', '*.test', '*.test.*']),
+    packages=find_packages(
+        where=".",
+        exclude=["tests", "tests.*", "*.tests", "*.tests.*", "*.test", "*.test.*"],
+    ),
     package_data={
-        'aworld': [
-            'virtual_environments/browsers/script/*.js',
-            'dataset/gaia/gaia.npy',
-            'requirements.txt',
-            'config/*.yaml',
-            'config/*.json'
+        "aworld": [
+            "virtual_environments/browsers/script/*.js",
+            "dataset/gaia/gaia.npy",
+            "requirements.txt",
+            "config/*.yaml",
+            "config/*.json",
         ]
     },
-    license='MIT',
+    license="MIT",
     platforms=["any"],
-    keywords=['multi-agent', 'agent', 'environment', "tool", 'sandbox'],
+    keywords=["multi-agent", "agent", "environment", "tool", "sandbox"],
     cmdclass={
-        'sdist': AWorldPackage,
-        'install': AWorldInstaller,
+        "sdist": AWorldPackage,
+        "install": AWorldInstaller,
     },
     install_requires=get_install_requires(extra, requirements),
     python_requires=get_python_requires(),
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        "Development Status :: 5 - Production/Stable",
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
-
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Build Tools",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     entry_points={
-        'console_scripts': [
-            'aworld = aworld.__main__:main',
+        "console_scripts": [
+            "aworld = aworld.__main__:main",
         ]
-    })
+    },
+)

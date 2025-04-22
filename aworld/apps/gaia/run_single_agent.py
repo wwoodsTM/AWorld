@@ -1,17 +1,18 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-
 import argparse
+import asyncio
 import json
 import os
+import re
 import signal
 from contextlib import contextmanager
 
-from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
-from aworld.agents.gaia.xy_prompts import *
+from aworld.agents.gaia.xy_prompts import single_execute_system_output
 from aworld.apps.gaia.utils import _check_task_completed, question_scorer
 from aworld.config.common import Agents
-from aworld.config.conf import AgentConfig, TaskConfig
+from aworld.config.conf import TaskConfig
+from aworld.core.agent.base import Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.core.client import Client
 from aworld.core.task import Task
@@ -86,6 +87,7 @@ if __name__ == "__main__":
 
     try:
         for idx, sample in enumerate(dataset[start_idx:end_idx]):
+            logger = logger.bind(agent="GAIA", task_id=sample["task_id"])
             logger.info(
                 f">>> ✈️ Progress bar: {str(idx+start_idx)}/{len(dataset)}."
                 f"Current task {sample['task_id']}. "
@@ -103,34 +105,44 @@ if __name__ == "__main__":
             # Set a time limit for processing each sample (e.g., 10 minutes = 600 seconds)
             try:
                 with time_limit(15 * 60):  # Adjust the timeout value as needed
-                    planner = PlanAgent(
-                        conf=get_llm_config_from_os_environ(
-                            model_name=OpenRouterModel.CLAUDE_37_SONNET,
-                            name=Agents.PLAN.value,
-                        ),
-                        step_reset=False,
-                    )
-                    executor = ExecuteAgent(
+                    # planner = PlanAgent(
+                    #     conf=get_llm_config_from_os_environ(
+                    #         model_name=OpenRouterModel.CLAUDE_37_SONNET,
+                    #         name=Agents.PLAN.value,
+                    #     ),
+                    #     step_reset=False,
+                    # )
+                    executor = Agent(
                         conf=get_llm_config_from_os_environ(
                             model_name=OpenRouterModel.CLAUDE_37_SONNET,
                             name=Agents.EXECUTE.value,
-                            system_prompt=execute_system_prompt,
+                            system_prompt=single_execute_system_output,
                         ),
                         step_reset=False,
                         tool_names=[],
                         mcp_servers=["aworld"],
                     )
 
-                    swarm = Swarm((planner, executor), sequence=False)
                     task = Task(
                         input=question,
-                        swarm=swarm,
+                        agent=executor,
                         conf=TaskConfig(task_id=sample["task_id"]),
-                        endless_threshold=20,
                     )
-                    result = client.submit(task=[task])
+                    result = asyncio.run(task.run())
+                    # result = client.submit(task=[task])
 
                     answer = result["task_0"]["answer"]
+                    match = re.search(r"<answer>(.*?)</answer>", result["answer"])
+                    if match:
+                        answer = match.group(1)
+                        logger.info(f"Agent answer: {answer}")
+                        logger.info(f"Correct answer: {sample[i]['Final answer']}")
+
+                        if question_scorer(answer, sample[i]["Final answer"]):
+                            logger.success(f"Question {i} Correct!")
+                        else:
+                            logger.warning(f"Question {i} Incorrect!")
+
                     logger.info(f"Task completed: {result['success']}")
                     logger.info(f"Time cost: {result['time_cost']}")
                     logger.info(f"Task Answer: {answer}")

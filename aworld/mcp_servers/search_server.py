@@ -380,12 +380,14 @@ class SearchServer(MCPServerBase):
                     )
                     search_results.append(result)
 
-            return SearchResponse(
+            search_response = SearchResponse(
                 query=query,
                 results=search_results,
                 count=len(search_results),
                 source="google",
             ).model_dump_json()
+            logger.success(f"Google Search Response: {search_response}")
+            return search_response
 
         except Exception as e:
             return cls.handle_error(e, "Google Search")

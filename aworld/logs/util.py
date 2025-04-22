@@ -2,6 +2,15 @@
 # Copyright (c) 2025 inclusionAI.
 try:
     from loguru import logger
+
+    logger.level("INFO", color="<bold><fg #009D73>")
+    logger.add(
+        "~/Desktop/agent-running–details.log",
+        rotation="1 week",
+        compression="zip",
+        format="{time} - {level} - {message}",
+    )
+    logger = logger.bind(agent="GAIA")
 except ImportError:
     import logging
 
