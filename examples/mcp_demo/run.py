@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from aworld.config.conf import AgentConfig, TaskConfig
+from aworld.config.conf import AgentConfig
 from aworld.core.agent.base import Agent
-from aworld.core.task import Task
+from aworld.runner import Runners
 
 if __name__ == '__main__':
     agent_config = AgentConfig(
@@ -22,8 +22,5 @@ if __name__ == '__main__':
         mcp_servers = ["simple-calculator"]  # MCP server name for agent to use
     )
 
-    # Define a task
-    Task(
-        #input="Hotels within 1 kilometer of West Lake in Hangzhou", agent=search, conf=TaskConfig()
-        input="30,000 divided by 1.2 ", agent=search, conf=TaskConfig()
-    ).run()
+    # Run agent
+    Runners.sync_run(input="30,000 divided by 1.2 ", agent=search)
