@@ -30,7 +30,7 @@ conda activate aworld
 ```bash
 python setup.py install
 
-pip install terminal_controller
+pip install terminal-controller
 pip install mcp-server-calculator
 
 git clone https://github.com/haris-musa/excel-mcp-server.git
