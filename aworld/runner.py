@@ -1,144 +1,172 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import abc
+import asyncio
 import time
-
 import traceback
+from typing import List, Dict, Any, Union
 
-import uuid
-from typing import Union, Dict, Any, List
-from dataclasses import dataclass, field
-
-from aworld.config.conf import AgentConfig
 from pydantic import BaseModel
 
-from aworld.config import ConfigDict
-from aworld.framework.agent.base import Agent, agent_executor, is_agent_by_name, AgentFactory
-from aworld.framework.common import Observation, ActionModel
-from aworld.framework.envs.tool import Tool, ToolFactory
-from aworld.framework.agent.swarm import Swarm
-from aworld.framework.envs.tool_desc import is_tool_by_name
+from aworld.core.agent.base import Agent, is_agent_by_name
+from aworld.core.agent.swarm import Swarm
+from aworld.core.common import Observation, ActionModel
+from aworld.core.envs.tool import ToolFactory, Tool, AsyncTool
+from aworld.core.envs.tool_desc import is_tool_by_name
+from aworld.core.task import Runner, Task
 from aworld.logs.util import logger, color_log, Color
+from aworld.utils.common import sync_exec, is_abstract_method
 
 
-@dataclass
-class TaskModel:
-    name: str = uuid.uuid1().hex
-    input: Any = None
-    conf: Union[Dict[str, Any], BaseModel] = None
-    tools: List[Tool] = field(default_factory=list)
-    tool_names: List[str] = field(default_factory=list)
-    tools_conf: Dict[str, Union[Dict[str, Any], ConfigDict, AgentConfig]] = field(default_factory=dict)
-    swarm: Swarm = None
-    agent: Agent = None
-    endless_threshold: int = 3
+class Runners:
 
+    @staticmethod
+    def sync_run_task(task: Union[Task, List[Task]], parallel: bool = False):
+        return sync_exec(Runners.run_task, task=task, parallel=parallel)
 
-class Task(object):
-    def __init__(self,
-                 task: TaskModel = None,
-                 agent: Agent = None,
-                 swarm: Swarm = None,
-                 name: str = uuid.uuid1().hex,
-                 input: Any = None,
-                 conf: Union[Dict[str, Any], BaseModel] = {},
-                 tools: List[Tool] = [],
-                 tool_names: List[str] = [],
-                 tools_conf: Dict[str, Union[Dict[str, Any], ConfigDict, AgentConfig]] = {},
-                 endless_threshold: int = 3,
-                 *args,
-                 **kwargs):
-        """Task instance init.
+    @staticmethod
+    async def run_task(task: Union[Task, List[Task]], parallel: bool = False):
+        """"""
+        import time
+        start = time.time()
+
+        if isinstance(task, Task):
+            task = [task]
+
+        res = {}
+        if parallel:
+            await Runners._parallel_run_in_local(task, res)
+        else:
+            await Runners._run_in_local(task, res)
+
+        res['time_cost'] = time.time() - start
+        return res
+
+    @staticmethod
+    def sync_run(
+            input: str,
+            agent: Agent = None,
+            swarm: Swarm = None,
+            tool_names: List[str] = []
+    ):
+        return sync_exec(Runners.run, input=input, agent=agent, swarm=swarm, tool_names=tool_names)
+
+    @staticmethod
+    async def run(
+            input: str,
+            agent: Agent = None,
+            swarm: Swarm = None,
+            tool_names: List[str] = []
+    ):
+        """Run agent directly with input and tool names.
 
         Args:
-            task: Task model
-            agent: Agent instance which want to run.
-            swarm: Swarm
-            name: Task unique name
-            input: A string query or dataset.
-            conf: Task config in process.
-            tools: Special tools in task run.
+            input: User query.
+            agent: An agent with AI model configured, prompts, tools, mcp servers and other agents.
+            swarm: Multi-agent topo.
+            tool_names: Tool name list.
         """
-        # Prioritize using the task model.
-        if task:
-            agent = task.agent
-            swarm = task.swarm
-            name = task.name
-            input = task.input
-            conf = task.conf
-            tools = task.tools
-            tool_names = task.tool_names
-            endless_threshold = task.endless_threshold
-            if tools is None:
-                tools = []
-            if tool_names is None:
-                tool_names = []
-
-        if not agent and not swarm:
-            raise ValueError("agent and swarm all is None.")
         if agent and swarm:
-            raise ValueError("agent and swarm choose one only.")
+            raise ValueError("`agent` and `swarm` only choose one.")
+
+        if not input:
+            raise ValueError('`input` is empty.')
+
         if agent:
-            # uniform agent
+            agent.task = input
             swarm = Swarm(agent)
 
-        if conf is None:
-            conf = dict()
-        if isinstance(conf, BaseModel):
-            conf = conf.model_dump()
-        check_input = conf.get("check_input", False)
-        if check_input and not input:
-            raise ValueError
+        task = Task(input=input, swarm=swarm, tool_names=tool_names)
+        runner = Runners._choose_runner(task=task)
+        res = await runner.run()
+        logger.info(f"{input} execute finished, response: {res}")
+        return res
 
-        self.swarm = swarm
-        self.input = input
-        self.name = name
-        self.conf = conf
-        self.tools = {tool.name(): tool for tool in tools} if tools else {}
-        tool_names.extend(self.tools.keys())
+    @staticmethod
+    async def _parallel_run_in_local(tasks: List[Task], res):
+        # also can use ProcessPoolExecutor
+        parallel_tasks = []
+        for t in tasks:
+            parallel_tasks.append(Runners._choose_runner(task=t).run())
+
+        results = await asyncio.gather(*parallel_tasks)
+        for idx, t in enumerate(results):
+            res[f'task_{idx}'] = t
+
+    @staticmethod
+    async def _run_in_local(tasks: List[Task], res: Dict[str, Any], idx: int = 0) -> None:
+        for task in tasks:
+            # Execute the task
+            result = await Runners._choose_runner(task=task).run()
+            res[f'task_{idx}'] = result
+
+    @staticmethod
+    def _choose_runner(task: Task):
+        if not task.swarm:
+            return SequenceRunner(task=task)
+
+        task.swarm.reset(task.input)
+        topology = task.swarm.topology_type
+        if topology == 'social':
+            return SocialRunner(task=task)
+        else:
+            return SequenceRunner(task=task)
+
+
+class TaskRunner(Runner):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, task: Task, *args, **kwargs):
+        if task.tools is None:
+            task.tools = []
+        if task.tool_names is None:
+            task.tool_names = []
+
+        if not task.agent and not task.swarm:
+            raise ValueError("agent and swarm all is None.")
+        if task.agent and task.swarm:
+            raise ValueError("agent and swarm choose one only.")
+        if task.agent:
+            # uniform agent
+            task.swarm = Swarm(task.agent)
+
+        if task.conf is None:
+            task.conf = dict()
+        if isinstance(task.conf, BaseModel):
+            task.conf = task.conf.model_dump()
+        check_input = task.conf.get("check_input", False)
+        if check_input and not task.input:
+            raise ValueError("task no input")
+
+        self.swarm = task.swarm
+        self.input = task.input
+        self.name = task.name
+        self.conf = task.conf
+        self.tools = {tool.name(): tool for tool in task.tools} if task.tools else {}
+        task.tool_names.extend(self.tools.keys())
         # lazy load
-        self.tool_names = tool_names
-        self.tools_conf = tools_conf
-        self.endless_threshold = endless_threshold
+        self.tool_names = task.tool_names
+        self.tools_conf = task.tools_conf
+        self.endless_threshold = task.endless_threshold
 
         self.daemon_target = kwargs.pop('daemon_target', None)
-        self._use_demon = False if not conf else conf.get('use_demon', False)
+        self._use_demon = False if not task.conf else task.conf.get('use_demon', False)
         self._exception = None
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def before_run(self):
-        pass
-
-    def after_run(self):
-        pass
-
-    def start(self) -> Any:
-        try:
-            self.before_run()
-            self._daemon_run()
-            ret = self.run()
-            return 0 if ret is None else ret
-        except BaseException as ex:
-            self._exception = ex
-            # do record or report
-            raise ex
-        finally:
-            self.after_run()
-
-    def _daemon_run(self) -> None:
-        if self._use_demon and self.daemon_target and callable(self.daemon_target):
-            import threading
-            t = threading.Thread(target=self.daemon_target, name="daemon", daemon=True)
-            t.start()
-
-    def run(self):
+    async def pre_run(self):
         # init tool state by reset(), and ignore them observation
         observation = None
-        info = dict()
         if self.tools:
             for _, tool in self.tools.items():
                 # use the observation and info of the last one
-                observation, info = tool.reset()
+                if isinstance(tool, Tool):
+                    observation, info = tool.reset()
+                elif isinstance(tool, AsyncTool):
+                    observation, info = await tool.reset()
+                else:
+                    logger.warning(f"Unsupported tool type: {tool}, will ignored.")
 
         if observation:
             if not observation.content:
@@ -146,14 +174,18 @@ class Task(object):
         else:
             observation = Observation(content=self.input)
 
+        self.observation = observation
         self.swarm.reset(observation.content, self.tool_names)
 
-        if self.swarm.topology_type == 'social':
-            return self._social_process(observation, info)
-        elif self.swarm.topology_type == 'sequence':
-            return self._sequence_process(observation, info)
+    def is_agent(self, policy: ActionModel):
+        return is_agent_by_name(policy.tool_name) or (not policy.tool_name and not policy.action_name)
 
-    def _sequence_process(self, observation: Observation, info: Dict[str, Any]):
+
+class SequenceRunner(TaskRunner):
+    def __init__(self, task: Task, *args, **kwargs):
+        super().__init__(task=task, *args, **kwargs)
+
+    async def do_run(self):
         """Multi-agent sequence general process workflow.
 
         NOTE: Use the agent‘s finished state(no tool calls) to control the inner loop.
@@ -161,6 +193,7 @@ class Task(object):
             observation: Observation based on env
             info: Extend info by env
         """
+        observation = self.observation
         if not observation:
             raise RuntimeError("no observation, check run process")
 
@@ -178,9 +211,12 @@ class Task(object):
                     terminated = False
 
                     observation = self.swarm.action_to_observation(policy, observations)
-                    policy: List[ActionModel] = cur_agent.executor.execute_agent(observation,
-                                                                                 agent=cur_agent,
-                                                                                 conf=cur_agent.conf,
+
+                    if is_abstract_method(cur_agent, 'async_policy'):
+                        policy: List[ActionModel] = cur_agent.policy(observation,
+                                                                     step=step)
+                    else:
+                        policy: List[ActionModel] = await cur_agent.async_policy(observation,
                                                                                  step=step)
                     observation.content = None
                     color_log(f"{cur_agent.name()} policy: {policy}")
@@ -192,7 +228,7 @@ class Task(object):
                                 "time_cost": (time.time() - start)}
 
                     if self.is_agent(policy[0]):
-                        status, info = self._agent(agent, observation, policy, step)
+                        status, info = await self._agent(agent, observation, policy, step)
                         if status == 'normal':
                             if info:
                                 observations.append(observation)
@@ -202,7 +238,7 @@ class Task(object):
                         elif status == 'return':
                             return info
                     elif is_tool_by_name(policy[0].tool_name):
-                        msg, terminated = self._tool_call(policy, observations, step)
+                        msg, terminated = await self._tool_call(policy, observations, step)
                     else:
                         logger.warning(f"Unrecognized policy: {policy[0]}")
                         return {"msg": f"Unrecognized policy: {policy[0]}, need to check prompt or agent / tool.",
@@ -219,7 +255,7 @@ class Task(object):
                 "msg": msg,
                 "success": True if not msg else False}
 
-    def _agent(self, agent: Agent, observation: Observation, policy: List[ActionModel], step: int):
+    async def _agent(self, agent: Agent, observation: Observation, policy: List[ActionModel], step: int):
         # only one agent, and get agent from policy
         policy_for_agent = policy[0]
         agent_name = policy_for_agent.agent_name
@@ -259,7 +295,7 @@ class Task(object):
             return status, observation
         return status, None
 
-    def _tool_call(self, policy: List[ActionModel], observations: List[Observation], step: int):
+    async def _tool_call(self, policy: List[ActionModel], observations: List[Observation], step: int):
         msg = None
         terminated = False
         # group action by tool name
@@ -279,7 +315,14 @@ class Task(object):
 
         for tool_name, action in tool_mapping.items():
             # Execute action using browser tool and unpack all return values
-            observation, reward, terminated, _, info = self.tools[tool_name].step(action)
+            if isinstance(self.tools[tool_name], Tool):
+                observation, reward, terminated, _, info = self.tools[tool_name].step(action)
+            elif isinstance(self.tools[tool_name], AsyncTool):
+                observation, reward, terminated, _, info = await self.tools[tool_name].step(action)
+            else:
+                logger.warning(f"Unsupported tool type: {self.tools[tool_name]}")
+                continue
+
             observations.append(observation)
 
             logger.info(f'{action} state: {observation}; reward: {reward}')
@@ -293,49 +336,23 @@ class Task(object):
             color_log(f"{tool_name} observation: {log_ob}", color=Color.green)
         return msg, terminated
 
-    def _loop_detect(self):
-        if not self.loop_detect:
-            return False
 
-        threshold = self.endless_threshold
-        last_agent_name = self.swarm.communicate_agent.name()
-        count = 1
-        for i in range(len(self.loop_detect) - 2, -1, -1):
-            if last_agent_name == self.loop_detect[i]:
-                count += 1
-            else:
-                last_agent_name = self.loop_detect[i]
-                count = 1
+class SocialRunner(TaskRunner):
+    def __init__(self, task: Task, *args, **kwargs):
+        super().__init__(task=task, *args, **kwargs)
 
-            if count >= threshold:
-                logger.warning("detect loop, will exit the loop.")
-                return True
+    async def do_run(self) -> Dict[str, Any]:
+        """Multi-agent general process workflow.
 
-        if len(self.loop_detect) > 6:
-            last_agent_name = None
-            # latest
-            for j in range(1, 3):
-                for i in range(len(self.loop_detect) - j, 0, -2):
-                    if last_agent_name and last_agent_name == (self.loop_detect[i], self.loop_detect[i - 1]):
-                        count += 1
-                    elif last_agent_name is None:
-                        last_agent_name = (self.loop_detect[i], self.loop_detect[i - 1])
-                        count = 1
-                    else:
-                        last_agent_name = None
-                        break
-
-                    if count >= threshold:
-                        logger.warning(f"detect loop: {last_agent_name}, will exit the loop.")
-                        return True
-
-        return False
-
-    def _social_process(self,
-                        observation: Observation,
-                        info: Dict[str, Any]) -> Dict[str, Any]:
+        NOTE: Use the agent‘s finished state to control the loop, so the agent must carefully set finished state.
+        Args:
+            observation: Observation based on env
+            info: Extend info by env
+        """
         start = time.time()
 
+        observation = self.observation
+        info = dict()
         step = 0
         max_steps = self.conf.get("max_steps", 100)
         results = []
@@ -344,7 +361,7 @@ class Task(object):
         try:
             while step < max_steps:
                 # Loose protocol
-                result_dict = self._process(observation=observation, info=info)
+                result_dict = await self._process(observation=observation, info=info)
                 results.append(result_dict)
 
                 swarm_resp = result_dict.get("response")
@@ -387,17 +404,7 @@ class Task(object):
                     "success": False,
                     "total_time": (time.time() - start)}
 
-    def is_agent(self, policy: ActionModel):
-        return is_agent_by_name(policy.tool_name) or (not policy.tool_name and not policy.action_name)
-
-    def _process(self, observation, info) -> Dict[str, Any]:
-        """Multi-agent general process workflow.
-
-        NOTE: Use the agent‘s finished state to control the loop, so the agent must carefully set finished state.
-        Args:
-            observation: Observation based on env
-            info: Extend info by env
-        """
+    async def _process(self, observation, info) -> Dict[str, Any]:
         if not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
 
@@ -406,9 +413,11 @@ class Task(object):
         max_steps = self.conf.get("max_steps", 100)
         self.swarm.cur_agent = self.swarm.communicate_agent
         # use communicate agent every time
-        policy: List[ActionModel] = self.swarm.cur_agent.executor.execute_agent(observation,
-                                                                                agent=self.swarm.cur_agent,
-                                                                                conf=self.swarm.cur_agent.conf,
+        if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+            policy: List[ActionModel] = self.swarm.cur_agent.policy(observation,
+                                                                    step=step)
+        else:
+            policy: List[ActionModel] = await self.swarm.cur_agent.async_policy(observation,
                                                                                 step=step)
         if not policy:
             logger.warning(f"current agent {self.swarm.cur_agent.name()} no policy to use.")
@@ -427,14 +436,14 @@ class Task(object):
             while step < max_steps:
                 terminated = False
                 if self.is_agent(policy[0]):
-                    status, info = self._social_agent(policy, step)
+                    status, info = await self._social_agent(policy, step)
                     if status == 'normal':
                         self.swarm.cur_agent = self.swarm.agents.get(policy[0].agent_name)
                         policy = info
                     # clear observation
                     observation = None
                 elif is_tool_by_name(policy[0].tool_name):
-                    status, terminated, info = self._social_tool_call(policy, step)
+                    status, terminated, info = await self._social_tool_call(policy, step)
                     if status == 'normal':
                         observation = info
                 else:
@@ -458,10 +467,10 @@ class Task(object):
                 if observation:
                     if cur_agent is None:
                         cur_agent = self.swarm.cur_agent
-                    policy = agent_executor.execute_agent(observation,
-                                                          agent=cur_agent,
-                                                          conf=cur_agent.conf,
-                                                          step=step)
+                    if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+                        policy = cur_agent.policy(observation, step=step)
+                    else:
+                        policy = await cur_agent.async_policy(observation, step=step)
                     color_log(f"{cur_agent.name()} policy: {policy}")
 
             if policy:
@@ -491,7 +500,7 @@ class Task(object):
                 "success": False
             }
 
-    def _social_agent(self, policy: List[ActionModel], step):
+    async def _social_agent(self, policy: List[ActionModel], step):
         # only one agent, and get agent from policy
         policy_for_agent = policy[0]
         agent_name = policy_for_agent.agent_name
@@ -526,9 +535,12 @@ class Task(object):
                              "tool_names": cur_agent.tool_names,
                              "agent_names": cur_agent.handoffs,
                              "mcp_servers": cur_agent.mcp_servers})
-        agent_policy = cur_agent.executor.execute_agent(observation,
-                                                        agent=cur_agent,
-                                                        conf=cur_agent.conf,
+
+        if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+            agent_policy = cur_agent.policy(observation,
+                                            step=step)
+        else:
+            agent_policy = await cur_agent.async_policy(observation,
                                                         step=step)
 
         if not agent_policy:
@@ -541,7 +553,7 @@ class Task(object):
         color_log(f"{cur_agent.name()} policy: {agent_policy}")
         return 'normal', agent_policy
 
-    def _social_tool_call(self, policy: List[ActionModel], step: int):
+    async def _social_tool_call(self, policy: List[ActionModel], step: int):
         observation = None
         terminated = False
         # group action by tool name
@@ -561,7 +573,13 @@ class Task(object):
 
         for tool_name, action in tool_mapping.items():
             # Execute action using browser tool and unpack all return values
-            observation, reward, terminated, _, info = self.tools[tool_name].step(action)
+            if isinstance(self.tools[tool_name], Tool):
+                observation, reward, terminated, _, info = self.tools[tool_name].step(action)
+            elif isinstance(self.tools[tool_name], AsyncTool):
+                observation, reward, terminated, _, info = await self.tools[tool_name].step(action)
+            else:
+                logger.warning(f"Unsupported tool type: {self.tools[tool_name]}")
+                continue
 
             # Check if there's an exception in info
             if info.get("exception"):
@@ -596,3 +614,41 @@ class Task(object):
                 cur_agent._finished = False
                 logger.info(f"{cur_agent.name()} agent be be handed off, so finished state reset to False.")
         return "normal", terminated, observation
+
+    def _loop_detect(self):
+        if not self.loop_detect:
+            return False
+
+        threshold = self.endless_threshold
+        last_agent_name = self.swarm.communicate_agent.name()
+        count = 1
+        for i in range(len(self.loop_detect) - 2, -1, -1):
+            if last_agent_name == self.loop_detect[i]:
+                count += 1
+            else:
+                last_agent_name = self.loop_detect[i]
+                count = 1
+
+            if count >= threshold:
+                logger.warning("detect loop, will exit the loop.")
+                return True
+
+        if len(self.loop_detect) > 6:
+            last_agent_name = None
+            # latest
+            for j in range(1, 3):
+                for i in range(len(self.loop_detect) - j, 0, -2):
+                    if last_agent_name and last_agent_name == (self.loop_detect[i], self.loop_detect[i - 1]):
+                        count += 1
+                    elif last_agent_name is None:
+                        last_agent_name = (self.loop_detect[i], self.loop_detect[i - 1])
+                        count = 1
+                    else:
+                        last_agent_name = None
+                        break
+
+                    if count >= threshold:
+                        logger.warning(f"detect loop: {last_agent_name}, will exit the loop.")
+                        return True
+
+        return False

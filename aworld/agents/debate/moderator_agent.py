@@ -7,7 +7,7 @@ from aworld.agents.debate.base import DebateSpeech
 from aworld.agents.debate.prompts import user_assignment_system_prompt
 from aworld.agents.debate.stream_output_agent import StreamOutputAgent
 from aworld.config import AgentConfig
-from aworld.framework.common import Observation, ActionModel
+from aworld.core.common import Observation, ActionModel
 from aworld.output import MessageOutput
 
 

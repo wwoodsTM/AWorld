@@ -2,11 +2,11 @@
 # Copyright (c) 2025 inclusionAI.
 
 from typing import List
-from aworld.framework.envs.action_factory import ActionFactory
-from aworld.framework.common import ActionModel, ActionResult
+from aworld.core.envs.action_factory import ActionFactory
+from aworld.core.common import ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.android.action.adb_controller import ADBController
-from aworld.framework.envs.tool import ToolActionExecutor
+from aworld.core.envs.tool import ToolActionExecutor
 
 
 class AndroidToolActionExecutor(ToolActionExecutor):

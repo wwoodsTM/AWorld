@@ -4,15 +4,15 @@ import asyncio
 import time
 
 from aworld.config.common import Tools, Agents
-from aworld.framework.client import Client
-from aworld.framework.agent.base import Agent, AgentFactory
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
 
 from aworld.config.conf import AgentConfig
 from aworld.logs.util import logger
-from aworld.framework.envs.tool import AsyncTool, ToolFactory
-from aworld.framework.task import Task
-from aworld.virtual_environments.gym_tool.async_openai_gym import OpenAIGym as AOpenAIGym
+from aworld.core.envs.tool import AsyncTool, ToolFactory
+from aworld.core.task import Task
+from aworld.runner import Runners
+from aworld.virtual_environments.gym_tool.async_openai_gym import OpenAIGym
 
 
 async def async_run_gym_game(agent: Agent, tool: AsyncTool):
@@ -43,12 +43,13 @@ async def async_run_gym_game(agent: Agent, tool: AsyncTool):
 
 
 def main():
-    # use default config
-    gym_tool = ToolFactory(Tools.GYM.value)
-    agent = AgentFactory(Agents.GYM.value, conf=AgentConfig())
+    agent = GymAgent(name=Agents.GYM.value, conf=AgentConfig(), tool_names=[Tools.GYM.value])
+    gym_tool = OpenAIGym(name=Tools.GYM.value,
+                         conf={"env_id": "CartPole-v1", "render_mode": "human", "render": True})
 
-    # can run tasks like this:
-    res = Task(agent=agent, tools=[gym_tool]).run()
+    # gym_tool = ToolFactory(Tools.GYM.value)
+    task = Task(agent=agent, tools=[gym_tool])
+    res = Runners.sync_run_task(task=task)
     return res
 
 

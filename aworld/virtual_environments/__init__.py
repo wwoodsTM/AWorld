@@ -1,9 +1,9 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from aworld.framework.envs.action_factory import ActionFactory
+from aworld.core.envs.action_factory import ActionFactory
 from aworld.logs.util import logger
-from aworld.framework.envs.tool import ToolFactory, Tool, AsyncTool
+from aworld.core.envs.tool import ToolFactory, Tool, AsyncTool
 from aworld.virtual_environments.action import ExecutableAction
 from aworld.utils.common import scan_packages
 

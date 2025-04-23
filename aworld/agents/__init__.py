@@ -5,7 +5,7 @@ from aworld.agents.android.agent import AndroidAgent
 from aworld.agents.browser.agent import BrowserAgent
 from aworld.agents.gaia.agent import ExecuteAgent, PlanAgent
 from aworld.agents.gym.agent import GymDemoAgent as GymAgent
-from aworld.framework.agent.base import AgentFactory
+from aworld.core.agent.base import AgentFactory
 
 
 def agent_desc():

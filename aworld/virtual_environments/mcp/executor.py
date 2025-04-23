@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Tuple
 
 from mcp.types import TextContent
 
-from aworld.framework.common import ActionModel, ActionResult, Observation
-from aworld.framework.envs.tool import ToolActionExecutor, Tool
+from aworld.core.common import ActionModel, ActionResult, Observation
+from aworld.core.envs.tool import ToolActionExecutor, Tool
 from aworld.logs.util import logger
 from aworld.mcp.server import MCPServer, MCPServerSse
 from aworld.utils.common import sync_exec, find_file

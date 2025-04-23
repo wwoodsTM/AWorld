@@ -4,7 +4,7 @@ import os
 
 from aworld.config.common import Tools
 
-from aworld.framework.envs.tool import ToolFactory
+from aworld.core.envs.tool import ToolFactory
 
 
 class TestShellTool(unittest.TestCase):

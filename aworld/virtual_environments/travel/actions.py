@@ -6,8 +6,8 @@ import re
 from typing import Tuple, Any
 
 from aworld.config.common import Tools
-from aworld.framework.envs.action_factory import ActionFactory
-from aworld.framework.common import ActionModel, ActionResult
+from aworld.core.envs.action_factory import ActionFactory
+from aworld.core.common import ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.action import ExecutableAction
 from aworld.models.llm import get_llm_model, call_llm_model

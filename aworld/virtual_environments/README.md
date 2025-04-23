@@ -22,8 +22,8 @@ from typing import List, Tuple, Dict, Any
 
 from aworld.config.common import Tools
 from aworld.config.tool_action import GymAction
-from aworld.framework.common import ActionModel, Observation
-from aworld.framework.envs.tool import ActionFactory, Tool, ToolFactory, ToolInput, AgentInput
+from aworld.core.common import ActionModel, Observation
+from aworld.core.envs.tool import ActionFactory, Tool, ToolFactory, ToolInput, AgentInput
 from aworld.virtual_environments.action import ExecutableAction
 
 

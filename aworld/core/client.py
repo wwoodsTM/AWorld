@@ -7,8 +7,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 from typing import Any, List, Dict, Union
 
-from aworld.framework.singleton import InheritanceSingleton
-from aworld.framework.task import Task
+from aworld.core.singleton import InheritanceSingleton
+from aworld.core.task import Task
 from aworld.logs.util import logger
 
 

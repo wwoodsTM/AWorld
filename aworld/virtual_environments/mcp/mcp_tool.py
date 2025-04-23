@@ -5,8 +5,8 @@ from typing import Any, Dict, Tuple, List, Union
 
 from aworld.config.common import Tools
 from aworld.config.conf import ToolConfig, ConfigDict
-from aworld.framework.common import ActionModel, Observation
-from aworld.framework.envs.tool import Tool, ToolFactory
+from aworld.core.common import ActionModel, Observation
+from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.logs.util import logger
 from aworld.virtual_environments.mcp.executor import MCPToolExecutor
 from aworld.virtual_environments.utils import build_observation

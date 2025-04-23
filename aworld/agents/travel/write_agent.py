@@ -4,8 +4,8 @@ from typing import Dict, Any, List, Union
 from aworld.agents.travel.prompts import write_prompt, write_sys_prompt, write_output_prompt
 from aworld.agents.travel.utils import parse_result
 from aworld.config.conf import AgentConfig
-from aworld.framework.agent.base import AgentFactory, Agent
-from aworld.framework.common import Observation, ActionModel
+from aworld.core.agent.base import AgentFactory, Agent
+from aworld.core.common import Observation, ActionModel
 
 
 @AgentFactory.register(name='write_agent', desc="write agent")

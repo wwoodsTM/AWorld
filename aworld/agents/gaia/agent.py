@@ -7,13 +7,13 @@ import traceback
 from typing import Dict, Any, List, Union
 
 from aworld.config.common import Agents
-from aworld.framework.agent.base import Agent, AgentFactory
+from aworld.core.agent.base import Agent, AgentFactory
 from aworld.models.utils import tool_desc_transform
 from aworld.models.llm import call_llm_model
 from aworld.config.conf import AgentConfig, ConfigDict
-from aworld.framework.common import Observation, ActionModel
+from aworld.core.common import Observation, ActionModel
 from aworld.logs.util import logger
-from aworld.framework.envs.tool_desc import get_tool_desc
+from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.agents.gaia.prompts import *
 from aworld.agents.gaia.utils import extract_pattern
 
@@ -30,13 +30,20 @@ class ExecuteAgent(Agent):
         self.system_prompt = execute_system_prompt.format(task=self.task)
         self.step_reset = False
 
+    async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        await self.async_desc_transform()
+        return self._common(observation, info)
+
     def policy(self,
                observation: Observation,
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
-        start_time = time.time()
-        self._finished = False
         self.desc_transform()
+        return self._common(observation, info)
+
+    def _common(self, observation, info):
+        self._finished = False
         content = observation.content
 
         llm_result = None
@@ -129,13 +136,21 @@ class PlanAgent(Agent):
         self.first = True
         self.step_reset = False
 
+    async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        await self.async_desc_transform()
+        return self._common(observation, info)
+
     def policy(self,
                observation: Observation,
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
-        llm_result = None
         self._finished = False
         self.desc_transform()
+        return self._common(observation, info)
+
+    def _common(self, observation, info):
+        llm_result = None
         input_content = [
             {'role': 'system', 'content': self.system_prompt},
         ]

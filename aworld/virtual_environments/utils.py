@@ -2,7 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 from typing import Any, List
 
-from aworld.framework.common import ActionResult, Observation
+from aworld.core.common import ActionResult, Observation
 
 DEFAULT_VIRTUAL_ENV_ID = "env_0"
 

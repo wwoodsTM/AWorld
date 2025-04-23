@@ -1,15 +1,13 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-import os
 
-from aworld.framework.agent.base import AgentFactory
 from aworld.config.common import Tools, Agents
-from aworld.framework.client import Client
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
-from aworld.config.conf import AgentConfig, TaskConfig, ModelConfig
-from aworld.framework.agent.swarm import Swarm
-from aworld.framework.task import Task
+from aworld.config.conf import AgentConfig, ModelConfig
+from aworld.core.agent.swarm import Swarm
 from aworld.dataset.mock import mock_dataset
+from aworld.runner import Runners
+
 
 # Need OPENAI_API_KEY
 # os.environ['OPENAI_API_KEY'] = "your key"
@@ -17,9 +15,6 @@ from aworld.dataset.mock import mock_dataset
 # os.environ['OPENAI_ENDPOINT'] = "https://api.openai.com/v1"
 
 def main():
-    # Initialize client
-    client = Client()
-
     # One sample for example
     test_sample = mock_dataset("gaia")
 
@@ -47,11 +42,8 @@ def main():
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
     swarm = Swarm((agent1, agent2), sequence=False)
 
-    # Define a task
-    task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())
-
-    # Run task
-    result = client.submit(task=[task])
+    # Run agents
+    result = Runners.sync_run(input=test_sample, swarm=swarm)
 
     print(f"Time cost: {result['time_cost']}")
     print(f"Task Answer: {result['task_0']['answer']}")

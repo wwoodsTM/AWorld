@@ -12,7 +12,7 @@ AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Ag
 
 ![AWorld Framework](readme_assets/framework.png)
 
-## [Core](aworld/framework/README.md) concepts:
+## [Core](aworld/core/README.md) concepts:
 - `agent`: AI-powered components that autonomously make decisions, use tools, do collaboration, and so on.
 - `swarm`: define the topology structure of a multiple agents system. 
 - `environment`: the runtime supporting communication among agents and tools.
@@ -30,8 +30,8 @@ python setup.py install
 
 ```python
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.framework.agent.base import Agent
-from aworld.framework.task import Task
+from aworld.core.agent.base import Agent
+from aworld.core.task import Task
 
 if __name__ == '__main__':
     agent_config = AgentConfig(
@@ -114,10 +114,10 @@ Here is a multi-agent example of running a level2 task from the [GAIA](https://h
 
 ```python
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
-from aworld.framework.client import Client
-from aworld.framework.agent.swarm import Swarm
-from aworld.framework.common import Agents, Tools
-from aworld.framework.task import Task
+from aworld.core.client import Client
+from aworld.core.agent.swarm import Swarm
+from aworld.core.common import Agents, Tools
+from aworld.core.task import Task
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
 

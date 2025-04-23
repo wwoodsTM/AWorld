@@ -11,8 +11,8 @@ from aworld.agents.debate.search.search_engine import SearchEngine
 from aworld.agents.debate.search.tavily_search_engine import TavilySearchEngine
 from aworld.agents.debate.stream_output_agent import StreamOutputAgent
 from aworld.config import AgentConfig
-from aworld.framework.agent.base import Agent
-from aworld.framework.common import Observation, ActionModel
+from aworld.core.agent.base import Agent
+from aworld.core.common import Observation, ActionModel
 from aworld.output import SearchOutput, SearchItem, MessageOutput
 from aworld.output.artifact import ArtifactType
 

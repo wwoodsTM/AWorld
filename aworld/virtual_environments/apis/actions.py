@@ -9,8 +9,8 @@ from typing import Tuple, Any, List, Dict
 
 from aworld.config.common import Tools
 from aworld.config.tool_action import SearchAction
-from aworld.framework.envs.action_factory import ActionFactory
-from aworld.framework.common import ActionModel, ActionResult
+from aworld.core.envs.action_factory import ActionFactory
+from aworld.core.common import ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.utils import import_package
 from aworld.virtual_environments.action import ExecutableAction

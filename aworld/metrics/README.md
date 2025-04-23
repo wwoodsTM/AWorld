@@ -19,11 +19,12 @@ The `aworld.core.metrics` module provides a unified interface for collecting and
 ```python
 import random
 import time
-from aworld.framework.metrics.metric import set_metric_provider, MetricType
-from aworld.framework.metrics.prometheus.prometheus_adapter import PrometheusConsoleMetricExporter,
-    PrometheusMetricProvider
-from aworld.framework.metrics.context_manager import MetricContext, ApiMetricTracker
-from aworld.framework.metrics.template import MetricTemplate
+from aworld.core.metrics.metric import set_metric_provider, MetricType
+from aworld.core.metrics.prometheus.prometheus_adapter import PrometheusConsoleMetricExporter,
+
+PrometheusMetricProvider
+from aworld.core.metrics.context_manager import MetricContext, ApiMetricTracker
+from aworld.core.metrics.template import MetricTemplate
 
 # Set OpenTelemetry as the metric provider
 # set_metric_provider(OpentelemetryMetricProvider())

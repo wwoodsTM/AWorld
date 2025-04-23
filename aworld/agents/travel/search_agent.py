@@ -5,8 +5,8 @@ from aworld.agents.travel.prompts import search_prompt, search_sys_prompt, searc
 from aworld.agents.travel.utils import parse_result
 from aworld.config.common import Agents, Tools
 from aworld.config.conf import AgentConfig
-from aworld.framework.agent.base import AgentFactory, Agent
-from aworld.framework.common import Observation, ActionModel
+from aworld.core.agent.base import AgentFactory, Agent
+from aworld.core.common import Observation, ActionModel
 
 
 # Step1

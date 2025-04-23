@@ -1,13 +1,13 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 from aworld.config.conf import AgentConfig, ToolConfig
-from aworld.framework.agent.base import Agent
+from aworld.core.agent.base import Agent
 from aworld.agents import BrowserAgent
 from aworld.agents.browser.config import BrowserAgentConfig
 from aworld.config import ModelConfig
 from aworld.config.common import Tools
-from aworld.framework.agent.swarm import Swarm
-from aworld.framework.task import Task
+from aworld.core.agent.swarm import Swarm
+from aworld.core.task import Task
 from aworld.virtual_environments.conf import BrowserToolConfig
 from examples.travel.prompts import *
 

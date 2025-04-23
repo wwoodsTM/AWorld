@@ -6,8 +6,8 @@ from typing import Dict, Any, Tuple, SupportsFloat, List, Union
 from aworld.config import ConfigDict, ToolConfig
 from aworld.config.common import Tools
 from aworld.config.tool_action import GymAction
-from aworld.framework.common import Observation, ActionModel
-from aworld.framework.envs.tool import Tool, ToolFactory
+from aworld.core.common import Observation, ActionModel
+from aworld.core.envs.tool import Tool, ToolFactory
 from aworld.utils.import_package import import_packages
 from aworld.virtual_environments.utils import build_observation
 
@@ -35,6 +35,7 @@ class OpenAIGym(Tool[Observation, List[ActionModel]]):
         self._render = self.conf.get('render', True)
         if self._render:
             kwargs['render_mode'] = self.conf.get('render_mode', 'human')
+        kwargs.pop('name', None)
         self.env = self._gym_env_wrappers(self.env_id, self.conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
 

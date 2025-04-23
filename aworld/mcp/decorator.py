@@ -15,7 +15,7 @@ from typing import Type, Dict, Any, Optional, Union, List
 # Import FastMCP
 from mcp.server import FastMCP
 
-from aworld.framework.factory import Factory
+from aworld.core.factory import Factory
 from aworld.logs.util import logger
 
 

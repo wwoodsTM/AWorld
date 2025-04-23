@@ -1,32 +1,29 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
+# need tool's name, desc and cls params
+TOOL_TEMPLATE = """
 import json
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Union
 
-from aworld.config.common import Tools
-from aworld.config.conf import ToolConfig
-from aworld.core.envs.tool import Tool, ToolFactory
-from aworld.config.tool_action import SearchAction
-from aworld.core.common import Observation, ActionModel, ActionResult
+from aworld.config.conf import ToolConfig, ConfigDict
+from aworld.framework.envs.tool import Tool, ToolFactory
+from aworld.framework.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.utils import build_observation
+{action_import}
 
 
-@ToolFactory.register(name=Tools.SEARCH_API.value,
-                      desc="search tool",
-                      supported_action=SearchAction,
-                      conf_file_name=f'{Tools.SEARCH_API.value}_tool.yaml')
-class SearchTool(Tool[Observation, List[ActionModel]]):
-    def __init__(self, conf: ToolConfig, **kwargs) -> None:
-        super(SearchTool, self).__init__(conf, **kwargs)
+@ToolFactory.register(name="{name}", desc="{desc}", supported_action={action})
+class {name}Tool({cls}[Observation, List[ActionModel]]):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, ToolConfig], **kwargs) -> None:
+        super().__init__(conf, **kwargs)
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, dict[str, Any]]:
         # from options obtain user query
         return build_observation(observer=self.name(),
-                                 ability='',
-                                 content=options.get("query", None) if options else None), {}
+                                 ability=''), dict()
 
     def step(self, action: List[ActionModel], **kwargs) -> Tuple[Observation, float, bool, bool, Dict[str, Any]]:
         reward = 0
@@ -35,8 +32,7 @@ class SearchTool(Tool[Observation, List[ActionModel]]):
 
         invalid_acts: List[int] = []
         for i, act in enumerate(action):
-            if act.tool_name != Tools.SEARCH_API.value:
-                logger.warning(f"tool {act.tool_name} is not a search api!")
+            if act.tool_name != "{name}":
                 invalid_acts.append(i)
 
         if invalid_acts:
@@ -55,9 +51,9 @@ class SearchTool(Tool[Observation, List[ActionModel]]):
             for res in action_result:
                 if res.is_done:
                     terminated = res.is_done
-                    self._finish = True
 
-        info = {"exception": fail_error}
+        info = dict()
+        info['exception'] = fail_error
         info.update(kwargs)
         if resp:
             resp = json.dumps(resp)
@@ -67,13 +63,15 @@ class SearchTool(Tool[Observation, List[ActionModel]]):
         action_result = [ActionResult(content=resp, keep=True, is_done=True)]
         observation = build_observation(observer=self.name(),
                                         ability=action[-1].action_name,
-                                        content=resp)
+                                        content=resp,
+                                        info=info)
         observation.action_result = action_result
+        self._finished = True
         return (observation,
                 reward,
                 terminated,
                 kwargs.get("truncated", False),
-                info)
+                dict())
 
     def close(self) -> None:
         pass
@@ -81,3 +79,4 @@ class SearchTool(Tool[Observation, List[ActionModel]]):
     def finished(self) -> bool:
         # one time
         return True
+"""

@@ -2,7 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 import json
 
-from aworld.framework.common import ActionModel
+from aworld.core.common import ActionModel
 
 
 def parse_result(data):

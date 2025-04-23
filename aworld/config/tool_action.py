@@ -1,19 +1,8 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 
-from enum import Enum
-
-from aworld.framework.common import ToolActionInfo, ParamInfo
-
-
-class ToolAction(Enum):
-    @classmethod
-    def get_value_by_name(cls, name: str) -> ToolActionInfo | None:
-        members = cls.__members__
-        name = name.upper()
-        if name in members:
-            return members[name].value
-        return None
+from aworld.core.common import ToolActionInfo, ParamInfo
+from aworld.core.envs.action import ToolAction
 
 
 class ChatAction(ToolAction):
@@ -63,10 +52,10 @@ class SearchAction(ToolAction):
                                                             required=True,
                                                             desc="baidu search query input."),
                                          "num_results": ParamInfo(name="num_results",
-                                                                       type="str",
-                                                                       required=False,
-                                                                       desc="baidu search number of results.",
-                                                                       default_value=5)},
+                                                                  type="str",
+                                                                  required=False,
+                                                                  desc="baidu search number of results.",
+                                                                  default_value=5)},
                            desc="Use Baidu search engine to search information for the given query.")
 
 

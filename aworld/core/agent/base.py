@@ -7,17 +7,17 @@ import traceback
 import uuid
 from typing import Generic, TypeVar, Dict, Any, List, Tuple, Union, Callable
 
-from aworld.framework.agent.agent_desc import get_agent_desc
-from aworld.framework.envs.tool_desc import get_tool_desc
+from aworld.core.agent.agent_desc import get_agent_desc
+from aworld.core.envs.tool_desc import get_tool_desc
 from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
-from aworld.models.llm import get_llm_model, call_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
 from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel
 
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
-from aworld.framework.common import Observation, ActionModel
-from aworld.framework.factory import Factory
+from aworld.core.common import Observation, ActionModel
+from aworld.core.factory import Factory
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.utils.common import convert_to_snake, is_abstract_method, sync_exec
 
@@ -87,7 +87,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.mcp_servers: List[str] = kwargs.pop("mcp_servers", [])
         self.trajectory: List[Tuple[INPUT, Dict[str, Any], AgentResult]] = []
         # all tools that the agent can use. note: string name/id only
-        self._tools = []
+        self.tools = []
         self.state = AgentStatus.START
         self._finished = True
 
@@ -99,6 +99,14 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
 
     def desc(self) -> str:
         return self._desc
+
+    def run(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        return self.policy(observation, info, **kwargs)
+
+    async def async_run(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        return await self.async_policy(observation, info, **kwargs)
 
     @abc.abstractmethod
     def policy(self, observation: INPUT, info: Dict[str, Any] = None, **kwargs) -> OUTPUT:
@@ -126,6 +134,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.tool_names = options.get("tool_names", [])
         self.handoffs = options.get("agent_names", [])
         self.mcp_servers = options.get("mcp_servers", [])
+        self.tools = []
         self.trajectory = []
         self._finished = True
 
@@ -144,14 +153,12 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
 
     def __init__(self,
                  conf: Union[Dict[str, Any], ConfigDict, AgentConfig],
-                 executor: Callable[..., Any] = None,
                  resp_parse_func: Callable[..., Any] = None,
                  **kwargs):
         """A base class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
 
         Args:
             conf: Agent config, supported AgentConfig, ConfigDict or dict.
-            executor: The agent special executor.
             resp_parse_func: Response parse function for the agent standard output.
         """
         super(Agent, self).__init__(conf, **kwargs)
@@ -169,8 +176,6 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
             "black_tool_actions") else self.conf.get('black_tool_actions', {})
         self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
-        self.executor = executor if executor else agent_executor
-        agent_executor.register(self.name(), self)
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)
@@ -181,7 +186,8 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         # lazy
         if self._llm is None:
             llm_config = self.conf.llm_config or None
-            conf = llm_config if llm_config and (llm_config.llm_provider or llm_config.llm_base_url or llm_config.llm_api_key or llm_config.llm_model_name) else self.conf
+            conf = llm_config if llm_config and (
+                    llm_config.llm_provider or llm_config.llm_base_url or llm_config.llm_api_key or llm_config.llm_model_name) else self.conf
             self._llm = get_llm_model(conf)
         return self._llm
 
@@ -219,12 +225,11 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         """Transform of descriptions of supported tools, agents, and MCP servers in the framework to support function calls of LLM."""
 
         # Stateless tool
-        self.tools = tool_desc_transform(get_tool_desc(),
-                                         tools=self.tool_names if self.tool_names else [])
+        self.tools = self.env_tool()
         # Agents as tool
         self.tools.extend(self.handoffs_agent_as_tool())
         # MCP servers are tools
-        self.tools.extend(self.mcp_is_tool())
+        self.tools.extend(await mcp_tool_desc_transform(self.mcp_servers))
 
     def messages_transform(self,
                            content: str,
@@ -318,7 +323,38 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             results.append(ActionModel(agent_name=self.name(), policy_info=content))
         return AgentResult(actions=results, current_state=None, is_call_tool=is_call_tool)
 
-    @abc.abstractmethod
+    def _log_messages(self, messages: List[Dict[str, Any]]) -> None:
+        """Log the sequence of messages for debugging purposes"""
+        logger.info(f"[agent] Invoking LLM with {len(messages)} messages:")
+        for i, msg in enumerate(messages):
+            prefix = msg.get('role')
+            logger.info(f"[agent] Message {i + 1}: {prefix} ===================================")
+            if isinstance(msg['content'], list):
+                for item in msg['content']:
+                    if item.get('type') == 'text':
+                        logger.info(f"[agent] Text content: {item.get('text')}")
+                    elif item.get('type') == 'image_url':
+                        image_url = item.get('image_url', {}).get('url', '')
+                        if image_url.startswith('data:image'):
+                            logger.info(f"[agent] Image: [Base64 image data]")
+                        else:
+                            logger.info(f"[agent] Image URL: {image_url[:30]}...")
+            else:
+                content = str(msg['content'])
+                chunk_size = 500
+                for j in range(0, len(content), chunk_size):
+                    chunk = content[j:j + chunk_size]
+                    if j == 0:
+                        logger.info(f"[agent] Content: {chunk}")
+                    else:
+                        logger.info(f"[agent] Content (continued): {chunk}")
+
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                for tool_call in msg.get('tool_calls'):
+                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
+                    args = str(tool_call.get('args', {}))[:1000]
+                    logger.info(f"[agent] Tool args: {args}...")
+
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
         """The strategy of an agent can be to decide which tools to use in the environment, or to delegate tasks to other agents.
@@ -330,6 +366,48 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         Returns:
             ActionModel sequence from agent policy
         """
+        self._finished = False
+        self.desc_transform()
+        images = observation.images if self.conf.use_vision else None
+        if self.conf.use_vision and not images and observation.image:
+            images = [observation.image]
+        messages = self.messages_transform(content=observation.content,
+                                           image_urls=images,
+                                           sys_prompt=self.system_prompt,
+                                           agent_prompt=self.agent_prompt,
+                                           output_prompt=self.output_prompt)
+
+        self._log_messages(messages)
+
+        llm_response = None
+        try:
+            llm_response = call_llm_model(
+                self.llm,
+                messages=messages,
+                model=self.model_name,
+                temperature=self.conf.llm_config.llm_temperature,
+                tools=self.tools if self.tools else None
+            )
+            logger.info(f"Execute response: {llm_response.message}")
+        except Exception as e:
+            logger.warn(traceback.format_exc())
+            raise e
+        finally:
+            if llm_response:
+                if llm_response.error:
+                    logger.info(f"llm result error: {llm_response.error}")
+                else:
+                    self.memory.append(MemoryModel(message=messages[-1],
+                                                   tool_calls=llm_response.tool_calls,
+                                                   content=llm_response.content))
+            else:
+                logger.error(f"{self.name()} failed to get LLM response")
+                raise RuntimeError(f"{self.name()} failed to get LLM response")
+
+        agent_result = sync_exec(self.resp_parse_func, llm_response)
+        if not agent_result.is_call_tool:
+            self._finished = True
+        return agent_result.actions
 
     @abc.abstractmethod
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
@@ -343,6 +421,49 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         Returns:
             ActionModel sequence from agent policy
         """
+
+        self._finished = False
+        await self.async_desc_transform()
+        images = observation.images if self.conf.use_vision else None
+        if self.conf.use_vision and not images and observation.image:
+            images = [observation.image]
+        messages = self.messages_transform(content=observation.content,
+                                           image_urls=images,
+                                           sys_prompt=self.system_prompt,
+                                           agent_prompt=self.agent_prompt,
+                                           output_prompt=self.output_prompt)
+
+        self._log_messages(messages)
+
+        llm_response = None
+        try:
+            llm_response = await acall_llm_model(
+                self.llm,
+                messages=messages,
+                model=self.model_name,
+                temperature=self.conf.llm_config.llm_temperature,
+                tools=self.tools if self.tools else None
+            )
+            logger.info(f"Execute response: {llm_response.message}")
+        except Exception as e:
+            logger.warn(traceback.format_exc())
+            raise e
+        finally:
+            if llm_response:
+                if llm_response.error:
+                    logger.info(f"llm result error: {llm_response.error}")
+                else:
+                    self.memory.append(MemoryModel(message=messages[-1],
+                                                   tool_calls=llm_response.tool_calls,
+                                                   content=llm_response.content))
+            else:
+                logger.error(f"{self.name()} failed to get LLM response")
+                raise RuntimeError(f"{self.name()} failed to get LLM response")
+
+        agent_result = sync_exec(self.resp_parse_func, llm_response)
+        if not agent_result.is_call_tool:
+            self._finished = True
+        return agent_result.actions
 
 
 class AgentManager(Factory):
@@ -407,187 +528,3 @@ class AgentManager(Factory):
 
 
 AgentFactory = AgentManager("agent_type")
-
-
-class AgentExecutor(object):
-    """The default executor for agent execution can be used for sequential execution by the user."""
-
-    def __init__(self, agent: Agent = None):
-        self.agent = agent
-        self.agents: Dict[str, Agent] = {}
-
-    def register(self, name: str, agent: Agent):
-        self.agents[name] = agent
-
-    def execute(self, observation: Observation, **kwargs) -> List[ActionModel]:
-        """"""
-        return self.execute_agent(observation, self.agent, **kwargs)
-
-    async def async_execute(self, observation: Observation, **kwargs) -> List[ActionModel]:
-        """"""
-        return await self.async_execute_agent(observation, self.agent, **kwargs)
-
-    def _log_messages(self, messages: List[Dict[str, Any]]) -> None:
-        """Log the sequence of messages for debugging purposes"""
-        logger.info(f"[agent] Invoking LLM with {len(messages)} messages:")
-        for i, msg in enumerate(messages):
-            prefix = msg.get('role')
-            logger.info(f"[agent] Message {i + 1}: {prefix} ===================================")
-            if isinstance(msg['content'], list):
-                for item in msg['content']:
-                    if item.get('type') == 'text':
-                        logger.info(f"[agent] Text content: {item.get('text')}")
-                    elif item.get('type') == 'image_url':
-                        image_url = item.get('image_url', {}).get('url', '')
-                        if image_url.startswith('data:image'):
-                            logger.info(f"[agent] Image: [Base64 image data]")
-                        else:
-                            logger.info(f"[agent] Image URL: {image_url[:30]}...")
-            else:
-                content = str(msg['content'])
-                chunk_size = 500
-                for j in range(0, len(content), chunk_size):
-                    chunk = content[j:j + chunk_size]
-                    if j == 0:
-                        logger.info(f"[agent] Content: {chunk}")
-                    else:
-                        logger.info(f"[agent] Content (continued): {chunk}")
-
-            if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                for tool_call in msg.get('tool_calls'):
-                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
-                    args = str(tool_call.get('args', {}))[:1000]
-                    logger.info(f"[agent] Tool args: {args}...")
-
-    def execute_agent(self,
-                      observation: Observation,
-                      agent: Agent,
-                      **kwargs) -> List[ActionModel]:
-        """The synchronous execution process of the agent with some hooks.
-
-        Args:
-            observation: Observation source from a tool or an agent.
-            agent: The special agent instance.
-        """
-        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
-        agent._finished = False
-        if is_abstract_method(agent, 'policy'):
-            agent.desc_transform()
-            images = observation.images if agent.conf.use_vision else None
-            if agent.conf.use_vision and not images and observation.image:
-                images = [observation.image]
-            messages = agent.messages_transform(content=observation.content,
-                                                image_urls=images,
-                                                sys_prompt=agent.system_prompt,
-                                                agent_prompt=agent.agent_prompt,
-                                                output_prompt=agent.output_prompt)
-
-            self._log_messages(messages)
-
-            llm_response = None
-            try:
-                llm_response = call_llm_model(
-                    agent.llm,
-                    messages=messages,
-                    model=agent.model_name,
-                    temperature=agent.conf.llm_config.llm_temperature,
-                    tools=agent.tools if agent.tools else None
-                )
-                logger.info(f"Execute response: {llm_response.message}")
-            except Exception as e:
-                logger.warn(traceback.format_exc())
-                raise e
-            finally:
-                if llm_response:
-                    if llm_response.error:
-                        logger.info(f"llm result error: {llm_response.error}")
-                    else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
-                else:
-                    logger.error(f"{agent.name()} failed to get LLM response")
-                    raise RuntimeError(f"{agent.name()} failed to get LLM response")
-
-            agent_result = sync_exec(agent.resp_parse_func, llm_response)
-            if not agent_result.is_call_tool:
-                agent._finished = True
-            return agent_result.actions
-        else:
-            try:
-                actions = agent.policy(observation, kwargs)
-                return actions
-            except:
-                logger.warning(traceback.format_exc())
-                return [ActionModel(agent_name=agent.name())]
-
-    async def async_execute_agent(self,
-                                  observation: Observation,
-                                  agent: Agent,
-                                  **kwargs) -> List[ActionModel]:
-        """The asynchronous execution process of the agent.
-
-        Args:
-            observation: Observation source from a tool or an agent.
-            agent: The special agent instance.
-        """
-        agent = self._get_or_create_agent(observation.to_agent_name, agent, kwargs.get('conf'))
-        agent._finished = False
-        if is_abstract_method(agent, 'async_policy'):
-            await agent.async_desc_transform()
-            images = observation.images
-            if not images and observation.image:
-                images = [observation.image]
-            messages = agent.messages_transform(content=observation.content,
-                                                image_urls=images,
-                                                sys_prompt=agent.system_prompt,
-                                                agent_prompt=agent.agent_prompt,
-                                                output_prompt=agent.output_prompt)
-            llm_response = None
-            try:
-                # TODO: models interface update
-                llm_response = call_llm_model(
-                    agent.llm,
-                    messages=messages,
-                    model=agent.model_name,
-                    temperature=agent.conf.llm_config.llm_temperature,
-                    tools=agent.tools if agent.tools else None
-                )
-                logger.info(f"Execute response: {llm_response.message}")
-            except Exception as e:
-                logger.warn(traceback.format_exc())
-                raise e
-            finally:
-                if llm_response:
-                    if llm_response.error:
-                        logger.info(f"llm result error: {llm_response.error}")
-                    else:
-                        agent.memory.append(MemoryModel(message=messages[-1],
-                                                        tool_calls=llm_response.tool_calls,
-                                                        content=llm_response.content))
-                else:
-                    logger.error(f"{agent.name()} failed to get LLM response")
-                    raise RuntimeError(f"{agent.name()} failed to get LLM response")
-
-            agent_result = sync_exec(agent.resp_parse_func, llm_response)
-            if not agent_result.is_call_tool:
-                agent._finished = True
-            return agent_result.actions
-        else:
-            try:
-                actions = await agent.async_policy(observation, kwargs)
-                return actions
-            except:
-                logger.warning(traceback.format_exc())
-                return [ActionModel(agent_name=agent.name())]
-
-    def _get_or_create_agent(self, name: str, agent: Agent = None, conf=None):
-        if agent is None:
-            agent = self.agents.get(name)
-            if agent is None:
-                agent = AgentFactory(name, conf=conf if conf else AgentConfig())
-                self.agents[name] = agent
-        return agent
-
-
-agent_executor = AgentExecutor()
