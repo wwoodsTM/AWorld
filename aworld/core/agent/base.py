@@ -19,7 +19,7 @@ from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
-from aworld.models.model_response import ModelResponse
+from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import MessageOutput
 from aworld.output.base import StepOutput
@@ -356,11 +356,16 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                     else:
                         logger.info(f"[agent] Content (continued): {chunk}")
 
-            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+            if 'tool_calls' in msg and msg['tool_calls']:
                 for tool_call in msg.get('tool_calls'):
-                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
-                    args = str(tool_call.get('args', {}))[:1000]
-                    logger.info(f"[agent] Tool args: {args}...")
+                    if isinstance(tool_call, dict):
+                        logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
+                        args = str(tool_call.get('args', {}))[:1000]
+                        logger.info(f"[agent] Tool args: {args}...")
+                    elif isinstance(tool_call, ToolCall):
+                        logger.info(f"[agent] Tool call: {tool_call.function.name} - ID: {tool_call.id}")
+                        args = str(tool_call.function.arguments)[:1000]
+                        logger.info(f"[agent] Tool args: {args}...")
 
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
