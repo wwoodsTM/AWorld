@@ -9,6 +9,7 @@ from aworld.config.conf import AgentConfig, ClientType
 from aworld.logs.util import logger
 from aworld.models.anthropic_provider import AnthropicProvider
 from aworld.models.llm_provider_base import LLMProviderBase
+from aworld.models.shangshu_provider import ShangshuProvider
 from aworld.models.model_response import ModelResponse
 from aworld.models.openai_provider import AzureOpenAIProvider, OpenAIProvider
 
@@ -28,6 +29,7 @@ ENDPOINT_PATTERNS = {
     "openai": ["api.openai.com"],
     "anthropic": ["api.anthropic.com", "claude-api"],
     "azure_openai": ["openai.azure.com"],
+    "shangshu": ["zdfmng.alipay.com"],
 }
 
 # Provider class mapping
@@ -35,6 +37,7 @@ PROVIDER_CLASSES = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "azure_openai": AzureOpenAIProvider,
+    "shangshu": ShangshuProvider,
 }
 
 
