@@ -45,13 +45,16 @@ LLM_BASE_URL=<Your Service Provider URL>
 
 1. Start the local MCP servers
 ```bash
-
+git clone https://github.com/haris-musa/excel-mcp-server.git
+cd excel-mcp-server
+uv pip install -e .
+uv run excel-mcp-server
 ```
 The server should now be running with the configuration specified in `mcp.json`.
 
 1. Run the script
 ```bash
-python yy_run.py
+python run_super_agent.py
 ```
 Now you could check the output log in the console.
 
