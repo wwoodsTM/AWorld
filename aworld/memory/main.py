@@ -40,12 +40,13 @@ class Memory(MemoryBase):
     def get_all(self) -> list[MemoryItem]:
         return self.memory_store.get_all()
 
-    def get_last_n(self, last_rounds) -> list[MemoryItem]:
+    def get_last_n(self, last_rounds, add_first_message = True) -> list[MemoryItem]:
         """
         Get last n memories.
 
         Args:
             last_rounds (int): Number of memories to retrieve.
+            add_first_message (bool):
 
         Returns:
             list[MemoryItem]: List of latest memories.
@@ -54,6 +55,9 @@ class Memory(MemoryBase):
         while len(memory_items) > 0 and memory_items[0].metadata and "tool_call_id" in memory_items[0].metadata and memory_items[0].metadata["tool_call_id"]:
             last_rounds = last_rounds + 1
             memory_items = self.memory_store.get_last_n(last_rounds)
+
+        if add_first_message and last_rounds < self.memory_store.total_rounds():
+            memory_items.insert(0, self.memory_store.get_first())
 
         return memory_items
 
