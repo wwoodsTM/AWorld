@@ -191,11 +191,11 @@ def mcp_image_recognition(
             ]
         
         client = OpenAI(
-            api_key=os.getenv("IMAGE_LLM_API_KEY"), 
-            base_url=os.getenv("IMAGE_LLM_BASE_URL")
+            api_key=os.getenv("LLM_API_KEY"), 
+            base_url=os.getenv("LLM_BASE_URL")
         )
         response = client.chat.completions.create(
-            model=os.getenv("IMAGE_LLM_MODEL_NAME"),  
+            model=os.getenv("LLM_MODEL_NAME"),  
             messages=messages,
         )
 
