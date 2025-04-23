@@ -2,14 +2,14 @@ import datetime
 import hashlib
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
 
 class MemoryItem(BaseModel):
     id: str = Field(description = "id")
-    content: str = Field(description = "content")
+    content: Any = Field(description = "content")
     hash: str = Field(description = "content hash")
     created_at: Optional[str] = Field(None, description = "created at")
     updated_at: Optional[str] = Field(None, description = "updated at")
@@ -22,7 +22,7 @@ class MemoryItem(BaseModel):
         if "id" not in data:
             data["id"] = str(uuid.uuid4())
         if "hash" not in data:
-            data["hash"] = hashlib.md5(data.get("content", "").encode()).hexdigest()
+            data["hash"] = hashlib.md5((data.get("content", "") or "").encode()).hexdigest()
         if "created_at" not in data:
             data["created_at"] = datetime.datetime.now().isoformat()
         if "updated_at" not in data:
@@ -62,6 +62,11 @@ class MemoryStore(ABC):
     @abstractmethod
     def get_all(self) -> list[MemoryItem]:
         pass
+
+    @abstractmethod
+    def get_last_n(self, last_rounds) -> list[MemoryItem]:
+        pass
+
 
     @abstractmethod
     def update(self, memory_item: MemoryItem):
@@ -122,6 +127,16 @@ class MemoryBase(ABC):
         pass
 
     @abstractmethod
+    def get_last_n(self, last_rounds) -> list[MemoryItem]:
+        """
+                get last_rounds memories.
+
+                Returns:
+                    list: List of latest memories.
+                """
+        pass
+
+    @abstractmethod
     def add(self, memory_item: MemoryItem):
         """
         add memory
@@ -169,28 +184,32 @@ class MemoryBase(ABC):
         pass
 
 class InMemoryMemoryStore(MemoryStore):
-
     def __init__(self):
-        self.memory_items = {}
+        self.memory_items = []  # Initialize as a list
 
     def add(self, memory_item: MemoryItem):
-        self.memory_items[memory_item.id] = memory_item
+        self.memory_items.append(memory_item)  # Append memory item to the list
 
     def get(self, memory_id) -> Optional[MemoryItem]:
-        return self.memory_items.get(memory_id)
+        return next((item for item in self.memory_items if item.id == memory_id), None)  # Find item by ID
 
     def get_all(self) -> list[MemoryItem]:
-        return list(self.memory_items.values())
-        
+        return self.memory_items  # Return all items directly
+
+    def get_last_n(self, last_rounds) -> list[MemoryItem]:
+        return self.memory_items[-last_rounds:]  # Get the last n items
 
     def update(self, memory_item: MemoryItem):
-        self.memory_items[memory_item.id] = memory_item
+        for index, item in enumerate(self.memory_items):
+            if item.id == memory_item.id:
+                self.memory_items[index] = memory_item  # Update the item in the list
+                break
 
     def delete(self, memory_id):
-        del self.memory_items[memory_id]
+        self.memory_items = [item for item in self.memory_items if item.id != memory_id]  # Remove item by ID
 
     def retrieve(self, query, filters: dict) -> list[MemoryItem]:
-        return [memory_item for memory_item in self.memory_items.values() if memory_item.content.lower().find(query.lower()) != -1]
+        return [memory_item for memory_item in self.memory_items if memory_item.content.lower().find(query.lower()) != -1]
 
     def history(self, memory_id) -> list[MemoryItem]:
-        return [memory_item for memory_item in self.memory_items.values() if memory_item.id == memory_id]
+        return [memory_item for memory_item in self.memory_items if memory_item.id == memory_id]

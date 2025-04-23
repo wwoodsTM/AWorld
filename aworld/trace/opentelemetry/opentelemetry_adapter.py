@@ -207,7 +207,18 @@ class OTLPSpan(Span, ReadableSpan):
         Returns:
             The trace ID of the span.
         """
+        if not self._span or not self._span.get_span_context() or not self.is_recording():
+            return ""
         return f"{self._span.get_span_context().trace_id:032x}"
+
+    def get_span_id( self) -> str:
+        """Get the span ID of the span.
+        Returns:
+            The span ID of the span.
+        """
+        if not self._span or not self._span.get_span_context() or not self.is_recording():
+            return ""
+        return f"{self._span.get_span_context().span_id:016x}"
 
     def _attach(self):
         if self._token is not None:

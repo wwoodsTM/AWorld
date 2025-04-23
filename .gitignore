@@ -41,6 +41,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.env
 
 # IDE specific files
 .idea/
@@ -71,9 +72,10 @@ docs/api/
 # Data files (customize as needed)
 *.csv
 *.dat
-*.out
+*.ou
 data/raw/
 data/processed/
+data/workspaces/
 
 # Compiled files
 *.com
