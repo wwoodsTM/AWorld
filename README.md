@@ -39,7 +39,7 @@ uv pip install -e .
 ```
 
 ### 4. Download GAIA Dataset
-[https://huggingface.co/datasets/gaia-benchmark/GAIA/tree/main]
+https://huggingface.co/datasets/gaia-benchmark/GAIA/tree/main
 
 ## Configuration
 
