@@ -175,8 +175,6 @@ class MCPToolExecutor(ToolActionExecutor):
             server_name = action.tool_name
             if not server_name:
                 raise ValueError("Missing tool_name in action model")
-            if not server_name in self.mcp_servers:
-                raise ValueError(f"MCP server '{server_name}' not found")
 
             action_name = action.action_name
             if not action_name:
@@ -185,7 +183,7 @@ class MCPToolExecutor(ToolActionExecutor):
             params = action.params or {}
 
             try:
-                server = self.mcp_servers[server_name]['instance']
+                server = self.mcp_servers.get(server_name, {}).get('instance', None)
                 if not server:
                     # Get or create MCP server
                     server = await self._get_or_create_server(server_name)
