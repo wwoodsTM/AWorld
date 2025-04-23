@@ -57,12 +57,14 @@ class ShangshuProvider(LLMProviderBase):
         if not api_key:
             env_var = "SHANGSHU_API_KEY"
             api_key = os.getenv(env_var, "")
+            self.api_key = api_key
             if not api_key:
                 raise ValueError(
                     f"SHANGSHU API key not found, please set {env_var} environment variable or provide it in the parameters")
         base_url = self.base_url
         if not base_url:
             base_url = os.getenv("SHANGSHU_ENDPOINT", "https://zdfmng.alipay.com")
+            self.base_url = base_url
 
         self.aes_key = os.getenv("SHANGSHU_AES_KEY", "")
 
