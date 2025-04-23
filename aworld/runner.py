@@ -312,8 +312,11 @@ class SequenceRunner(TaskRunner):
             if not self.tools or (self.tools and act.tool_name not in self.tools):
                 # dynamic only use default config in module.
                 conf = self.tools_conf.get(act.tool_name)
-                tool = ToolFactory(act.tool_name, conf=conf)
-                tool.reset()
+                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async)
+                if isinstance(tool, Tool):
+                    tool.reset()
+                elif isinstance(tool, AsyncTool):
+                    await tool.reset()
                 tool_mapping[act.tool_name] = []
                 self.tools[act.tool_name] = tool
             if act.tool_name not in tool_mapping:
@@ -570,8 +573,12 @@ class SocialRunner(TaskRunner):
             if not self.tools or (self.tools and act.tool_name not in self.tools):
                 # dynamic only use default config in module.
                 conf = self.tools_conf.get(act.tool_name)
-                tool = ToolFactory(act.tool_name, conf=conf)
-                tool.reset()
+                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async)
+                if isinstance(tool, Tool):
+                    tool.reset()
+                elif isinstance(tool, AsyncTool):
+                    await tool.reset()
+
                 tool_mapping[act.tool_name] = []
                 self.tools[act.tool_name] = tool
             if act.tool_name not in tool_mapping:

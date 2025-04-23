@@ -18,10 +18,11 @@ if __name__ == '__main__':
                                             height=720,
                                             headless=False,
                                             keep_browser_open=True,
+                                            use_async=True,
                                             llm_config=llm_config)
     agent_config = BrowserAgentConfig(
         tool_calling_method="raw",
-        name=Agents.BROWSER.value,
+        name=f'async_{Agents.BROWSER.value}',
         llm_config=llm_config,
         max_actions_per_step=10,
         max_input_tokens=128000,
@@ -40,7 +41,7 @@ if __name__ == '__main__':
         step 2: write each product's title, price, discount, and publisher information to a fully structured HTML document with write_to_file, ensuring that the data is presented in a table with visible grid lines.
         step3: open the html file in browser by go_to_url""",
         agent=BrowserAgent(conf=agent_config),
-        tools_conf={Tools.BROWSER.value, browser_tool_config},
+        tools_conf={Tools.BROWSER.value: browser_tool_config},
         conf=task_config
     )
     Runners.sync_run_task(task)

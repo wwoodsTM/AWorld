@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+from aworld.core.task import Task
 
 from aworld.config.common import Tools, Agents
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
@@ -42,8 +43,8 @@ def main():
     # define (head_node1, tail_node1), (head_node1, tail_node1) edge in the topology graph
     swarm = Swarm((agent1, agent2), sequence=False)
 
-    # Run agents
-    result = Runners.sync_run(input=test_sample, swarm=swarm)
+    # Run task
+    result = Runners.sync_run_task(task=Task(input=test_sample, swarm=swarm))
 
     print(f"Time cost: {result['time_cost']}")
     print(f"Task Answer: {result['task_0']['answer']}")
