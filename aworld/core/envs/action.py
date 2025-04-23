@@ -33,7 +33,7 @@ class ToolAction(Enum, metaclass=DynamicEnumMeta):
 
 TOOL_ACTION = """
 from aworld.config.tool_action import ToolAction
-from aworld.framework.common import ToolActionInfo, ParamInfo
+from aworld.core.common import ToolActionInfo, ParamInfo
 
 class {name}Action(ToolAction):
     '''{name} action enum.'''
