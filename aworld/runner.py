@@ -16,7 +16,7 @@ from aworld.core.envs.tool import ToolFactory, Tool, AsyncTool
 from aworld.core.envs.tool_desc import is_tool_by_name
 from aworld.core.task import Runner, Task
 from aworld.logs.util import logger, color_log, Color
-from aworld.utils.common import sync_exec, is_abstract_method
+from aworld.utils.common import sync_exec, override_in_subclass
 
 
 class Runners:
@@ -220,7 +220,7 @@ class SequenceRunner(TaskRunner):
 
                     observation = self.swarm.action_to_observation(policy, observations)
 
-                    if is_abstract_method(cur_agent, 'async_policy'):
+                    if override_in_subclass('async_policy', cur_agent.__class__, Agent):
                         policy: List[ActionModel] = cur_agent.policy(observation,
                                                                      step=step)
                     else:
@@ -424,7 +424,7 @@ class SocialRunner(TaskRunner):
         max_steps = self.conf.get("max_steps", 100)
         self.swarm.cur_agent = self.swarm.communicate_agent
         # use communicate agent every time
-        if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+        if override_in_subclass('async_policy', self.swarm.cur_agent.__class__, Agent):
             policy: List[ActionModel] = self.swarm.cur_agent.policy(observation,
                                                                     step=step)
         else:
@@ -547,7 +547,7 @@ class SocialRunner(TaskRunner):
                              "agent_names": cur_agent.handoffs,
                              "mcp_servers": cur_agent.mcp_servers})
 
-        if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+        if override_in_subclass('async_policy', cur_agent.__class__, Agent):
             agent_policy = cur_agent.policy(observation,
                                             step=step)
         else:

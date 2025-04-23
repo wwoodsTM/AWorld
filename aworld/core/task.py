@@ -49,7 +49,7 @@ class Runner(object):
 
     @abc.abstractmethod
     async def do_run(self):
-        """"""
+        """Raise exception if not success."""
 
     async def _daemon_run(self):
         if self._use_demon and self.daemon_target and callable(self.daemon_target):

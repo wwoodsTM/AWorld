@@ -558,7 +558,3 @@ class BrowserAgent(Agent):
             image_tokens=self.settings.get('image_tokens', 800),
             estimated_characters_per_token=self.settings.get('estimated_characters_per_token', 3)
         )
-
-    async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
-        List[ActionModel], None]:
-        return self.policy(observation, info, **kwargs)
