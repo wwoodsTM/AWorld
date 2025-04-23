@@ -105,7 +105,6 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
             logging.info(f"Tools: {full_dataset[i]['Annotator Metadata']['Tools']}")
 
             question = add_file_path(full_dataset[i], gaia_dataset_path)["Question"]
-            question = "parse the /Users/yuchengyue/OpenManus/gaia/gaia_dataset/2023/validation/2b3ef98c-cc05-450b-a719-711aee40ac65.mp3 and tell me the whole content in mp3."
 
             super = Agent(
                 conf=agent_config,
