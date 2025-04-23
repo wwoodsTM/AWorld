@@ -14,7 +14,7 @@
 
 </div>
 
-<p align="center" style="color: white; font-size: 1.1em; margin: 10px 0;">
+<p align="center" style="color: white; font-size: 1.5em; margin: 10px 0;">
 🏆 AWorld ranks 3rd on GAIA benchmark (69.7 avg) with impressive Pass@1 = 58.8, 1st among open-source frameworks. Reproduce with <code>python examples/gaia/run.py</code>
 </p>
 
