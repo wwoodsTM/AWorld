@@ -22,7 +22,7 @@ AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Ag
 ## Installation
 With Python>=3.11:
 ```bash
-python setup.py install
+pip install aworld
 ```
 
 ## Usage
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
 
         # Set via environment variable or direct configuration
-        llm_api_key="YOUR_API_KEY", 
-        llm_base_url="https://api.openai.com/v1"
+        # llm_api_key="YOUR_API_KEY", 
+        # llm_base_url="https://api.openai.com/v1"
     )
 
     search_sys_prompt = "You are a helpful agent."
