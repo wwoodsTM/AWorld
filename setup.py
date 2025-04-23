@@ -205,6 +205,14 @@ class BinaryDistribution(Distribution):
 
 requirements = parse_requirements('aworld/requirements.txt')
 extra = os.getenv(AWorldInstaller.EXTRA_ENV, None)
+try:
+    import shutil
+    shutil.copytree(os.path.join(os.path.dirname(__file__), 'examples'),
+                    os.path.join(os.path.dirname(__file__), "aworld/examples"))
+    with open(f'{os.path.join(os.path.dirname(__file__), "aworld")}/examples/__init__.py', 'w+') as write:
+        write.write("")
+except:
+    pass
 
 setup(
     name='aworld',

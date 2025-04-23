@@ -27,8 +27,7 @@ def generate_version_info(directory_path: str = None, scenario: str = "", versio
 
 def _build_version_template(scenario: str = "", version: str = None):
     if version is None:
-        import aworld  # avoid import loop
-        version = aworld.__version__
+        version = __version__
     return version_template.format(
         BUILD_USER=getpass.getuser(),
         BUILD_VERSION=version,
