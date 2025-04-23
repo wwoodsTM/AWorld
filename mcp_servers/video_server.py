@@ -229,6 +229,9 @@ def mcp_summarize_video(
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     print("Starting Video MCP Server...", file=sys.stderr)
     mcp.run(transport='stdio')
 

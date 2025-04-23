@@ -216,6 +216,9 @@ def mcp_image_recognition(
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+
     print("Starting Image MCP Server...", file=sys.stderr)
     mcp.run(transport='stdio')
 

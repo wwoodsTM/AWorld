@@ -54,6 +54,9 @@ async def mcp_download_youtube_video(
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     print("Starting YouTube Download MCP Server...", file=sys.stderr)
     mcp.run(transport='stdio')
 
