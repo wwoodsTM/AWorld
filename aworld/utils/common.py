@@ -42,6 +42,9 @@ def override_in_subclass(name: str, sub_cls: object, base_cls: object) -> bool:
         logger.warning(f"{sub_cls} is not sub class of {base_cls}")
         return False
 
+    if sub_cls == base_cls and hasattr(sub_cls, name) and not is_abstract_method(sub_cls, name):
+        return True
+
     this_method = getattr(sub_cls, name)
     base_method = getattr(base_cls, name)
     return this_method is not base_method
