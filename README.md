@@ -22,12 +22,11 @@ AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Ag
 ## Installation
 With Python>=3.11:
 ```bash
-python setup.py install
+pip install aworld
 ```
 
 ## Usage
 ### Quick Start
-
 ```python
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.agent.base import Agent
@@ -39,8 +38,8 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
 
         # Set via environment variable or direct configuration
-        llm_api_key="YOUR_API_KEY",
-        llm_base_url="https://api.openai.com/v1"
+        # llm_api_key="YOUR_API_KEY", 
+        # llm_base_url="https://api.openai.com/v1"
     )
 
     search_sys_prompt = "You are a helpful agent."
@@ -48,7 +47,7 @@ if __name__ == '__main__':
         conf=agent_config,
         name="search_agent",
         system_prompt=search_sys_prompt,
-        mcp_servers=["amap-amap-sse"]  # MCP server name for agent to use
+        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
     )
 
     # Define a task
@@ -101,7 +100,13 @@ Below are demonstration videos showcasing AWorld's capabilities across different
   </tr>
   <tr>
     <td>Competitive Teams</td>
-    <td align="center"><i>Coming Soon</i> 🚀</td>
+     <td>
+       <a href="https://www.youtube.com/watch?v=_CPdhoP4YTg" target="_blank">
+        <img src="https://img.youtube.com/vi/_CPdhoP4YTg/0.jpg" alt="AWorld Debate Demo on YouTube" width="95%">
+        <br>
+        <p align="center">▶️ Watch Debate Arena on YouTube</p>
+      </a>
+    </td>
   </tr>
   <tr>
     <td>Mixed of both Teams</td>
@@ -116,13 +121,12 @@ Here is a multi-agent example of running a level2 task from the [GAIA](https://h
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
 from aworld.core.client import Client
 from aworld.core.agent.swarm import Swarm
-from aworld.core.common import Agents, Tools
+from aworld.config.common import Agents, Tools
 from aworld.core.task import Task
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
 
 import os
-
 # Need OPENAI_API_KEY
 os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`
