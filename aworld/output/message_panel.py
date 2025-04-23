@@ -25,7 +25,6 @@ class MessagePanel(BaseModel):
 
     async def add_output(self, output: Output) -> None:
         """Add an output to the panel"""
-        logging.info("")
         self.messages.append(output)
         await self._queue.put(output)
 
@@ -38,6 +37,8 @@ class MessagePanel(BaseModel):
         """
         # First yield existing messages
         for message in self.messages:
+            if message is None:  # None signals completion
+                break
             yield message
             
         # Then wait for new messages
@@ -50,8 +51,7 @@ class MessagePanel(BaseModel):
 
     async def mark_completed(self) -> None:
         """Mark the panel as completed"""
-        await self._queue.put(None)  # Send completion signal
-
+        await self._queue.put(None)
     @classmethod
     def create(cls, panel_id: str = "") -> "MessagePanel":
         """Create a new message panel"""

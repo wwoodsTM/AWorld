@@ -35,6 +35,7 @@ class OpenAIGym(Tool[Observation, List[ActionModel]]):
         self._render = self.conf.get('render', True)
         if self._render:
             kwargs['render_mode'] = self.conf.get('render_mode', 'human')
+        kwargs.pop('name', None)
         self.env = self._gym_env_wrappers(self.env_id, self.conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
 

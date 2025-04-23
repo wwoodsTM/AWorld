@@ -27,6 +27,7 @@ python setup.py install
 
 ## Usage
 ### Quick Start
+
 ```python
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.agent.base import Agent
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         llm_model_name="gpt-4o",
 
         # Set via environment variable or direct configuration
-        llm_api_key="YOUR_API_KEY", 
+        llm_api_key="YOUR_API_KEY",
         llm_base_url="https://api.openai.com/v1"
     )
 
@@ -47,7 +48,7 @@ if __name__ == '__main__':
         conf=agent_config,
         name="search_agent",
         system_prompt=search_sys_prompt,
-        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
+        mcp_servers=["amap-amap-sse"]  # MCP server name for agent to use
     )
 
     # Define a task
@@ -121,6 +122,7 @@ from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
 
 import os
+
 # Need OPENAI_API_KEY
 os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`
