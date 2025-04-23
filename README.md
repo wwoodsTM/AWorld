@@ -100,7 +100,13 @@ Below are demonstration videos showcasing AWorld's capabilities across different
   </tr>
   <tr>
     <td>Competitive Teams</td>
-    <td align="center"><i>Coming Soon</i> 🚀</td>
+     <td>
+       <a href="https://www.youtube.com/watch?v=_CPdhoP4YTg" target="_blank">
+        <img src="https://img.youtube.com/vi/_CPdhoP4YTg/0.jpg" alt="AWorld Debate Demo on YouTube" width="95%">
+        <br>
+        <p align="center">▶️ Watch Debate Arena on YouTube</p>
+      </a>
+    </td>
   </tr>
   <tr>
     <td>Mixed of both Teams</td>
