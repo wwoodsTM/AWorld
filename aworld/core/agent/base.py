@@ -308,7 +308,11 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 if not full_name:
                     logger.warning("tool call response no tool name.")
                     continue
-                params = json.loads(tool_call.function.arguments)
+                try:
+                    params = json.loads(tool_call.function.arguments)
+                except:
+                    logger.warning(f"{tool_call.function.arguments} parse to json fail.")
+                    params = {}
                 # format in framework
                 names = full_name.split("__")
                 tool_name = names[0]
