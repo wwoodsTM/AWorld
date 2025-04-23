@@ -26,8 +26,7 @@
           "args": ["-m", "mcp_server_calculator"]
       },
       "excel": {
-          "command": "uv",
-          "args": ["run", "excel-mcp-server"]
+          "url":  "http://localhost:8000/sse"
       },
       "google-search": {
           "command": "npx",
