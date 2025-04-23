@@ -270,14 +270,14 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         if histories:
             # default use the first tool call
             for history in histories:
-                if "tool_calls" in history.metadata:
+                if "tool_calls" in history.metadata and history.metadata['tool_calls']:
                     messages.append({'role': history.metadata['role'], 'content': history.content,
                                      'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
                     messages.append({'role': history.metadata['role'], 'content': history.content,
                                      "tool_call_id": history.metadata.get("tool_call_id")})
 
-            if "tool_calls" in histories[-1].metadata:
+            if "tool_calls" in histories[-1].metadata and histories[-1].metadata['tool_calls']:
                 tool_id = histories[-1].metadata["tool_calls"][0].id
                 if tool_id:
                     cur_msg['role'] = 'tool'
