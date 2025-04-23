@@ -67,8 +67,10 @@ def main():
     task = Task(
         swarm=swarm,
         input=goal,
-        tools_conf={Tools.BROWSER.value: BrowserToolConfig(width=800, height=720, llm_config=model_config),
-                    Tools.HTML.value: ToolConfig(name="html", llm_config=model_config)})
+        tools_conf={
+            Tools.BROWSER.value: BrowserToolConfig(width=800, height=720, use_async=True, llm_config=model_config),
+            Tools.HTML.value: ToolConfig(name="html", llm_config=model_config)
+        })
 
     Runners.sync_run_task(task)
 
