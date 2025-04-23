@@ -68,6 +68,23 @@ async def run(mcp_servers: list[MCPServer]) -> List[Dict[str, Any]]:
 
 async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any]]:
     """Default implement transform framework standard protocol to openai protocol of tool description."""
+    def _replace_env_variables(config):
+        if isinstance(config, dict):
+            for key, value in config.items():
+                if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+                    env_var_name = value[2:-1]
+                    config[key] = os.getenv(env_var_name, value)
+                    logging.info(f"Replaced {value} with {config[key]}")
+                elif isinstance(value, dict) or isinstance(value, list):
+                    _replace_env_variables(value)
+        elif isinstance(config, list):
+            for index, item in enumerate(config):
+                if isinstance(item, str) and item.startswith("${") and item.endswith("}"):
+                    env_var_name = item[2:-1]
+                    config[index] = os.getenv(env_var_name, item)
+                    logging.info(f"Replaced {item} with {config[index]}")
+                elif isinstance(item, dict) or isinstance(item, list):
+                    _replace_env_variables(item)
 
     # Priority given to the running path.
     config_path = find_file(filename='mcp.json')
@@ -87,6 +104,7 @@ async def mcp_tool_desc_transform(tools: List[str] = None) -> List[Dict[str, Any
         logging.info(f"load config fail: {e}")
         return []
 
+    _replace_env_variables(config)
     mcp_servers_config = config.get("mcpServers", {})
 
     server_configs = []

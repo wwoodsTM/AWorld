@@ -304,8 +304,16 @@ class ADBController:
         self.__tap_coordinate(x, y)
 
     def text(self, text: str):
-        """input text"""
-        success, _ = self.execute_adb(["shell", "input", "text", text])
+        """
+        Input text, automatically replacing spaces with %s for proper ADB text input.
+
+        Parameters:
+            text: The text to input
+        """
+        # Replace spaces with %s for proper handling in ADB
+        formatted_text = text.replace(" ", "%s")
+        success, _ = self.execute_adb(["shell", "input", "text", formatted_text])
+        return success
 
     def long_press(self, element: int):
         x, y = self.__get_element_center(element)
