@@ -146,12 +146,12 @@ def scan_packages(package: str, base_classes: List[type]) -> List[Tuple[str, typ
 
 class ReturnThread(threading.Thread):
     def __init__(self, func, *args, **kwargs):
+        threading.Thread.__init__(self)
         self.func = func
         self.args = args
         self.kwargs = kwargs
         self.result = None
         self.daemon = True
-        super().__init__()
 
     def run(self):
         self.result = asyncio.run(self.func(*self.args, **self.kwargs))
