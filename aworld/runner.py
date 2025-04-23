@@ -6,6 +6,7 @@ import time
 import traceback
 from typing import List, Dict, Any, Union
 
+from aworld.config.conf import ToolConfig
 from pydantic import BaseModel
 
 from aworld.core.agent.base import Agent, is_agent_by_name
@@ -572,8 +573,8 @@ class SocialRunner(TaskRunner):
         for act in policy:
             if not self.tools or (self.tools and act.tool_name not in self.tools):
                 # dynamic only use default config in module.
-                conf = self.tools_conf.get(act.tool_name)
-                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async)
+                conf: ToolConfig = self.tools_conf.get(act.tool_name)
+                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async if conf else False)
                 if isinstance(tool, Tool):
                     tool.reset()
                 elif isinstance(tool, AsyncTool):
