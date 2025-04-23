@@ -14,9 +14,10 @@
 
 </div>
 
-<p align="center" style="color: #2E86C1; font-size: 1.5em; margin: 10px 0;">
+<h3 align="center" style="color: #2E86C1; font-size: 1.2em; margin: 10px 0;">
 🏆 AWorld ranks 3rd on GAIA benchmark (69.7 avg) with impressive Pass@1 = 58.8, 1st among open-source frameworks. Reproduce with <code>python examples/gaia/run.py</code>
-</p>
+</h3>
+
 
 AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
