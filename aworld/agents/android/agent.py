@@ -102,7 +102,7 @@ class AndroidAgent(Agent):
                 },
                 {
                     "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_img}"
+                    "image_url": f"data:image/jpeg;base64,{self.state.image}"
                 }
             ])
 
