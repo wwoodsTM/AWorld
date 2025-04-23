@@ -5,7 +5,6 @@ from aworld.runner import Runners
 from datasets import load_dataset
 from pathlib import Path
 from typing import Any, Dict
-import asyncio
 import re
 import logging
 import traceback
@@ -119,10 +118,10 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
                     "calculator",
                     "google-search",
                     "ms-playwright",
-                    # "audio_server",
-                    # "image_server",
-                    # "youtube_download_server",
-                    # "video_server",
+                    "audio_server",
+                    "image_server",
+                    "youtube_download_server",
+                    "video_server",
                 ]
             )
 
