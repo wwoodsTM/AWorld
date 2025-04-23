@@ -11,8 +11,8 @@ from mcp_servers.utils import get_file_from_source
 from openai import OpenAI
 
 client = OpenAI(
-    api_key=os.getenv("VIDEO_LLM_API_KEY"), 
-    base_url=os.getenv("VIDEO_LLM_BASE_URL")
+    api_key=os.getenv("LLM_API_KEY"), 
+    base_url=os.getenv("LLM_BASE_URL")
 )
 
 # Initialize MCP server
@@ -152,7 +152,7 @@ def mcp_analyze_video(
             inputs.append({"role": "user", "content": content})
             try:
                 response = client.chat.completions.create(
-                    model=os.getenv("VIDEO_LLM_MODEL_NAME"),  
+                    model=os.getenv("LLM_MODEL_NAME"),  
                     messages=inputs,
                     temperature=0,
                 )
@@ -188,7 +188,7 @@ def mcp_extract_video_subtitles(
         inputs.append({"role": "user", "content": content})
 
         response = client.chat.completions.create(
-            model=os.getenv("VIDEO_LLM_MODEL_NAME"),  
+            model=os.getenv("LLM_MODEL_NAME"),  
             messages=inputs,
             temperature=0,
         )
@@ -215,7 +215,7 @@ def mcp_summarize_video(
         inputs.append({"role": "user", "content": content})
 
         response = client.chat.completions.create(
-            model=os.getenv("VIDEO_LLM_MODEL_NAME"),  
+            model=os.getenv("LLM_MODEL_NAME"),  
             messages=inputs,
             temperature=0,
         )
@@ -229,6 +229,9 @@ def mcp_summarize_video(
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     print("Starting Video MCP Server...", file=sys.stderr)
     mcp.run(transport='stdio')
 

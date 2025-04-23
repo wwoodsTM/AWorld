@@ -121,6 +121,9 @@ async def mcp_transcribe_audio(
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+
     print("Starting Audio MCP Server...", file=sys.stderr)
     mcp.run(transport='stdio')
 
