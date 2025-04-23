@@ -26,7 +26,12 @@ class Runners:
 
     @staticmethod
     async def run_task(task: Union[Task, List[Task]], parallel: bool = False):
-        """"""
+        """Run tasks for some complex scenarios where agents cannot be directly used.
+
+        Args:
+            task: User task define.
+            parallel: Whether to process multiple tasks in parallel.
+        """
         import time
         start = time.time()
 
@@ -94,8 +99,8 @@ class Runners:
             res[f'task_{idx}'] = t
 
     @staticmethod
-    async def _run_in_local(tasks: List[Task], res: Dict[str, Any], idx: int = 0) -> None:
-        for task in tasks:
+    async def _run_in_local(tasks: List[Task], res: Dict[str, Any]) -> None:
+        for idx, task in enumerate(tasks):
             # Execute the task
             result = await Runners._choose_runner(task=task).run()
             res[f'task_{idx}'] = result
@@ -154,6 +159,8 @@ class TaskRunner(Runner):
         self._exception = None
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        # modules init
 
     async def pre_run(self):
         # init tool state by reset(), and ignore them observation
