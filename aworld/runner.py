@@ -280,7 +280,7 @@ class SequenceRunner(TaskRunner):
         status = "normal"
         if cur_agent.name() == agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit the loop")
+            logger.info(f"{cur_agent.name()} exit the loop")
             status = "break"
             return status, None
 
@@ -527,7 +527,7 @@ class SocialRunner(TaskRunner):
 
         if cur_agent.name() == self.swarm.communicate_agent.name() or cur_agent.name() == self.swarm.cur_agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit to the outer loop")
+            logger.info(f"{cur_agent.name()} exit to the outer loop")
             self.loop_detect.append(cur_agent.name())
             return 'break', True
 

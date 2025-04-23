@@ -30,9 +30,6 @@ conda activate aworld
 ```bash
 python setup.py install
 
-pip install terminal-controller
-pip install mcp-server-calculator
-
 git clone https://github.com/haris-musa/excel-mcp-server.git
 cd excel-mcp-server
 uv pip install -e .
@@ -61,7 +58,7 @@ The server should now be running with the configuration specified in `mcp.json`.
 
 1. Run the script
 ```bash
-python run_super_agent.py
+python ./examples/gaia/run.py
 ```
 Now you could check the output log in the console.
 
