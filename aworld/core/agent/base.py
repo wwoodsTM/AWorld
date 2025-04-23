@@ -181,6 +181,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
             "black_tool_actions") else self.conf.get('black_tool_actions', {})
         self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
+        self.history_messages = kwargs.get("history_messages") if kwargs.get("history_messages") else 100
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)
@@ -243,7 +244,6 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                            sys_prompt: str = None,
                            agent_prompt: str = None,
                            output_prompt: str = None,
-                           max_step: int = 100,
                            **kwargs):
         """Transform the original content to LLM messages of native format.
 
@@ -266,7 +266,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
 
         cur_msg = {'role': 'user', 'content': content}
         # query from memory,
-        histories = self.memory.get_last_n(max_step)
+        histories = self.memory.get_last_n(self.history_messages)
         if histories:
             # default use the first tool call
             for history in histories:
