@@ -39,7 +39,7 @@ class AndroidAgent(Agent):
             self.conf.llm_provider = "chat" + provider
         self.available_actions_desc = self._build_action_prompt()
         # Settings
-        self.settings = AgentSettings(**conf)
+        self.settings = self.conf
 
     def reset(self, options: Dict[str, Any]):
         super(AndroidAgent, self).__init__(options)
