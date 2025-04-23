@@ -75,6 +75,7 @@ docs/api/
 *.out
 data/raw/
 data/processed/
+data/workspaces/
 
 # Compiled files
 *.com
@@ -117,3 +118,6 @@ data/processed/
 *.pdf
 *.html
 *.wav
+
+# gaia
+gaia/

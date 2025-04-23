@@ -47,7 +47,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
             with open(dom_js_path, 'r') as read:
                 self.js_code = read.read()
         else:
-            self.js_code = resources.read_text('virtual_environments.browsers.script',
+            self.js_code = resources.read_text('aworld.virtual_environments.browsers.script',
                                                'buildDomTree.js')
         self.cur_observation = None
         if not is_package_installed('playwright'):
@@ -163,7 +163,7 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
                 logger.info(f'Cookies load from {cookie_file} finished')
 
         if self.conf.get('private'):
-            js = resources.read_text("virtual_environments.browsers.script", "stealth.min.js")
+            js = resources.read_text("aworld.virtual_environments.browsers.script", "stealth.min.js")
             await context.add_init_script(js)
 
         return context
@@ -312,8 +312,8 @@ class BrowserTool(AsyncTool[Observation, List[ActionModel]]):
         try:
             action_result, self.page = await self.action_executor.async_execute_action(action,
                                                                                        observation=self.cur_observation,
-                                                                                       llm_config=self.conf.llm_config
-                                                                                                  ** kwargs)
+                                                                                       llm_config=self.conf.llm_config,
+                                                                                       **kwargs)
             reward = 1
         except Exception as e:
             fail_error = str(e)

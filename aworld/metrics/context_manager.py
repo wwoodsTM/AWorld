@@ -1,4 +1,3 @@
-import re
 import time
 import asyncio
 from typing import Callable
@@ -10,6 +9,35 @@ _GLOBAL_METIRCS = {}
 
 
 class MetricContext:
+
+    _initialized = False
+
+    @classmethod
+    def configure(cls,
+                  provider: str,
+                  backend: str,
+                  base_url: str = None,
+                  write_token: str = None,
+                  **kwargs):
+        """
+        Configure the metric provider.
+        Args:
+            provider: The provider of the metric provider.
+            backend: The backend of the metric provider.
+            base_url: The base url of the metric provider.
+            write_token: The write token of the metric provider.
+            export_console: Whether to export the metrics to console.
+            **kwargs: The other parameters of the metric provider.
+        """
+        if cls._initialized:
+            cls.shutdown()
+        if provider == "prometheus":
+            from aworld.metrics.prometheus.prometheus_adapter import configure_prometheus_provider
+            configure_prometheus_provider(backend, base_url, write_token, **kwargs)
+        elif provider == "otlp":
+            from aworld.metrics.opentelemetry.opentelemetry_adapter import configure_otlp_provider
+            configure_otlp_provider(backend, base_url, write_token, **kwargs)
+        cls._initialized = True
 
     @staticmethod
     def get_or_create_metric(template: MetricTemplate):
@@ -83,6 +111,15 @@ class MetricContext:
         cls._validate_type(metric, MetricType.HISTOGRAM)
         metric.record(value, labels)
 
+    @classmethod
+    def shutdown(cls):
+        """
+        Shutdown the metric provider.
+        """
+        provider = get_metric_provider()
+        if provider:
+            provider.shutdown()
+        cls._initialized = False
 
 class ApiMetricTracker:
     """

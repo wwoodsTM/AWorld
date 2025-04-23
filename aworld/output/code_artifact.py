@@ -158,7 +158,6 @@ class CodeArtifact(Artifact):
         then determines the language for each block.
         """
 
-        print(f"content is {content}")
         try:
             import mistune
         except ImportError:

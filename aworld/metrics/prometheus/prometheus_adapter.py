@@ -2,8 +2,16 @@ import time
 import threading
 from typing import Sequence, Optional, Dict, List
 from prometheus_client import Counter as PCounter, Gauge as PGauge, Histogram as PHistogram, CollectorRegistry
-from prometheus_client import start_http_server, generate_latest, REGISTRY
-from aworld.metrics.metric import MetricProvider, Counter, UpDownCounter, MetricExporter, Gauge, Histogram
+from prometheus_client import start_http_server, REGISTRY
+from aworld.metrics.metric import(
+    MetricProvider,
+    Counter,
+    UpDownCounter,
+    MetricExporter,
+    Gauge,
+    Histogram,
+    set_metric_provider
+)
 
 
 class PrometheusMetricProvider(MetricProvider):
@@ -273,13 +281,12 @@ class PrometheusMetricExporter(MetricExporter):
     PrometheusMetricExporter is a class for exporting metrics to Prometheus.
     """
 
-    def __init__(self, provider: MetricProvider, port: int = 8000):
+    def __init__(self, port: int = 8000):
         """
         Initialize the PrometheusMetricExporter.
         Args:
-            provider: The provider of the metrics.
+            port: The port to use for the Prometheus server.
         """
-        super().__init__(provider)
         self.port = port
         server, server_thread = start_http_server(self.port)
         self.server = server
@@ -357,3 +364,23 @@ class PrometheusConsoleMetricExporter(MetricExporter):
         Shutdown the PrometheusConsoleMetricExporter.
         """
         self._should_shutdown = True
+
+def configure_prometheus_provider(backend: str,
+                                 base_url: str = None,
+                                 write_token: str = None,
+                                 **kwargs
+):
+
+    """
+    Initialize the prometheus metric provider.
+    Args:
+    backend: The backend of the metric provider.
+    base_url: The base url of the metric provider.
+    write_token: The write token of the metric provider.
+    """
+    if backend == "console":
+        exporter = PrometheusConsoleMetricExporter(out_interval_secs=2)
+        set_metric_provider(PrometheusMetricProvider(exporter))
+    elif backend == "prometheus":
+        exporter = PrometheusMetricExporter()
+        set_metric_provider(PrometheusMetricProvider(exporter))

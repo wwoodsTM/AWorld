@@ -20,7 +20,9 @@ The `aworld.core.metrics` module provides a unified interface for collecting and
 import random
 import time
 from aworld.core.metrics.metric import set_metric_provider, MetricType
-from aworld.core.metrics.prometheus.prometheus_adapter import PrometheusConsoleMetricExporter, PrometheusMetricProvider
+from aworld.core.metrics.prometheus.prometheus_adapter import PrometheusConsoleMetricExporter,
+
+PrometheusMetricProvider
 from aworld.core.metrics.context_manager import MetricContext, ApiMetricTracker
 from aworld.core.metrics.template import MetricTemplate
 
@@ -46,18 +48,21 @@ my_gauge = MetricTemplate(
 my_histogram = MetricTemplate(
     type=MetricType.HISTOGRAM,
     name="my_histogram",
-    buckets=[2,4,6,8,10]
+    buckets=[2, 4, 6, 8, 10]
 )
+
 
 # Track API metrics using decorator
 @ApiMetricTracker()
 def test_api():
     time.sleep(random.uniform(0, 1))
 
+
 # Track custom code block using context manager
-def test_custom_code():    
+def test_custom_code():
     with ApiMetricTracker("test_custom_code"):
         time.sleep(random.uniform(0, 1))
+
 
 # Main loop to generate and record metrics
 while 1:

@@ -4,6 +4,7 @@ from openai import OpenAI, AsyncOpenAI
 from langchain_openai import AzureChatOpenAI
 
 from aworld.config.conf import ClientType
+from aworld.metrics.context_manager import MetricContext
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse, LLMResponseError
@@ -237,6 +238,7 @@ class OpenAIProvider(LLMProviderBase):
             for chunk in response_stream:
                 if not chunk:
                     continue
+                MetricContext.count()
                 yield self.postprocess_stream_response(chunk)
 
         except Exception as e:

@@ -34,8 +34,9 @@ class AndroidTool(Tool[Observation, List[ActionModel]]):
 
     def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Observation, Dict[str, Any]]:
-        self.controller.stop_emulator()
-        self.controller.start_emulator()
+        # self.controller.stop_emulator()
+        # self.controller.start_emulator()
+        self.controller.setup_connection()
         logger.info("start emulator successfully...")
         # snapshot screen and annotate
         xml, pic_base64 = self.get_observation()

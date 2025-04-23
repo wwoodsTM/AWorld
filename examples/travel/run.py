@@ -8,6 +8,7 @@ from aworld.config import ModelConfig
 from aworld.config.common import Tools
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
+from aworld.runner import Runners
 from aworld.virtual_environments.conf import BrowserToolConfig
 from examples.travel.prompts import *
 
@@ -66,9 +67,12 @@ def main():
     task = Task(
         swarm=swarm,
         input=goal,
-        tools_conf={Tools.BROWSER.value: BrowserToolConfig(width=800, height=720, llm_config=model_config),
-                    Tools.HTML.value: ToolConfig(name="html", llm_config=model_config)})
-    task.run()
+        tools_conf={
+            Tools.BROWSER.value: BrowserToolConfig(width=800, height=720, use_async=True, llm_config=model_config),
+            Tools.HTML.value: ToolConfig(name="html", llm_config=model_config)
+        })
+
+    Runners.sync_run_task(task)
 
 
 if __name__ == '__main__':
