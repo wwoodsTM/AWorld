@@ -103,86 +103,65 @@ if __name__ == "__main__":
             logger.info(f">>> 🤔 Question: {question}")
 
             # Set a time limit for processing each sample (e.g., 10 minutes = 600 seconds)
-            try:
-                with time_limit(15 * 60):  # Adjust the timeout value as needed
-                    # planner = PlanAgent(
-                    #     conf=get_llm_config_from_os_environ(
-                    #         model_name=OpenRouterModel.CLAUDE_37_SONNET,
-                    #         name=Agents.PLAN.value,
-                    #     ),
-                    #     step_reset=False,
-                    # )
-                    executor = Agent(
-                        conf=get_llm_config_from_os_environ(
-                            model_name=OpenRouterModel.CLAUDE_37_SONNET,
-                            name=Agents.EXECUTE.value,
-                            system_prompt=single_execute_system_output,
-                        ),
-                        step_reset=False,
-                        tool_names=[],
-                        mcp_servers=["aworld"],
-                    )
+            # planner = PlanAgent(
+            #     conf=get_llm_config_from_os_environ(
+            #         model_name=OpenRouterModel.CLAUDE_37_SONNET,
+            #         name=Agents.PLAN.value,
+            #     ),
+            #     step_reset=False,
+            # )
+            executor = Agent(
+                conf=get_llm_config_from_os_environ(
+                    model_name=OpenRouterModel.CLAUDE_37_SONNET,
+                    name=Agents.EXECUTE.value,
+                    system_prompt=single_execute_system_output,
+                ),
+                step_reset=False,
+                tool_names=[],
+                mcp_servers=["aworld"],
+            )
 
-                    task = Task(
-                        input=question,
-                        agent=executor,
-                        conf=TaskConfig(task_id=sample["task_id"]),
-                    )
-                    result = asyncio.run(task.run())
-                    # result = client.submit(task=[task])
+            task = Task(
+                input=question,
+                agent=executor,
+                conf=TaskConfig(task_id=sample["task_id"]),
+            )
+            # result = asyncio.run(task.run())
+            result = client.submit(task=[task])
 
-                    answer = result["task_0"]["answer"]
-                    match = re.search(r"<answer>(.*?)</answer>", result["answer"])
-                    if match:
-                        answer = match.group(1)
-                        logger.info(f"Agent answer: {answer}")
-                        logger.info(f"Correct answer: {sample[i]['Final answer']}")
+            answer = result["task_0"]["answer"]
+            match = re.search(r"<answer>(.*?)</answer>", answer)
+            if match:
+                answer = match.group(1)
+                logger.info(f"Agent answer: {answer}")
+                logger.info(f"Correct answer: {sample['Final answer']}")
 
-                        if question_scorer(answer, sample[i]["Final answer"]):
-                            logger.success(f"Question {i} Correct!")
-                        else:
-                            logger.warning(f"Question {i} Incorrect!")
+                if question_scorer(answer, sample["Final answer"]):
+                    logger.success(f"Question {idx} Correct!")
+                else:
+                    logger.warning(f"Question {idx} Incorrect!")
 
-                    logger.info(f"Task completed: {result['success']}")
-                    logger.info(f"Time cost: {result['time_cost']}")
-                    logger.info(f"Task Answer: {answer}")
-                    logger.info(f"Gold Answer: {sample['Final answer']}")
-                    logger.info(f"Level: {sample['Level']}")
+            logger.info(f"Task completed: {result['success']}")
+            logger.info(f"Time cost: {result['time_cost']}")
+            logger.info(f"Task Answer: {answer}")
+            logger.info(f"Gold Answer: {sample['Final answer']}")
+            logger.info(f"Level: {sample['Level']}")
 
-                    _result_info = {
-                        "index": idx + start_idx,
-                        "task_id": sample["task_id"],
-                        "question": sample["Question"],
-                        "level": sample["Level"],
-                        "model_answer": answer,
-                        "ground_truth": sample["Final answer"],
-                        "score": question_scorer(answer, sample["Final answer"]),
-                    }
-                    _results.append(_result_info)
-                    with open(save_path, "w") as f:
-                        # Ensure all entries have the 'index' key before sorting
-                        if all("index" in result for result in _results):
-                            _results = sorted(_results, key=lambda x: x["index"])
-                        json.dump(_results, f, indent=4, ensure_ascii=False)
-            except TimeoutException:
-                logger.warning(
-                    f"Processing sample {sample['task_id']} timed out. Moving to next sample."
-                )
-                _result_info = {
-                    "index": idx + start_idx,
-                    "task_id": sample["task_id"],
-                    "question": sample["Question"],
-                    "level": sample["Level"],
-                    "model_answer": "TIMEOUT",
-                    "ground_truth": sample["Final answer"],
-                    "score": False,
-                }
-                _results.append(_result_info)
-                with open(save_path, "w") as f:
-                    if all("index" in result for result in _results):
-                        _results = sorted(_results, key=lambda x: x["index"])
-                    json.dump(_results, f, indent=4, ensure_ascii=False)
-                continue
+            _result_info = {
+                "index": idx + start_idx,
+                "task_id": sample["task_id"],
+                "question": sample["Question"],
+                "level": sample["Level"],
+                "model_answer": answer,
+                "ground_truth": sample["Final answer"],
+                "score": question_scorer(answer, sample["Final answer"]),
+            }
+            _results.append(_result_info)
+            with open(save_path, "w") as f:
+                # Ensure all entries have the 'index' key before sorting
+                if all("index" in result for result in _results):
+                    _results = sorted(_results, key=lambda x: x["index"])
+                json.dump(_results, f, indent=4, ensure_ascii=False)
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt")
     finally:
