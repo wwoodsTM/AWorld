@@ -5,6 +5,7 @@ from aworld.runner import Runners
 from datasets import load_dataset
 from pathlib import Path
 from typing import Any, Dict
+from dotenv import load_dotenv
 import re
 import logging
 import traceback
@@ -50,6 +51,8 @@ def add_file_path(task: Dict[str, Any],
 
 
 if __name__ == "__main__":
+    load_dotenv()
+
     setup_logging()
 
     search_sys_prompt = f"""You are an all-capable AI assistant, aimed at solving any task presented by the user. You have various tools at your disposal that you can call upon to efficiently complete complex requests. Whether it's programming, information retrieval, file processing, or web browsing, you can handle it all.
@@ -80,6 +83,7 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
 """
 
     gaia_dataset_path = os.getenv("GAIA_DATASET_PATH", "./gaia_dataset")
+    print(gaia_dataset_path)
     full_dataset = load_dataset(
         f"{gaia_dataset_path}/GAIA.py",
         name="2023_all",
@@ -114,7 +118,7 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
                     "e2b-server", 
                     "filesystem", 
                     "terminal-controller",
-                    # "excel",
+                    "excel",
                     "calculator",
                     "google-search",
                     "ms-playwright",
