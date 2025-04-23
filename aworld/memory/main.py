@@ -51,7 +51,7 @@ class Memory(MemoryBase):
             list[MemoryItem]: List of latest memories.
         """
         memory_items = self.memory_store.get_last_n(last_rounds)
-        while "tool_call_id" in memory_items[0] and memory_items[0]["tool_call_id"]:
+        while len(memory_items) > 0 and "tool_call_id" in memory_items[0] and memory_items[0]["tool_call_id"]:
             last_rounds = last_rounds + 1
             memory_items = self.memory_store.get_last_n(last_rounds)
 
