@@ -153,6 +153,10 @@ class TaskRunner(Runner):
         # lazy load
         self.tool_names = task.tool_names
         self.tools_conf = task.tools_conf
+        if self.tools_conf is None:
+            self.tools_conf = {}
+        # mcp performs special process, use async only in the runn
+        self.tools_conf['mcp'] = ToolConfig(use_async=True, name='mcp')
         self.endless_threshold = task.endless_threshold
 
         self.daemon_target = kwargs.pop('daemon_target', None)
