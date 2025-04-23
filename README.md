@@ -16,6 +16,7 @@ You could follow the following steps to run the Gaia benchmark.
 ### 1. Clone the repository:
 ```bash
 git clone https://github.com/inclusionAI/AWorld.git
+git switch release_gaia
 cd AWorld
 ```
 
@@ -44,7 +45,7 @@ LLM_BASE_URL=<Your Service Provider URL>
 
 1. Start the local MCP servers
 ```bash
-<start_script>
+
 ```
 The server should now be running with the configuration specified in `mcp.json`.
 
