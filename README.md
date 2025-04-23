@@ -38,6 +38,8 @@ cd excel-mcp-server
 uv pip install -e .
 ```
 
+### 4. Download GAIA Dataset
+
 ## Configuration
 
 ### Create a `.env` file in the project root and add your API credentials:
