@@ -140,18 +140,14 @@ def image_to_base64(image_path):
     try:
         # 打开图片
         with Image.open(image_path) as image:
-            # 创建一个内存缓冲区
             buffered = BytesIO()
-            # 保存图片到缓冲区
             image_format = image.format if image.format else "JPEG"
             image.save(buffered, format=image_format)
-            # 获取缓冲区中的字节数据
             image_bytes = buffered.getvalue()
-            # 进行 Base64 编码
             base64_encoded = base64.b64encode(image_bytes).decode('utf-8')
             return base64_encoded
     except Exception as e:
-        print(f"转换图片到 Base64 时出错: {e}")
+        print(f"Base64 error: {e}")
         return None
 
 
