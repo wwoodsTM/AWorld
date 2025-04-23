@@ -56,6 +56,14 @@
         "image_server": {
             "command": "python",
             "args": ["-m", "mcp_servers.image_server"]
+        },
+        "youtube_download_server": {
+            "command": "python",
+            "args": ["-m", "mcp_servers.youtube_download_server"]
+        },
+        "video_server": {
+            "command": "python",
+            "args": ["-m", "mcp_servers.video_server"]
         }
     }
 }

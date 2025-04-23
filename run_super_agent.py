@@ -96,6 +96,8 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
     )
 
     for i in range(len(full_dataset)):
+        if i not in [5]:
+            continue
         try:
             logging.info(f"Start to process: {i}")
             logging.info(f"Detail: {full_dataset[i]}")
@@ -113,20 +115,20 @@ Now, here is the task. Stay focused and complete it carefully using the appropri
                     "e2b-server", 
                     "filesystem", 
                     "terminal-controller",
-                    "excel",
+                    # "excel",
                     "calculator",
                     "google-search",
                     "ms-playwright",
-                    "audio_server",
-                    "image_server",
-                    "youtube_download_server",
-                    "video_server",
+                    # "audio_server",
+                    # "image_server",
+                    # "youtube_download_server",
+                    # "video_server",
                 ]
             )
 
             result = Runners.sync_run_task(task=Task(input=question, agent=super, conf=TaskConfig()))
 
-            match = re.search(r'<answer>(.*?)</answer>', result["answer"])
+            match = re.search(r'<answer>(.*?)</answer>', result["task_0"]["answer"])
             if match:
                 answer = match.group(1)
                 logging.info(f"Agent answer: {answer}")
