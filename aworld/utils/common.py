@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import asyncio
+import concurrent.futures
 import inspect
 import os
 import pkgutil
@@ -161,11 +162,22 @@ def asyncio_loop():
     return loop
 
 
-def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
-    """Async function to sync execution."""
+# def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
+#     """Async function to sync execution."""
+#     if not asyncio.iscoroutinefunction(async_func):
+#         return async_func(*args, **kwargs)
+#
+#     loop = asyncio.get_event_loop()
+#     result = loop.run_until_complete(async_func(*args, **kwargs))
+#     return result
+def sync_exec(async_func: Callable[..., Any], *args, **kwargs) -> Any:
+    """Execute an async function synchronously in a new thread."""
     if not asyncio.iscoroutinefunction(async_func):
         return async_func(*args, **kwargs)
 
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(async_func(*args, **kwargs))
-    return result
+    async def _wrapper():
+        return await async_func(*args, **kwargs)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(asyncio.run, _wrapper())
+        return future.result()
