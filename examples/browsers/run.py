@@ -21,8 +21,8 @@ if __name__ == '__main__':
                                             use_async=True,
                                             llm_config=llm_config)
     agent_config = BrowserAgentConfig(
+        name=Agents.BROWSER.value,
         tool_calling_method="raw",
-        name=f'async_{Agents.BROWSER.value}',
         llm_config=llm_config,
         max_actions_per_step=10,
         max_input_tokens=128000,
