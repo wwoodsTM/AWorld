@@ -257,17 +257,8 @@ class Histogram(BaseMetric):
 
 class MetricExporter(ABC):
     """
-    MetricExporter is a class for exporting metrics.
+    MetricExporter is the base class for all metric exporters.
     """
-
-    def __init__(self, provider: MetricProvider):
-        """
-        Initialize the MetricExporter.
-        Args:
-            provider: The provider of the metric.
-        """
-        self.provider = provider
-
     @abstractmethod
     def shutdown(self):
         """
