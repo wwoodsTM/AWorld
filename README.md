@@ -6,7 +6,18 @@
   </span>
 </p>
 
-> **Build, evaluate and run General Multi-Agent Assistance with ease**
+<div align="center">
+
+[![Twitter Follow](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
+[![WeChat QR Code](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/wechat_qr.png)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
+
+<h3 align="center" style="color: #2E86C1; font-size: 1.2em; margin: 10px 0;">
+🏆 AWorld ranks 3rd on GAIA benchmark (69.7 avg) with impressive Pass@1 = 58.8, 1st among open-source frameworks. Reproduce with <code>python examples/gaia/run.py</code>
+</h3>
+
 
 AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
@@ -53,7 +64,8 @@ if __name__ == '__main__':
     Runners.sync_run(input="Hotels within 1 kilometer of West Lake in Hangzhou",
                      agent=search)
 ```
-Configure MCP servers by updating the configuration file: [`aworld/config/mcp.json`](aworld/config/mcp.json)
+Here is a MCP server config [example.](examples/mcp_demo/mcp_example.json)
+
 
 
 ### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
