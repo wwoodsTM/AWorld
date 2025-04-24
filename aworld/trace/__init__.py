@@ -4,7 +4,7 @@ import os
 from pickle import GLOBAL
 from aworld.trace.context_manager import TraceManager, trace_configure
 from aworld.logs.log import set_log_provider, get_log_provider
-from aworld.logs.util import logger
+from aworld.logs.util import trace_logger
 
 trace_configure(
     backends=["logfire"],
@@ -12,7 +12,7 @@ trace_configure(
 )
 
 set_log_provider(provider="otlp", backend="logfire", write_token=os.getenv("LOGFIRE_WRITE_TOKEN"))
-get_log_provider().instrumentLogging(logger)
+get_log_provider().instrumentLogging(trace_logger)
 
 GLOBAL_TRACE_MANAGER: TraceManager = TraceManager()
 span = GLOBAL_TRACE_MANAGER.span
