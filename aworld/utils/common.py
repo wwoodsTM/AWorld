@@ -42,6 +42,9 @@ def override_in_subclass(name: str, sub_cls: object, base_cls: object) -> bool:
         logger.warning(f"{sub_cls} is not sub class of {base_cls}")
         return False
 
+    if sub_cls == base_cls and hasattr(sub_cls, name) and not is_abstract_method(sub_cls, name):
+        return True
+
     this_method = getattr(sub_cls, name)
     base_method = getattr(base_cls, name)
     return this_method is not base_method
@@ -143,11 +146,12 @@ def scan_packages(package: str, base_classes: List[type]) -> List[Tuple[str, typ
 
 class ReturnThread(threading.Thread):
     def __init__(self, func, *args, **kwargs):
+        threading.Thread.__init__(self)
         self.func = func
         self.args = args
         self.kwargs = kwargs
         self.result = None
-        super().__init__()
+        self.daemon = True
 
     def run(self):
         self.result = asyncio.run(self.func(*self.args, **self.kwargs))
@@ -166,6 +170,14 @@ def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
     if not asyncio.iscoroutinefunction(async_func):
         return async_func(*args, **kwargs)
 
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(async_func(*args, **kwargs))
+    loop = asyncio_loop()
+    if loop and loop.is_running():
+        thread = ReturnThread(async_func, *args, **kwargs)
+        thread.start()
+        thread.join()
+        result = thread.result
+
+    else:
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(async_func(*args, **kwargs))
     return result

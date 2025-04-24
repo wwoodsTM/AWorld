@@ -50,7 +50,12 @@ class Memory(MemoryBase):
         Returns:
             list[MemoryItem]: List of latest memories.
         """
-        return self.memory_store.get_last_n(last_rounds)
+        memory_items = self.memory_store.get_last_n(last_rounds)
+        while len(memory_items) > 0 and memory_items[0].metadata and "tool_call_id" in memory_items[0].metadata and memory_items[0].metadata["tool_call_id"]:
+            last_rounds = last_rounds + 1
+            memory_items = self.memory_store.get_last_n(last_rounds)
+
+        return memory_items
 
     def retrieve(self, query, filters: dict) -> list[MemoryItem]:
         return self.memory_store.retrieve(query, filters)

@@ -153,6 +153,10 @@ class TaskRunner(Runner):
         # lazy load
         self.tool_names = task.tool_names
         self.tools_conf = task.tools_conf
+        if self.tools_conf is None:
+            self.tools_conf = {}
+        # mcp performs special process, use async only in the runn
+        self.tools_conf['mcp'] = ToolConfig(use_async=True, name='mcp')
         self.endless_threshold = task.endless_threshold
 
         self.daemon_target = kwargs.pop('daemon_target', None)
@@ -220,7 +224,7 @@ class SequenceRunner(TaskRunner):
 
                     observation = self.swarm.action_to_observation(policy, observations)
 
-                    if override_in_subclass('async_policy', cur_agent.__class__, Agent):
+                    if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
                         policy: List[ActionModel] = cur_agent.policy(observation,
                                                                      step=step)
                     else:
@@ -276,7 +280,7 @@ class SequenceRunner(TaskRunner):
         status = "normal"
         if cur_agent.name() == agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit the loop")
+            logger.info(f"{cur_agent.name()} exit the loop")
             status = "break"
             return status, None
 
@@ -313,7 +317,7 @@ class SequenceRunner(TaskRunner):
             if not self.tools or (self.tools and act.tool_name not in self.tools):
                 # dynamic only use default config in module.
                 conf = self.tools_conf.get(act.tool_name)
-                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async)
+                tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async if conf else False)
                 if isinstance(tool, Tool):
                     tool.reset()
                 elif isinstance(tool, AsyncTool):
@@ -478,7 +482,7 @@ class SocialRunner(TaskRunner):
                 if observation:
                     if cur_agent is None:
                         cur_agent = self.swarm.cur_agent
-                    if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+                    if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
                         policy = cur_agent.policy(observation, step=step)
                     else:
                         policy = await cur_agent.async_policy(observation, step=step)
@@ -523,7 +527,7 @@ class SocialRunner(TaskRunner):
 
         if cur_agent.name() == self.swarm.communicate_agent.name() or cur_agent.name() == self.swarm.cur_agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit to the outer loop")
+            logger.info(f"{cur_agent.name()} exit to the outer loop")
             self.loop_detect.append(cur_agent.name())
             return 'break', True
 
@@ -547,7 +551,7 @@ class SocialRunner(TaskRunner):
                              "agent_names": cur_agent.handoffs,
                              "mcp_servers": cur_agent.mcp_servers})
 
-        if override_in_subclass('async_policy', cur_agent.__class__, Agent):
+        if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
             agent_policy = cur_agent.policy(observation,
                                             step=step)
         else:
