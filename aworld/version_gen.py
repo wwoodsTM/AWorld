@@ -5,7 +5,7 @@ import os
 import getpass
 import time
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 version_template = \
     """# auto generated
@@ -25,7 +25,7 @@ def generate_version_info(directory_path: str = None, scenario: str = "", versio
         f.write(version_info)
 
 
-def _build_version_template(scenario: str = "", version: str = None):
+def _build_version_template(scenario: str = "", version: str = None) -> str:
     if version is None:
         version = __version__
     return version_template.format(
