@@ -129,20 +129,9 @@ class Memory(MemoryBase):
             last_rounds = last_rounds + 1
             memory_items = self.memory_store.get_last_n(last_rounds)
 
-        if add_first_message and last_rounds < self.memory_store.total_rounds():
-            memory_items.insert(0, self.memory_store.get_first())
-
-        return memory_items
-        last_n_items = self.memory_store.get_last_n(last_rounds)
-
-        # tool_call_id -> tool_calls
-        if last_n_items and len(last_n_items) > 0 and "tool_call_id" in last_n_items[0].metadata:
-            # more
-            last_n_items = self.memory_store.get_last_n(last_rounds + 1)
-
         # If summary is disabled or no summaries exist, return just the last_n_items
         if not self.enable_summary or not self.summary:
-            return last_n_items
+            return memory_items
 
         # Calculate the range for relevant summaries
         all_items = self.memory_store.get_all()
@@ -168,7 +157,12 @@ class Memory(MemoryBase):
                 result.append(self.summary[range_key])
 
         # Add the last n items
-        result.extend(last_n_items)
+        result.extend(memory_items)
+
+        # Add first user input
+        if add_first_message and last_rounds < self.memory_store.total_rounds():
+            memory_items.insert(0, self.memory_store.get_first())
+
 
         return result
 
