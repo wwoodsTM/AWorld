@@ -6,7 +6,19 @@
   </span>
 </p>
 
-> **Build, evaluate and run General Multi-Agent Assistance with ease**
+<div align="center">
+
+[![Twitter Follow](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
+[![WeChat QR Code](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/wechat_qr.png)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
+
+<h3 align="center" style="color: #2E86C1; font-size: 1.2em; margin: 10px 0;">
+🏆 AWorld ranks 3rd on GAIA benchmark (69.7 avg) with impressive Pass@1 = 58.8, 1st among open-source frameworks. Reproduce with <code>python examples/gaia/run.py</code>
+</h3>
+
+
 
 AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Agent System) capabilities and practical implementation in real-world applications and guide you into the AGI World. *GLHF!* 🚀
 
@@ -16,8 +28,8 @@ AWorld (short for Agent World) bridges the gap between theoretical MAS (Multi-Ag
 - `agent`: AI-powered components that autonomously make decisions, use tools, do collaboration, and so on.
 - `swarm`: define the topology structure of a multiple agents system. 
 - `environment`: the runtime supporting communication among agents and tools.
-- `task`: complete runnable specific work that includes dataset, agents, environment, eval metrics, etc.
-- `client`: submit various tasks for efficient execution.
+- `task`:  structure containing datasets, agents, tools, metrics, outputs, etc.
+- `runner`: complete a runnable specific workflow and obtain results.
 
 ## Installation
 With Python>=3.11:
@@ -28,9 +40,9 @@ pip install aworld
 ## Usage
 ### Quick Start
 ```python
-from aworld.config.conf import AgentConfig, TaskConfig
+from aworld.config.conf import AgentConfig
 from aworld.core.agent.base import Agent
-from aworld.core.task import Task
+from aworld.runner import Runners
 
 if __name__ == '__main__':
     agent_config = AgentConfig(
@@ -42,19 +54,19 @@ if __name__ == '__main__':
         # llm_base_url="https://api.openai.com/v1"
     )
 
-    search_sys_prompt = "You are a helpful agent."
     search = Agent(
         conf=agent_config,
         name="search_agent",
-        system_prompt=search_sys_prompt,
+        system_prompt="You are a helpful agent.",
         mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
     )
 
-    # Define a task
-    task = Task(input="Hotels within 1 kilometer of West Lake in Hangzhou", agent=search, conf=TaskConfig())
-    task.run()
+    # Run agent
+    Runners.sync_run(input="Hotels within 1 kilometer of West Lake in Hangzhou",
+                     agent=search)
 ```
-Configure MCP servers by updating the configuration file: [`aworld/config/mcp.json`](aworld/config/mcp.json)
+Here is a MCP server config [example.](examples/mcp_demo/mcp_example.json)
+
 
 
 ### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
@@ -119,21 +131,18 @@ Here is a multi-agent example of running a level2 task from the [GAIA](https://h
 
 ```python
 from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
-from aworld.core.client import Client
-from aworld.core.agent.swarm import Swarm
 from aworld.config.common import Agents, Tools
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.dataset.mock import mock_dataset
+from aworld.runner import Runners
 
 import os
 # Need OPENAI_API_KEY
 os.environ['OPENAI_API_KEY'] = "your key"
 # Optional endpoint settings, default `https://api.openai.com/v1`
 # os.environ['OPENAI_ENDPOINT'] = "https://api.openai.com/v1"
-
-# Initialize client
-client = Client()
 
 # One sample for example
 test_sample = mock_dataset("gaia")
@@ -156,20 +165,18 @@ agent2 = ExecuteAgent(conf=exec_config, tool_names=[Tools.DOCUMENT_ANALYSIS.valu
 # Create swarm for multi-agents
 # define (head_node, tail_node) edge in the topology graph
 # NOTE: the correct order is necessary
-swarm = Swarm((agent1, agent2))
+swarm = Swarm((agent1, agent2), sequence=False)
 
 # Define a task
 task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())
 
 # Run task
-result = client.submit(task=[task])
+result = Runners.sync_run_task(task=task)
 
-print(f"Task completed: {result['success']}")
 print(f"Time cost: {result['time_cost']}")
 print(f"Task Answer: {result['task_0']['answer']}")
 ```
 ```
-Task completed: True
 Time cost: 26.431413888931274
 Task Answer: Time-Parking 2: Parallel Universe
 ```

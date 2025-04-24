@@ -6,16 +6,14 @@ Running on the local, we assume that the virtual environment completes startup w
 
 ![Environment Architecture](../../readme_assets/framework_environment.png)
 
+
+# Write tool
+
 Detailed steps for building a tool:
 1. Register action of your tool to action factory, and inherit `ExecutableAction`
-2. Implement the `act` or `async_act` method 
+2. Optional implement the `act` or `async_act` method 
 3. Register your tool to tool factory, and inherit `Tool` or `AsyncTool`
-4. Build __init__ to initialize related information.
-5. Implement the `name` method as a name identifier for the tool
-6. Write the `step` method to execute the abilities in the tool and generate observation, update finished Status.
-
-
-We provide a simple example for writing a tool:
+4. Write the `step` method to execute the abilities in the tool and generate observation, update finished Status.
 
 ```python
 from typing import List, Tuple, Dict, Any
@@ -47,3 +45,7 @@ class Play(ExecutableAction):
     """There is only one Action, it can be implemented in the tool, registration is required here."""
 ```
 You can view the example [code](gym_tool/openai_gym.py) to learn more.
+
+# Be tool
+You can convert locally defined functions into tools for use in a task.
+

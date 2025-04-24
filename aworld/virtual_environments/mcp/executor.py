@@ -183,8 +183,10 @@ class MCPToolExecutor(ToolActionExecutor):
             params = action.params or {}
 
             try:
-                # Get or create MCP server
-                server = await self._get_or_create_server(server_name)
+                server = self.mcp_servers.get(server_name, {}).get('instance', None)
+                if not server:
+                    # Get or create MCP server
+                    server = await self._get_or_create_server(server_name)
 
                 # Call the tool and process results
                 try:

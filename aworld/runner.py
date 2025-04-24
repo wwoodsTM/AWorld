@@ -235,7 +235,7 @@ class SequenceRunner(TaskRunner):
 
                     observation = self.swarm.action_to_observation(policy, observations)
 
-                    if override_in_subclass('async_policy', cur_agent.__class__, Agent):
+                    if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
                         policy: List[ActionModel] = cur_agent.policy(observation,
                                                                      step=step,
                                                                      output=step_output)
@@ -295,7 +295,7 @@ class SequenceRunner(TaskRunner):
         status = "normal"
         if cur_agent.name() == agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit the loop")
+            logger.info(f"{cur_agent.name()} exit the loop")
             status = "break"
             return status, None
 
@@ -497,7 +497,7 @@ class SocialRunner(TaskRunner):
                 if observation:
                     if cur_agent is None:
                         cur_agent = self.swarm.cur_agent
-                    if is_abstract_method(self.swarm.cur_agent, 'async_policy'):
+                    if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
                         policy = cur_agent.policy(observation, step=step)
                     else:
                         policy = await cur_agent.async_policy(observation, step=step)
@@ -542,7 +542,7 @@ class SocialRunner(TaskRunner):
 
         if cur_agent.name() == self.swarm.communicate_agent.name() or cur_agent.name() == self.swarm.cur_agent.name():
             # Current agent is entrance agent, means need to exit to the outer loop
-            logger.warning(f"{cur_agent.name()} exit to the outer loop")
+            logger.info(f"{cur_agent.name()} exit to the outer loop")
             self.loop_detect.append(cur_agent.name())
             return 'break', True
 
@@ -566,7 +566,7 @@ class SocialRunner(TaskRunner):
                              "agent_names": cur_agent.handoffs,
                              "mcp_servers": cur_agent.mcp_servers})
 
-        if override_in_subclass('async_policy', cur_agent.__class__, Agent):
+        if not override_in_subclass('async_policy', cur_agent.__class__, Agent):
             agent_policy = cur_agent.policy(observation,
                                             step=step)
         else:
