@@ -30,13 +30,20 @@ class ExecuteAgent(Agent):
         self.system_prompt = execute_system_prompt.format(task=self.task)
         self.step_reset = False
 
+    async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        await self.async_desc_transform()
+        return self._common(observation, info)
+
     def policy(self,
                observation: Observation,
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
-        start_time = time.time()
-        self._finished = False
         self.desc_transform()
+        return self._common(observation, info)
+
+    def _common(self, observation, info):
+        self._finished = False
         content = observation.content
 
         llm_result = None
@@ -167,13 +174,21 @@ class PlanAgent(Agent):
         self.first = True
         self.step_reset = False
 
+    async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
+        List[ActionModel], None]:
+        await self.async_desc_transform()
+        return self._common(observation, info)
+
     def policy(self,
                observation: Observation,
                info: Dict[str, Any] = None,
                **kwargs) -> List[ActionModel] | None:
-        llm_result = None
         self._finished = False
         self.desc_transform()
+        return self._common(observation, info)
+
+    def _common(self, observation, info):
+        llm_result = None
         input_content = [
             {'role': 'system', 'content': self.system_prompt},
         ]

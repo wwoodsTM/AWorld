@@ -11,6 +11,8 @@ import threading
 from types import FunctionType
 from typing import Callable, Any, Tuple, List, Iterator
 
+from aworld.logs.util import logger
+
 
 def convert_to_snake(name: str) -> str:
     """Class name convert to snake."""
@@ -24,6 +26,26 @@ def is_abstract_method(cls, method_name):
     return (hasattr(method, '__isabstractmethod__') and method.__isabstractmethod__) or (
             isinstance(method, FunctionType) and hasattr(
         method, '__abstractmethods__') and method in method.__abstractmethods__)
+
+
+def override_in_subclass(name: str, sub_cls: object, base_cls: object) -> bool:
+    """Judge whether a subclass overrides a specified method.
+
+    Args:
+        name: The method name of sub class and base class
+        sub_cls: Specify subclasses of the base class.
+        base_cls: The parent class of the subclass.
+
+    Returns:
+        Overwrite as true in subclasses, vice versa.
+    """
+    if not issubclass(sub_cls, base_cls):
+        logger.warning(f"{sub_cls} is not sub class of {base_cls}")
+        return False
+
+    this_method = getattr(sub_cls, name)
+    base_method = getattr(base_cls, name)
+    return this_method is not base_method
 
 
 def _walk_to_root(path: str) -> Iterator[str]:

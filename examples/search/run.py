@@ -2,12 +2,12 @@
 # Copyright (c) 2025 inclusionAI.
 import os
 
-from aworld.config.conf import AgentConfig, ModelConfig
+from aworld.config.conf import AgentConfig
 
 from aworld.config.common import Tools
 from aworld.core.agent.base import Agent
 from aworld.core.agent.swarm import Swarm
-from aworld.core.task import Task
+from aworld.runner import Runners
 
 search_sys_prompt = "You are a helpful search agent."
 search_prompt = """
@@ -62,8 +62,8 @@ if __name__ == "__main__":
     prefix = ""
     # can special search google, wiki, duck go, or baidu. such as:
     # prefix = "search wiki: "
-    res = Task(
+    res = Runners.sync_run(
         input=prefix + """What is an agent.""",
-        swarm=swarm,
-    ).run()
+        swarm=swarm
+    )
     print(res['answer'])

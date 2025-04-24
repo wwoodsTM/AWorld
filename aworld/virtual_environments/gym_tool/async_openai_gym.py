@@ -11,6 +11,7 @@ from aworld.config.tool_action import GymAction
 from aworld.core.common import ActionModel, Observation
 from aworld.core.envs.tool import AsyncTool, ToolFactory
 from aworld.utils.import_package import import_packages
+from aworld.virtual_environments.utils import build_observation
 
 
 class ActionType(object):
@@ -33,6 +34,7 @@ class OpenAIGym(AsyncTool[Observation, List[ActionModel]]):
         self._render = self.conf.get('render', True)
         if self._render:
             kwargs['render_mode'] = self.conf.get('render_mode', True)
+        kwargs.pop('name', None)
         self.env = self._gym_env_wrappers(self.env_id, self.conf.get("wrappers", []), **kwargs)
         self.action_space = self.env.action_space
 
@@ -44,11 +46,14 @@ class OpenAIGym(AsyncTool[Observation, List[ActionModel]]):
         action = OpenAIGym.transform_action(action=action)
         state, reward, terminal, truncate, info = self.env.step(action)
         info.update(kwargs)
-        info['env_id'] = self.env_id
         self._finished = terminal
-        return (Observation(observer=self.name(),
-                            ability=GymAction.PLAY.value.name,
-                            content=OpenAIGym.transform_state(state=state)),
+
+        return (build_observation(observer=self.name(),
+                                  ability=GymAction.PLAY.value.name,
+                                  content=OpenAIGym.transform_state(state=state),
+                                  env_id=self.env_id,
+                                  done=terminal,
+                                  **kwargs),
                 reward,
                 terminal,
                 truncate,
@@ -65,9 +70,11 @@ class OpenAIGym(AsyncTool[Observation, List[ActionModel]]):
     async def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
         Any, Dict[str, Any]]:
         state = self.env.reset()
-        return Observation(observer=self.name(),
-                           ability=GymAction.PLAY.value.name,
-                           content=OpenAIGym.transform_state(state=state)), {"env_id": self.env_id}
+        return build_observation(observer=self.name(),
+                                 ability=GymAction.PLAY.value.name,
+                                 content=OpenAIGym.transform_state(state=state),
+                                 env_id=self.env_id,
+                                 done=False), {}
 
     def _action_dim(self):
         from gymnasium import spaces

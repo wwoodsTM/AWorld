@@ -1,11 +1,13 @@
 import random
 import time
-from aworld.metrics.metric import set_metric_provider, MetricType
-from aworld.metrics.prometheus.prometheus_adapter import PrometheusConsoleMetricExporter, PrometheusMetricProvider
+from aworld.metrics.metric import MetricType
 from aworld.metrics.context_manager import MetricContext, ApiMetricTracker
 from aworld.metrics.template import MetricTemplate
 
-set_metric_provider(PrometheusMetricProvider(PrometheusConsoleMetricExporter(out_interval_secs=2)))
+MetricContext.configure(
+    provider="prometheus",
+    backend="console"
+)
 
 # my_counter = get_metric_provider().create_counter("my_counter", "test_counter_desc", "count")
 

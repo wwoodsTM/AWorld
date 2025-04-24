@@ -131,6 +131,7 @@ class ToolConfig(BaseModel):
     max_retry: int = 3
     llm_config: ModelConfig = None
     reuse: bool = False
+    use_async: bool = False
     ext: dict = {}
 
 
