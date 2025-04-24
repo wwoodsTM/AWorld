@@ -126,7 +126,7 @@ class AsyncTool(Generic[AgentInput, ToolInput]):
         """
 
     @property
-    async def finished(self) -> bool:
+    def finished(self) -> bool:
         """The final execution status of the task from agent instructions."""
         return self._finished
 

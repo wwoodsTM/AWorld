@@ -4,12 +4,12 @@ import os
 import traceback
 import asyncio
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from mcp.types import TextContent, ImageContent
 
 from aworld.core.common import ActionModel, ActionResult, Observation
-from aworld.core.envs.tool import ToolActionExecutor, Tool
+from aworld.core.envs.tool import ToolActionExecutor, Tool, AsyncTool
 from aworld.logs.util import logger
 from aworld.mcp.server import MCPServer, MCPServerSse
 from aworld.utils.common import sync_exec, find_file
@@ -18,12 +18,30 @@ from aworld.utils.common import sync_exec, find_file
 class MCPToolExecutor(ToolActionExecutor):
     """A tool executor that uses MCP server to execute actions."""
 
-    def __init__(self, tool: Tool[Observation, List[ActionModel]] = None):
+    def __init__(self, tool: Union[Tool[Observation, List[ActionModel]], AsyncTool] = None):
         """Initialize the MCP tool executor."""
         super().__init__(tool)
         self.initialized = False
         self.mcp_servers: Dict[str, MCPServer] = {}
         self._load_mcp_config()
+
+    def _replace_env_variables(self, config):
+        if isinstance(config, dict):
+            for key, value in config.items():
+                if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+                    env_var_name = value[2:-1]
+                    config[key] = os.getenv(env_var_name, value)
+                    logger.info(f"Replaced {value} with {config[key]}")
+                elif isinstance(value, dict) or isinstance(value, list):
+                    self._replace_env_variables(value)
+        elif isinstance(config, list):
+            for index, item in enumerate(config):
+                if isinstance(item, str) and item.startswith("${") and item.endswith("}"):
+                    env_var_name = item[2:-1]
+                    config[index] = os.getenv(env_var_name, item)
+                    logger.info(f"Replaced {item} with {config[index]}")
+                elif isinstance(item, dict) or isinstance(item, list):
+                    self._replace_env_variables(item)
 
     def _load_mcp_config(self) -> None:
         """Load MCP server configurations from config file."""
@@ -38,6 +56,9 @@ class MCPToolExecutor(ToolActionExecutor):
 
             with open(config_path, "r") as f:
                 config_data = json.load(f)
+
+            # Replace environment variables in the configuration
+            self._replace_env_variables(config_data)
 
             # Load all server configurations
             for server_name, server_config in config_data.get("mcpServers", {}).items():
@@ -162,8 +183,10 @@ class MCPToolExecutor(ToolActionExecutor):
             params = action.params or {}
 
             try:
-                # Get or create MCP server
-                server = await self._get_or_create_server(server_name)
+                server = self.mcp_servers.get(server_name, {}).get('instance', None)
+                if not server:
+                    # Get or create MCP server
+                    server = await self._get_or_create_server(server_name)
 
                 # Call the tool and process results
                 try:

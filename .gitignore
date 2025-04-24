@@ -72,7 +72,7 @@ docs/api/
 # Data files (customize as needed)
 *.csv
 *.dat
-*.ou
+*.out
 data/raw/
 data/processed/
 data/workspaces/

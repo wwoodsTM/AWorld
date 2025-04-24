@@ -7,8 +7,8 @@ import json
 from typing import List, Tuple, Dict, Any, Union
 
 from aworld.config.conf import ToolConfig, ConfigDict
-from aworld.framework.envs.tool import Tool, ToolFactory
-from aworld.framework.common import Observation, ActionModel, ActionResult
+from aworld.core.envs.tool import Tool, ToolFactory
+from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.logs.util import logger
 from aworld.virtual_environments.utils import build_observation
 {action_import}

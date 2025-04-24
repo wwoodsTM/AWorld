@@ -1,7 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import asyncio
-import concurrent.futures
 import inspect
 import os
 import pkgutil
@@ -42,6 +41,9 @@ def override_in_subclass(name: str, sub_cls: object, base_cls: object) -> bool:
     if not issubclass(sub_cls, base_cls):
         logger.warning(f"{sub_cls} is not sub class of {base_cls}")
         return False
+
+    if sub_cls == base_cls and hasattr(sub_cls, name) and not is_abstract_method(sub_cls, name):
+        return True
 
     this_method = getattr(sub_cls, name)
     base_method = getattr(base_cls, name)
@@ -144,11 +146,12 @@ def scan_packages(package: str, base_classes: List[type]) -> List[Tuple[str, typ
 
 class ReturnThread(threading.Thread):
     def __init__(self, func, *args, **kwargs):
+        threading.Thread.__init__(self)
         self.func = func
         self.args = args
         self.kwargs = kwargs
         self.result = None
-        super().__init__()
+        self.daemon = True
 
     def run(self):
         self.result = asyncio.run(self.func(*self.args, **self.kwargs))
@@ -162,22 +165,19 @@ def asyncio_loop():
     return loop
 
 
-# def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
-#     """Async function to sync execution."""
-#     if not asyncio.iscoroutinefunction(async_func):
-#         return async_func(*args, **kwargs)
-#
-#     loop = asyncio.get_event_loop()
-#     result = loop.run_until_complete(async_func(*args, **kwargs))
-#     return result
-def sync_exec(async_func: Callable[..., Any], *args, **kwargs) -> Any:
-    """Execute an async function synchronously in a new thread."""
+def sync_exec(async_func: Callable[..., Any], *args, **kwargs):
+    """Async function to sync execution."""
     if not asyncio.iscoroutinefunction(async_func):
         return async_func(*args, **kwargs)
 
-    async def _wrapper():
-        return await async_func(*args, **kwargs)
+    loop = asyncio_loop()
+    if loop and loop.is_running():
+        thread = ReturnThread(async_func, *args, **kwargs)
+        thread.start()
+        thread.join()
+        result = thread.result
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(asyncio.run, _wrapper())
-        return future.result()
+    else:
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(async_func(*args, **kwargs))
+    return result

@@ -19,7 +19,7 @@ from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.memory.base import MemoryItem
 from aworld.memory.main import Memory
 from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
-from aworld.models.model_response import ModelResponse
+from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import MessageOutput
 from aworld.output.base import StepOutput
@@ -181,6 +181,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
             "black_tool_actions") else self.conf.get('black_tool_actions', {})
         self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
+        self.history_messages = kwargs.get("history_messages") if kwargs.get("history_messages") else 100
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)
@@ -243,7 +244,6 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                            sys_prompt: str = None,
                            agent_prompt: str = None,
                            output_prompt: str = None,
-                           max_step: int = 100,
                            **kwargs):
         """Transform the original content to LLM messages of native format.
 
@@ -266,7 +266,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
 
         cur_msg = {'role': 'user', 'content': content}
         # query from memory,
-        histories = self.memory.get_last_n(max_step)
+        histories = self.memory.get_last_n(self.history_messages)
         if histories:
             # default use the first tool call
             for history in histories:
@@ -308,7 +308,11 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 if not full_name:
                     logger.warning("tool call response no tool name.")
                     continue
-                params = json.loads(tool_call.function.arguments)
+                try:
+                    params = json.loads(tool_call.function.arguments)
+                except:
+                    logger.warning(f"{tool_call.function.arguments} parse to json fail.")
+                    params = {}
                 # format in framework
                 names = full_name.split("__")
                 tool_name = names[0]
@@ -356,11 +360,16 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                     else:
                         logger.info(f"[agent] Content (continued): {chunk}")
 
-            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+            if 'tool_calls' in msg and msg['tool_calls']:
                 for tool_call in msg.get('tool_calls'):
-                    logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
-                    args = str(tool_call.get('args', {}))[:1000]
-                    logger.info(f"[agent] Tool args: {args}...")
+                    if isinstance(tool_call, dict):
+                        logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
+                        args = str(tool_call.get('args', {}))[:1000]
+                        logger.info(f"[agent] Tool args: {args}...")
+                    elif isinstance(tool_call, ToolCall):
+                        logger.info(f"[agent] Tool call: {tool_call.function.name} - ID: {tool_call.id}")
+                        args = str(tool_call.function.arguments)[:1000]
+                        logger.info(f"[agent] Tool args: {args}...")
 
     def policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
@@ -427,11 +436,11 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 logger.error(f"{self.name()} failed to get LLM response")
                 raise RuntimeError(f"{self.name()} failed to get LLM response")
 
-        output.add_part(MessageOutput(source=llm_response, json_parse=False))
+        # output.add_part(MessageOutput(source=llm_response, json_parse=False))
         agent_result = sync_exec(self.resp_parse_func, llm_response)
         if not agent_result.is_call_tool:
             self._finished = True
-        output.mark_finished()
+        # output.mark_finished()
         return agent_result.actions
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
@@ -445,6 +454,9 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
         Returns:
             ActionModel sequence from agent policy
         """
+        output = None
+        if kwargs.get("output") and isinstance(kwargs.get("output"), StepOutput):
+            output = kwargs["output"]
 
         self._finished = False
         await self.async_desc_transform()
@@ -477,6 +489,8 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 tools=self.tools if self.tools else None
             )
             logger.info(f"Execute response: {llm_response.message}")
+            if output:
+                output.add_part(MessageOutput(source=llm_response))
         except Exception as e:
             logger.warn(traceback.format_exc())
             raise e
@@ -496,10 +510,11 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
             else:
                 logger.error(f"{self.name()} failed to get LLM response")
                 raise RuntimeError(f"{self.name()} failed to get LLM response")
-
         agent_result = sync_exec(self.resp_parse_func, llm_response)
         if not agent_result.is_call_tool:
             self._finished = True
+        if output:
+            output.mark_finished()
         return agent_result.actions
 
 

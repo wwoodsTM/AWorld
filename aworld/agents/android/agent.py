@@ -39,7 +39,7 @@ class AndroidAgent(Agent):
             self.conf.llm_provider = "chat" + provider
         self.available_actions_desc = self._build_action_prompt()
         # Settings
-        self.settings = AgentSettings(**conf)
+        self.settings = self.conf
 
     def reset(self, options: Dict[str, Any]):
         super(AndroidAgent, self).__init__(options)
@@ -102,7 +102,7 @@ class AndroidAgent(Agent):
                 },
                 {
                     "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_img}"
+                    "image_url": f"data:image/jpeg;base64,{self.state.image}"
                 }
             ])
 
