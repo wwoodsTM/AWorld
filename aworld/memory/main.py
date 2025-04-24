@@ -4,8 +4,11 @@ from aworld.memory.base import MemoryBase, MemoryItem, MemoryStore, InMemoryMemo
 
 class Memory(MemoryBase):
 
-    def __init__(self, memory_store: MemoryStore):
+    def __init__(self, memory_store: MemoryStore, enable_summary: bool = True, **kwargs):
         self.memory_store = memory_store
+        self.summary = {}
+        self.summary_rounds = kwargs.get("summary_rounds", 10)
+        self.enable_summary = enable_summary
 
 
     @classmethod
@@ -20,13 +23,83 @@ class Memory(MemoryBase):
             Memory: Memory instance.
         """
         if config.get("memory_store") == "inmemory":    
-            return cls(memory_store=InMemoryMemoryStore())
+            return cls(
+                memory_store=InMemoryMemoryStore(),
+                enable_summary=config.get("enable_summary", False),
+                summary_rounds=config.get("summary_rounds", 5)
+            )
         else:
             raise ValueError(f"Invalid memory store type: {config.get('memory_store')}")
-        
+
 
     def add(self, memory_item: MemoryItem):
         self.memory_store.add(memory_item)
+
+        # Check if we need to create or update summary
+        if self.enable_summary:
+            total_rounds = len(self.memory_store.get_all())
+            if total_rounds > self.summary_rounds:
+                self._create_or_update_summary(total_rounds)
+
+    def _create_or_update_summary(self, total_rounds: int):
+        """
+        Create or update summary based on current total rounds.
+
+        Args:
+            total_rounds (int): Total number of rounds.
+        """
+        summary_index = int(total_rounds / self.summary_rounds)
+        start = (summary_index - 1) * self.summary_rounds
+        end = total_rounds - self.summary_rounds
+
+        # Ensure we have valid start and end indices
+        start = max(0, start)
+        end = max(start, end)
+
+        # Get the memory items to summarize
+        items_to_summarize = self.memory_store.get_all()[start:end+1]
+        print(f"{total_rounds}start: {start}, end: {end},")
+
+        # Create summary content
+        summary_content = self._summarize_items(items_to_summarize, summary_index)
+
+        # Create the range key
+        range_key = f"{start}_{end}"
+
+        # Check if summary for this range already exists
+        if range_key in self.summary:
+            # Update existing summary
+            self.summary[range_key].content = summary_content
+            self.summary[range_key].updated_at = None  # This will update the timestamp
+        else:
+            # Create new summary
+            summary_item = MemoryItem(
+                content=summary_content,
+                metadata={
+                    "summary_index": summary_index,
+                    "start_round": start,
+                    "end_round": end,
+                    "role":"system"
+                },
+                tags=["summary"]
+            )
+            self.summary[range_key] = summary_item
+
+    def _summarize_items(self, items: list[MemoryItem], summary_index: int) -> str:
+        """
+        Summarize a list of memory items.
+
+        Args:
+            items (list[MemoryItem]): List of memory items to summarize.
+            summary_index (int): Summary index.
+
+        Returns:
+            str: Summary content.
+        """
+        # This is a placeholder. In a real implementation, you might use an LLM or other method
+        # to create a meaningful summary of the content
+        contents = [item.content for item in items]
+        return f"Summary {summary_index}: Summarized content from rounds {items[0].metadata.get('round', 'unknown')} to {items[-1].metadata.get('round', 'unknown')}"
 
     def update(self, memory_item: MemoryItem):
         self.memory_store.update(memory_item)
@@ -60,9 +133,57 @@ class Memory(MemoryBase):
             memory_items.insert(0, self.memory_store.get_first())
 
         return memory_items
+        last_n_items = self.memory_store.get_last_n(last_rounds)
+
+        # tool_call_id -> tool_calls
+        if last_n_items and len(last_n_items) > 0 and "tool_call_id" in last_n_items[0].metadata:
+            # more
+            last_n_items = self.memory_store.get_last_n(last_rounds + 1)
+
+        # If summary is disabled or no summaries exist, return just the last_n_items
+        if not self.enable_summary or not self.summary:
+            return last_n_items
+
+        # Calculate the range for relevant summaries
+        all_items = self.memory_store.get_all()
+        total_items = len(all_items)
+        end_index = total_items - last_rounds
+
+        # Get complete summaries
+        result = []
+        complete_summary_count = end_index // self.summary_rounds
+
+        # Get complete summaries
+        for i in range(complete_summary_count):
+            range_key = f"{i * self.summary_rounds}_{(i + 1) * self.summary_rounds - 1}"
+            if range_key in self.summary:
+                result.append(self.summary[range_key])
+
+        # Get the last incomplete summary if exists
+        remaining_items = end_index % self.summary_rounds
+        if remaining_items > 0:
+            start = complete_summary_count * self.summary_rounds
+            range_key = f"{start}_{end_index - 1}"
+            if range_key in self.summary:
+                result.append(self.summary[range_key])
+
+        # Add the last n items
+        result.extend(last_n_items)
+
+        return result
 
     def retrieve(self, query, filters: dict) -> list[MemoryItem]:
         return self.memory_store.retrieve(query, filters)
 
     def history(self, memory_id) -> list[MemoryItem]:
         return self.memory_store.history(memory_id)
+
+    def get_summary(self) -> list[MemoryItem]:
+        """
+        Get all summaries.
+
+        Returns:
+            list[MemoryItem]: List of summary items.
+        """
+        return list(self.summary.values())
+
