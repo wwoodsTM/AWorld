@@ -1,10 +1,10 @@
 import os
 from typing import Any, Dict, List, Generator, AsyncGenerator
+
 from openai import OpenAI, AsyncOpenAI
 from langchain_openai import AzureChatOpenAI
 
 from aworld.config.conf import ClientType
-from aworld.metrics.context_manager import MetricContext
 from aworld.models.llm_provider_base import LLMProviderBase
 from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse, LLMResponseError
@@ -148,6 +148,50 @@ class OpenAIProvider(LLMProviderBase):
                 chunk
             )
 
+        # process tool calls
+        if (hasattr(chunk, 'choices') and chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.tool_calls) or (
+                isinstance(chunk, dict) and chunk.get("choices") and chunk["choices"] and chunk["choices"][0].get("delta", {}).get("tool_calls")):
+            tool_calls = chunk.choices[0].delta.tool_calls if hasattr(chunk, 'choices') else chunk["choices"][0].get("delta", {}).get("tool_calls")
+
+            for tool_call in tool_calls:
+                index = tool_call.index if hasattr(tool_call, 'index') else tool_call["index"]
+                func_name = tool_call.function.name if hasattr(tool_call, 'function') else tool_call.get("function", {}).get("name")
+                func_args = tool_call.function.arguments if hasattr(tool_call, 'function') else tool_call.get("function", {}).get("arguments")
+                if index >= len(self.stream_tool_buffer):
+                    self.stream_tool_buffer.append({
+                        "id": tool_call.id,
+                        "type": "function",
+                        "function": {
+                            "name": func_name,
+                            "arguments": func_args
+                        }
+                    })
+                else:
+                    self.stream_tool_buffer[index]["function"]["arguments"] += func_args
+            return None
+        if (hasattr(chunk, 'choices') and chunk.choices and chunk.choices[0].finish_reason) or (
+                isinstance(chunk, dict) and chunk.get("choices") and chunk["choices"] and chunk["choices"][0].get(
+            "finish_reason")):
+            finish_reason = chunk.choices[0].finish_reason if hasattr(chunk, 'choices') else chunk["choices"][0].get(
+                "finish_reason")
+            if finish_reason == "tool_calls" and self.stream_tool_buffer:
+                tool_call_chunk = {
+                    "id": chunk.id if hasattr(chunk, 'id') else chunk.get("id"),
+                    "model": chunk.model if hasattr(chunk, 'model') else chunk.get("model"),
+                    "object": chunk.object if hasattr(chunk, 'object') else chunk.get("object"),
+                    "choices": [
+                        {
+                            "delta": {
+                                "role": "assistant",
+                                "content": "",
+                                "tool_calls": self.stream_tool_buffer
+                            }
+                        }
+                    ]
+                }
+                self.stream_tool_buffer = []
+                return ModelResponse.from_openai_stream_chunk(tool_call_chunk)
+
         return ModelResponse.from_openai_stream_chunk(chunk)
 
     def completion(self,
@@ -238,8 +282,9 @@ class OpenAIProvider(LLMProviderBase):
             for chunk in response_stream:
                 if not chunk:
                     continue
-                MetricContext.count()
-                yield self.postprocess_stream_response(chunk)
+                processed_chunk = self.postprocess_stream_response(chunk)
+                if processed_chunk:
+                    yield processed_chunk
 
         except Exception as e:
             logger.warn(f"Error in stream_completion: {e}")
@@ -286,7 +331,9 @@ class OpenAIProvider(LLMProviderBase):
                 async for chunk in response_stream:
                     if not chunk:
                         continue
-                    yield self.postprocess_stream_response(chunk)
+                    processed_chunk = self.postprocess_stream_response(chunk)
+                    if processed_chunk:
+                        yield processed_chunk
 
         except Exception as e:
             logger.warn(f"Error in astream_completion: {e}")
