@@ -680,7 +680,10 @@ class AntProvider(LLMProviderBase):
             timeout = kwargs.get("response_timeout", self.kwargs.get("timeout", 180))
             result = self._pull_chat_result(message_key, response, timeout)
             logger.info(f"completion cost time: {time.time() - start_time}s.")
-            return self.postprocess_response(result)
+
+            resp = self.postprocess_response(result)
+            usage_process(resp.usage)
+            return resp
         except Exception as e:
             if isinstance(e, LLMResponseError):
                 raise e
@@ -717,7 +720,10 @@ class AntProvider(LLMProviderBase):
             timeout = kwargs.get("response_timeout", self.kwargs.get("timeout", 180))
             result = await self._async_pull_chat_result(message_key, response, timeout)
             logger.info(f"completion cost time: {time.time() - start_time}s.")
-            return self.postprocess_response(result)
+
+            resp = self.postprocess_response(result)
+            usage_process(resp.usage)
+            return resp
 
         except Exception as e:
             if isinstance(e, LLMResponseError):
@@ -889,8 +895,12 @@ class AntProvider(LLMProviderBase):
                     continue
                 
                 # Process normal response chunks
-                yield self.postprocess_stream_response(chunk)
-                
+                resp = self.postprocess_stream_response(chunk)
+                self._accumulate_chunk_usage(usage, resp.usage)
+                yield resp
+            usage_process(resp.usage)
+
+
             logger.info(f"astream_completion cost time: {time.time() - start_time}s.")
         except Exception as e:
             if isinstance(e, LLMResponseError):
