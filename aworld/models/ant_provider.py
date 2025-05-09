@@ -1,28 +1,23 @@
 import os
-from typing import Any, Dict, List, Generator, AsyncGenerator
 
-from binascii import b2a_hex, a2b_hex
+from binascii import b2a_hex
 import ast
 import datetime
 import html
-import requests
 import json
 import time
 from typing import (
     Any,
-    Optional,
     List,
     Dict,
-    Union,
     Generator,
     AsyncGenerator,
 )
 
 from pygame.examples.eventlist import usage
-import inspect
 
 from aworld.config.conf import ClientType
-from aworld.models.llm_provider_base import LLMProviderBase
+from aworld.core.llm_provider_base import LLMProviderBase
 from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse, LLMResponseError, ToolCall
 from aworld.logs.util import logger
@@ -184,6 +179,16 @@ class AntProvider(LLMProviderBase):
 
         return claude_params
 
+    def _get_visit_info(self):
+        visit_info = {
+            "visitDomain": self.kwargs.get("ant_visit_domain") or os.getenv("ANT_VISIT_DOMAIN", "BU_general"),
+            "visitBiz": self.kwargs.get("ant_visit_biz") or os.getenv("ANT_VISIT_BIZ", ""),
+            "visitBizLine": self.kwargs.get("ant_visit_biz_line") or os.getenv("ANT_VISIT_BIZ_LINE", "")
+        }
+        if not visit_info["visitBiz"] or not visit_info["visitBizLine"]:
+            return None
+        return visit_info
+
     def _get_service_param(self,
                            message_key: str,
                            output_type: str = "request",
@@ -197,39 +202,39 @@ class AntProvider(LLMProviderBase):
         Returns:
             Service name.
         """
-        for message in messages:
-            if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"]:
-                if message["content"] is None: message["content"] = ""
-                processed_tool_calls = []
-                for tool_call in message["tool_calls"]:
-                    if isinstance(tool_call, dict):
-                        processed_tool_calls.append(tool_call)
-                    elif isinstance(tool_call, ToolCall):
-                        processed_tool_calls.append(tool_call.to_dict())
-                message["tool_calls"] = processed_tool_calls
+        if messages:
+            for message in messages:
+                if message["role"] == "assistant" and "tool_calls" in message and message["tool_calls"]:
+                    if message["content"] is None: message["content"] = ""
+                    processed_tool_calls = []
+                    for tool_call in message["tool_calls"]:
+                        if isinstance(tool_call, dict):
+                            processed_tool_calls.append(tool_call)
+                        elif isinstance(tool_call, ToolCall):
+                            processed_tool_calls.append(tool_call.to_dict())
+                    message["tool_calls"] = processed_tool_calls
         query_conditions = {
             "messageKey": message_key,
         }
-        param = {}
+        param = {"cacheInterval": -1,}
+        visit_info = self._get_visit_info()
+        if not visit_info:
+            raise LLMResponseError(
+                f"AntProvider#Invalid visit_info, please set ANT_VISIT_BIZ and ANT_VISIT_BIZ_LINE environment variable or provide it in the parameters",
+                self.model_name or "unknown"
+            )
+        param.update(visit_info)
         if self.model_name.startswith("claude"):
             query_conditions.update(self._build_claude_params(messages, temperature, max_tokens, stop, **kwargs))
-            param = {
+            param.update({
                 "serviceName": "amazon_claude_chat_completions_dataview",
-                "visitDomain": "BU_general",
-                "visitBiz": "BU_general_wuman",
-                "visitBizLine": "BU_general_wuman_line",
-                "cacheInterval": -1,
                 "queryConditions": query_conditions,
-            }
+            })
         elif output_type == "pull":
-            param = {
+            param.update({
                 "serviceName": "chatgpt_response_query_dataview",
-                "visitDomain": "BU_general",
-                "visitBiz": "BU_general_gpt4",
-                "visitBizLine": "BU_general_gpt4_wuman",
-                "cacheInterval": -1,
                 "queryConditions": query_conditions
-            }
+            })
         else:
             query_conditions = {
                 "model": self.model_name,
@@ -240,14 +245,10 @@ class AntProvider(LLMProviderBase):
                 "messages": messages,
             }
             query_conditions.update(self._build_openai_params(messages, temperature, max_tokens, stop, **kwargs))
-            param = {
+            param.update({
                 "serviceName": "asyn_chatgpt_prompts_completions_query_dataview",
-                "visitDomain": "BU_general",
-                "visitBiz": "BU_general_gpt4",
-                "visitBizLine": "BU_general_gpt4_wuman",
-                "cacheInterval": -1,
                 "queryConditions": query_conditions,
-            }
+            })
         return param
 
     def _gen_message_key(self):
@@ -294,14 +295,12 @@ class AntProvider(LLMProviderBase):
         return message_key, response
 
     def _valid_chat_result(self, body):
-        if "data" not in body:
-            return False, f"Invalid response: missing data."
-        err_code = body["data"].get("errorCode", "unkown")
-        err_msg = body["data"].get("errorMessage", "")
-        if "values" not in body["data"]:
-            return False, f"Invalid response: missing values in data, error_code: {err_code}, error_msg: {err_msg}"
+        if "data" not in body or not body["data"]:
+            return False
+        if "values" not in body["data"] or not body["data"]["values"]:
+            return False
         if "response" not in body["data"]["values"] and "data" not in body["data"]["values"]:
-            return False, f"Invalid response: missing response/data in values, error_code: {err_code}, error_msg: {err_msg}"
+            return False
         return True
 
     def _build_chat_pull_request_data(self, message_key):
@@ -309,66 +308,6 @@ class AntProvider(LLMProviderBase):
 
         pull_data = self._build_request_data(param)
         return pull_data
-
-    def _query_response_data(self, message_key, timeout=60):
-        """
-        Get the LLM response result by polling once per second until a result is received or timeout occurs.
-
-        Args:
-            message_key: Unique identifier for the message
-            timeout: Timeout in seconds, default is 60 seconds
-
-        Returns:
-            Parsed LLM response data
-
-        Raises:
-            LLMResponseError: When timeout or query failure occurs
-        """
-        message_key_str = str(message_key) if message_key is not None else ""
-
-        post_data = self._build_chat_pull_request_data(message_key_str)
-        url = 'commonQuery/queryData'
-        headers = {
-            'Content-Type': 'application/json'
-        }
-
-        # Start polling until valid result or timeout
-        start_time = time.time()
-        elapsed_time = 0
-
-        while elapsed_time < timeout:
-            try:
-                response = self.http_provider.sync_call(post_data, endpoint=url, headers=headers)
-
-                logger.debug(f"Poll attempt at {elapsed_time}s, response: {response}")
-
-                # Check if valid result is received
-                if (response and
-                        "data" in response and
-                        "values" in response["data"] and
-                        response["data"]["values"] and
-                        "response" in response["data"]["values"]):
-                    x = response["data"]["values"]["response"]
-                    ast_str = ast.literal_eval("'" + x + "'")
-                    result = html.unescape(ast_str)
-                    data = json.loads(result)
-                    return data
-
-                # If no result, wait 1 second and query again
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
-                logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
-
-            except Exception as e:
-                logger.warn(f"Error during polling: {e}")
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
-
-        # Timeout handling
-        raise LLMResponseError(
-            f"Timeout after {timeout} seconds waiting for response from Ant API",
-            self.model_name or "unknown"
-        )
 
     def _pull_chat_result(self, message_key, response: Dict[str, Any], timeout):
         if self.model_name.startswith("claude"):
@@ -385,7 +324,6 @@ class AntProvider(LLMProviderBase):
                 )
 
 
-        # result = self._query_response_data(message_key, timeout)
         post_data = self._build_chat_pull_request_data(message_key)
         url = 'commonQuery/queryData'
         headers = {
@@ -397,32 +335,30 @@ class AntProvider(LLMProviderBase):
         elapsed_time = 0
 
         while elapsed_time < timeout:
-            try:
-                response = self.http_provider.sync_call(post_data, endpoint=url, headers=headers)
+            response = self.http_provider.sync_call(post_data, endpoint=url, headers=headers)
 
-                logger.debug(f"Poll attempt at {elapsed_time}s, response: {response}")
+            logger.debug(f"Poll attempt at {elapsed_time}s, response: {response}")
 
-                # Check if valid result is received
-                if (response and
-                        "data" in response and
-                        "values" in response["data"] and
-                        response["data"]["values"] and
-                        "response" in response["data"]["values"]):
-                    x = response["data"]["values"]["response"]
-                    ast_str = ast.literal_eval("'" + x + "'")
-                    result = html.unescape(ast_str)
-                    data = json.loads(result)
-                    return data
+            # Check if valid result is received
+            if self._valid_chat_result(response):
+                x = response["data"]["values"]["response"]
+                ast_str = ast.literal_eval("'" + x + "'")
+                result = html.unescape(ast_str)
+                data = json.loads(result)
+                return data
+            elif (not response.get("success")) or ("data" in response and response["data"]):
+                err_code = response.get("data", {}).get("errorCode", "")
+                err_msg = response.get("data", {}).get("errorMessage", "")
+                if err_code or err_msg:
+                    raise LLMResponseError(
+                        f"Request failed: {response}",
+                        self.model_name or "unknown"
+                    )
 
-                # If no result, wait 1 second and query again
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
-                logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
-
-            except Exception as e:
-                logger.warn(f"Error during polling: {e}")
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
+            # If no result, wait 1 second and query again
+            time.sleep(1)
+            elapsed_time = time.time() - start_time
+            logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
 
         # Timeout handling
         raise LLMResponseError(
@@ -438,14 +374,15 @@ class AntProvider(LLMProviderBase):
                 result = html.unescape(ast_str)
                 data = json.loads(result)
                 return data
-            else:
-                raise LLMResponseError(
-                    f"Invalid response from Ant API, response: {response}",
-                    self.model_name or "unknown"
-                )
+            elif (not response.get("success")) or ("data" in response and response["data"]):
+                err_code = response.get("data", {}).get("errorCode", "")
+                err_msg = response.get("data", {}).get("errorMessage", "")
+                if err_code or err_msg:
+                    raise LLMResponseError(
+                        f"Request failed: {response}",
+                        self.model_name or "unknown"
+                    )
 
-        # result = self._query_response_data(message_key, timeout)
-        # return result
         post_data = self._build_chat_pull_request_data(message_key)
         url = 'commonQuery/queryData'
         headers = {
@@ -457,32 +394,30 @@ class AntProvider(LLMProviderBase):
         elapsed_time = 0
 
         while elapsed_time < timeout:
-            try:
-                response = await self.http_provider.async_call(post_data, endpoint=url, headers=headers)
+            response = await self.http_provider.async_call(post_data, endpoint=url, headers=headers)
 
-                logger.debug(f"Poll attempt at {elapsed_time}s, response: {response}")
+            logger.debug(f"Poll attempt at {elapsed_time}s, response: {response}")
 
-                # Check if valid result is received
-                if (response and
-                        "data" in response and
-                        "values" in response["data"] and
-                        response["data"]["values"] and
-                        "response" in response["data"]["values"]):
-                    x = response["data"]["values"]["response"]
-                    ast_str = ast.literal_eval("'" + x + "'")
-                    result = html.unescape(ast_str)
-                    data = json.loads(result)
-                    return data
+            # Check if valid result is received
+            if self._valid_chat_result(response):
+                x = response["data"]["values"]["response"]
+                ast_str = ast.literal_eval("'" + x + "'")
+                result = html.unescape(ast_str)
+                data = json.loads(result)
+                return data
+            elif (not response.get("success")) or ("data" in response and response["data"]):
+                err_code = response.get("data", {}).get("errorCode", "")
+                err_msg = response.get("data", {}).get("errorMessage", "")
+                if err_code or err_msg:
+                    raise LLMResponseError(
+                        f"Request failed: {response}",
+                        self.model_name or "unknown"
+                    )
 
-                # If no result, wait 1 second and query again
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
-                logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
-
-            except Exception as e:
-                logger.warn(f"Error during polling: {e}")
-                time.sleep(1)
-                elapsed_time = time.time() - start_time
+            # If no result, wait 1 second and query again
+            time.sleep(1)
+            elapsed_time = time.time() - start_time
+            logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
 
         # Timeout handling
         raise LLMResponseError(
