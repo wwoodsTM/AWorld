@@ -13,7 +13,12 @@ from aworld.core.agent.base import Agent
 from aworld.core.task import Task
 from aworld.runner import Runners
 from examples.gaia.prompt import system_prompt
-from examples.gaia.utils import add_file_path, load_dataset_meta, report_results
+from examples.gaia.utils import (
+    add_file_path,
+    load_dataset_meta,
+    question_scorer,
+    report_results,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -32,6 +37,11 @@ parser.add_argument(
     "--q",
     type=str,
     help="Question Index, e.g., 0-0-0-0-0. Highest priority: override other arguments if provided.",
+)
+parser.add_argument(
+    "--skip",
+    action="store_true",
+    help="Skip the question if it has been processed before.",
 )
 args = parser.parse_args()
 
@@ -137,6 +147,14 @@ if __name__ == "__main__":
                 ):
                     continue
 
+                # skip
+                if args.skip and any(
+                    # Question Done and Correct
+                    (result["task_id"] == dataset_i["task_id"])
+                    for result in results
+                ):
+                    continue
+
             # run
             try:
                 logging.info(f"Start to process: {dataset_i['task_id']}")
@@ -157,7 +175,7 @@ if __name__ == "__main__":
                     logging.info(f"Agent answer: {answer}")
                     logging.info(f"Correct answer: {dataset_i['Final answer']}")
 
-                    if answer == dataset_i["Final answer"]:
+                    if question_scorer(answer, dataset_i["Final answer"]):
                         logging.info(f"Question {i} Correct!")
                     else:
                         logging.info("Incorrect!")
@@ -169,7 +187,7 @@ if __name__ == "__main__":
                     "question": question,
                     "answer": answer,
                     "response": dataset_i["Final answer"],
-                    "is_correct": answer == dataset_i["Final answer"],
+                    "is_correct": question_scorer(answer, dataset_i["Final answer"]),
                 }
 
                 # Check if this task_id already exists in results
