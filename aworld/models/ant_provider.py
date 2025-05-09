@@ -6,6 +6,7 @@ import datetime
 import html
 import json
 import time
+import asyncio
 from typing import (
     Any,
     List,
@@ -414,7 +415,7 @@ class AntProvider(LLMProviderBase):
                     )
 
             # If no result, wait 1 second and query again
-            time.sleep(1)
+            await asyncio.sleep(1)
             elapsed_time = time.time() - start_time
             logger.debug(f"Polling... Elapsed time: {elapsed_time:.1f}s")
 
