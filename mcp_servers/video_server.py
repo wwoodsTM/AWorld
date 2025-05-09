@@ -1,22 +1,45 @@
 import base64
 import os
+import sys
 import traceback
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
-from pydantic import Field
+import numpy as np
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from openai import OpenAI
+from pydantic import Field
+
 from aworld.logs.util import logger
 from mcp_servers.utils import get_file_from_source
-from openai import OpenAI
 
-client = OpenAI(
-    api_key=os.getenv("LLM_API_KEY"), 
-    base_url=os.getenv("LLM_BASE_URL")
-)
+client = OpenAI(api_key=os.getenv("LLM_API_KEY"), base_url=os.getenv("LLM_BASE_URL"))
 
 # Initialize MCP server
 mcp = FastMCP("Video Server")
+
+
+@dataclass
+class KeyframeResult:
+    """Result of keyframe extraction from a video.
+
+    Attributes:
+        frame_paths: List of file paths to the saved keyframes
+        frame_timestamps: List of timestamps (in seconds) corresponding to each frame
+        output_directory: Directory where frames were saved
+        frame_count: Number of frames extracted
+        success: Whether the extraction was successful
+        error_message: Error message if extraction failed, None otherwise
+    """
+
+    frame_paths: List[str]
+    frame_timestamps: List[float]
+    output_directory: str
+    frame_count: int
+    success: bool
+    error_message: Optional[str] = None
 
 
 VIDEO_ANALYZE = (
@@ -152,19 +175,21 @@ def mcp_analyze_video(
             inputs.append({"role": "user", "content": content})
             try:
                 response = client.chat.completions.create(
-                    model=os.getenv("LLM_MODEL_NAME"),  
+                    model=os.getenv("LLM_MODEL_NAME"),
                     messages=inputs,
                     temperature=0,
                 )
                 cur_video_analysis_result = response.choices[0].message.content
-            except Exception as e:
+            except Exception:
                 cur_video_analysis_result = ""
-            all_res.append(f"result of video part {int(i / interval + 1)}: {cur_video_analysis_result}")
+            all_res.append(
+                f"result of video part {int(i / interval + 1)}: {cur_video_analysis_result}"
+            )
             if i + frame_nums >= len(video_frames):
                 break
         video_analysis_result = "\n".join(all_res)
 
-    except (ValueError, IOError, RuntimeError) as e:
+    except (ValueError, IOError, RuntimeError):
         video_analysis_result = ""
         logger.error(f"video_analysis-Execute error: {traceback.format_exc()}")
 
@@ -180,7 +205,6 @@ def mcp_extract_video_subtitles(
     sample_rate: int = Field(default=2, description="Sample n frames per second."),
 ) -> str:
     """extract subtitles from the video."""
-    
     inputs = []
     try:
         video_frames = get_video_frames(video_url, sample_rate)
@@ -188,12 +212,12 @@ def mcp_extract_video_subtitles(
         inputs.append({"role": "user", "content": content})
 
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL_NAME"),  
+            model=os.getenv("LLM_MODEL_NAME"),
             messages=inputs,
             temperature=0,
         )
         video_subtitles = response.choices[0].message.content
-    except (ValueError, IOError, RuntimeError) as e:
+    except (ValueError, IOError, RuntimeError):
         video_subtitles = ""
         logger.error(f"video_subtitles-Execute error: {traceback.format_exc()}")
 
@@ -215,12 +239,12 @@ def mcp_summarize_video(
         inputs.append({"role": "user", "content": content})
 
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL_NAME"),  
+            model=os.getenv("LLM_MODEL_NAME"),
             messages=inputs,
             temperature=0,
         )
         video_summary = response.choices[0].message.content
-    except (ValueError, IOError, RuntimeError) as e:
+    except (ValueError, IOError, RuntimeError):
         video_summary = ""
         logger.error(f"video_summary-Execute error: {traceback.format_exc()}")
 
@@ -228,12 +252,151 @@ def mcp_summarize_video(
     return video_summary
 
 
+@mcp.tool(description="Extract key frames around the target time with scene detection")
+def get_video_keyframes(
+    video_path: str = Field(description="The input video in given filepath or url."),
+    target_time: int = Field(
+        description="The specific time point for extraction, centered within the window_size argument, the unit is of second."
+    ),
+    window_size: int = Field(
+        default=5,
+        description="The window size for extraction, the unit is of second.",
+    ),
+    cleanup: bool = Field(
+        default=False,
+        description="Whether to delete the original video file after processing.",
+    ),
+    output_dir: str = Field(
+        default=os.getenv("FILESYSTEM_SERVER_WORKDIR", "./keyframes"),
+        description="Directory where extracted frames will be saved.",
+    ),
+) -> KeyframeResult:
+    """Extract key frames around the target time with scene detection.
+
+    This function extracts frames from a video file around a specific time point,
+    using scene detection to identify significant changes between frames. Only frames
+    with substantial visual differences are saved, reducing redundancy.
+
+    Args:
+        video_path: Path or URL to the video file
+        target_time: Specific time point (in seconds) to extract frames around
+        window_size: Time window (in seconds) centered on target_time
+        cleanup: Whether to delete the original video file after processing
+        output_dir: Directory where extracted frames will be saved
+
+    Returns:
+        KeyframeResult: A dataclass containing paths to saved frames, timestamps,
+                        and metadata about the extraction process
+
+    Raises:
+        Exception: Exceptions are caught internally and reported in the result
+    """
+
+    def save_frames(frames, frame_times, output_dir) -> Tuple[List[str], List[float]]:
+        """Save extracted frames to disk"""
+        os.makedirs(output_dir, exist_ok=True)
+        saved_paths = []
+        saved_timestamps = []
+        for _, (frame, timestamp) in enumerate(zip(frames, frame_times)):
+            filename = f"{output_dir}/frame_{timestamp:.2f}s.jpg"
+        """Save extracted frames to disk"""
+        os.makedirs(output_dir, exist_ok=True)
+        saved_paths = []
+        saved_timestamps = []
+
+        for _, (frame, timestamp) in enumerate(zip(frames, frame_times)):
+            filename = f"{output_dir}/frame_{timestamp:.2f}s.jpg"
+            cv2.imwrite(filename, frame)
+            saved_paths.append(filename)
+            saved_timestamps.append(timestamp)
+
+        return saved_paths, saved_timestamps
+
+    def extract_keyframes(
+        video_path, target_time, window_size
+    ) -> Tuple[List[Any], List[float]]:
+        """Extract key frames around the target time with scene detection"""
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        # Calculate frame numbers for the time window
+        start_frame = int((target_time - window_size / 2) * fps)
+        end_frame = int((target_time + window_size / 2) * fps)
+
+        frames = []
+        frame_times = []
+
+        # Set video position to start_frame
+        cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, start_frame))
+
+        prev_frame = None
+        while cap.isOpened():
+            frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            if frame_pos >= end_frame:
+                break
+
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Convert frame to grayscale for scene detection
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            # If this is the first frame, save it
+            if prev_frame is None:
+                frames.append(frame)
+                frame_times.append(frame_pos / fps)
+            else:
+                # Calculate difference between current and previous frame
+                diff = cv2.absdiff(gray, prev_frame)
+                mean_diff = np.mean(diff)
+
+                # If significant change detected, save frame
+                if mean_diff > 20:  # Threshold for scene change
+                    frames.append(frame)
+                    frame_times.append(frame_pos / fps)
+
+            prev_frame = gray
+
+        cap.release()
+        return frames, frame_times
+
+    try:
+        # Extract keyframes
+        frames, frame_times = extract_keyframes(video_path, target_time, window_size)
+
+        # Save frames
+        frame_paths, frame_timestamps = save_frames(frames, frame_times, output_dir)
+
+        # Cleanup
+        if cleanup and os.path.exists(video_path):
+            os.remove(video_path)
+
+        return KeyframeResult(
+            frame_paths=frame_paths,
+            frame_timestamps=frame_timestamps,
+            output_directory=output_dir,
+            frame_count=len(frame_paths),
+            success=True,
+        )
+
+    except Exception as e:
+        error_message = f"Error processing video: {str(e)}"
+        print(error_message)
+        return KeyframeResult(
+            frame_paths=[],
+            frame_timestamps=[],
+            output_directory=output_dir,
+            frame_count=0,
+            success=False,
+            error_message=error_message,
+        )
+
+
 def main():
-    from dotenv import load_dotenv
     load_dotenv()
-    
     print("Starting Video MCP Server...", file=sys.stderr)
-    mcp.run(transport='stdio')
+    mcp.run(transport="stdio")
 
 
 # Make the module callable
@@ -246,7 +409,6 @@ def __call__():
 
 
 # Add this for compatibility with uvx
-import sys
 sys.modules[__name__].__call__ = __call__
 
 
