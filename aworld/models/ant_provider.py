@@ -22,7 +22,6 @@ from aworld.models.llm_http_handler import LLMHTTPHandler
 from aworld.models.model_response import ModelResponse, LLMResponseError, ToolCall
 from aworld.logs.util import logger
 from aworld.utils import import_package
-from aworld.models.utils import usage_process
 
 
 MODEL_NAMES = {
@@ -617,7 +616,6 @@ class AntProvider(LLMProviderBase):
             logger.info(f"completion cost time: {time.time() - start_time}s.")
 
             resp = self.postprocess_response(result)
-            usage_process(resp.usage)
             return resp
         except Exception as e:
             if isinstance(e, LLMResponseError):
@@ -657,7 +655,6 @@ class AntProvider(LLMProviderBase):
             logger.info(f"completion cost time: {time.time() - start_time}s.")
 
             resp = self.postprocess_response(result)
-            usage_process(resp.usage)
             return resp
 
         except Exception as e:
@@ -750,7 +747,6 @@ class AntProvider(LLMProviderBase):
                     resp = self.postprocess_stream_response(chunk)
                     self._accumulate_chunk_usage(usage, resp.usage)
                     yield resp
-                usage_process(resp.usage)
 
             logger.info(f"stream_completion cost time: {time.time() - start_time}s.")
         except Exception as e:
@@ -833,7 +829,6 @@ class AntProvider(LLMProviderBase):
                 resp = self.postprocess_stream_response(chunk)
                 self._accumulate_chunk_usage(usage, resp.usage)
                 yield resp
-            usage_process(resp.usage)
 
 
             logger.info(f"astream_completion cost time: {time.time() - start_time}s.")
