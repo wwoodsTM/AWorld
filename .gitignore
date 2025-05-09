@@ -76,6 +76,7 @@ docs/api/
 data/raw/
 data/processed/
 data/workspaces/
+gaia-benchmark/
 
 # Compiled files
 *.com
@@ -118,3 +119,8 @@ data/workspaces/
 *.pdf
 *.html
 *.wav
+
+# Node Modules
+node_modules/
+package.json
+package-lock.json
