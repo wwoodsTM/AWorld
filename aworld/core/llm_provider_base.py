@@ -1,5 +1,6 @@
 import os
 import abc
+from collections import Counter
 from typing import (
     Any,
     Optional,
@@ -194,3 +195,15 @@ class LLMProviderBase(abc.ABC):
             RuntimeError: When async provider is not initialized.
         """
         return None
+
+    def _accumulate_chunk_usage(self, usage: Dict[str, int], chunk_usage: Dict[str, int]):
+        """Accumulate usage statistics from chunk into the main usage dictionary.
+
+        Args:
+            usage: Dictionary to accumulate usage into (will be modified)
+            chunk_usage: Usage statistics from the current chunk
+        """
+        if not chunk_usage:
+            return
+
+        usage = dict(Counter(usage) + Counter(chunk_usage))
