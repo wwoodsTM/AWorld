@@ -206,8 +206,8 @@ if __name__ == "__main__":
                     "task_id": dataset_i["task_id"],
                     "level": dataset_i["Level"],
                     "question": question,
-                    "answer": answer,
-                    "response": dataset_i["Final answer"],
+                    "answer": dataset_i["Final answer"],
+                    "response": answer,
                     "is_correct": question_scorer(answer, dataset_i["Final answer"]),
                 }
 
