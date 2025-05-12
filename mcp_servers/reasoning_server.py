@@ -66,7 +66,7 @@ def complex_problem_reasoning(
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=os.getenv("LLM_TEMPERATURE", "0.3"),
+            temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
         )
 
         # Extract the reasoning result
