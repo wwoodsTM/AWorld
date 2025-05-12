@@ -90,6 +90,7 @@ if __name__ == "__main__":
 
     gaia_dataset_path = os.getenv("GAIA_DATASET_PATH", "./gaia_dataset")
     full_dataset = load_dataset_meta(gaia_dataset_path, split=args.split)
+    logging.info(f"Total questions: {len(full_dataset)}")
 
     agent_config = AgentConfig(
         llm_provider="openai",
@@ -103,7 +104,7 @@ if __name__ == "__main__":
         system_prompt=system_prompt,
         mcp_servers=[
             "e2b-server",
-            "filesystem",
+            # "filesystem",
             "terminal-controller",
             "excel",
             "calculator",
@@ -127,8 +128,18 @@ if __name__ == "__main__":
             results: List[Dict[str, Any]] = json.load(results_f)
     else:
         results: List[Dict[str, Any]] = []
+
     try:
-        for i, dataset_i in enumerate(full_dataset[args.start : args.end]):
+        dataset_slice = (
+            [
+                dataset_record
+                for idx, dataset_record in enumerate(full_dataset)
+                if dataset_record["task_id"] in args.q
+            ]
+            if args.q is not None
+            else full_dataset[args.start : args.end]
+        )
+        for i, dataset_i in enumerate(dataset_slice):
             # specify `task_id`
             if args.q and args.q != dataset_i["task_id"]:
                 continue
