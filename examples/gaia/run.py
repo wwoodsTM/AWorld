@@ -53,6 +53,12 @@ parser.add_argument(
     default="validation",
     help="Split of the dataset, e.g., validation, test",
 )
+parser.add_argument(
+    "--blacklist_file_path",
+    type=str,
+    nargs="?",
+    help="Blacklist file path, e.g., blacklist.txt",
+)
 args = parser.parse_args()
 
 
@@ -121,6 +127,7 @@ if __name__ == "__main__":
         ],
     )
 
+    # load results from the checkpoint file
     if os.path.exists(os.getenv("LOG_FILE_PATH") + "/results.json"):
         with open(
             os.getenv("LOG_FILE_PATH") + "/results.json", "r", encoding="utf-8"
@@ -129,7 +136,15 @@ if __name__ == "__main__":
     else:
         results: List[Dict[str, Any]] = []
 
+    # load blacklist `task_id`
+    if os.path.exists(args.blacklist_file_path):
+        with open(args.blacklist_file_path, "r", encoding="utf-8") as f:
+            blacklist = set(f.read().splitlines())
+    else:
+        blacklist = set()  # Empty set if file doesn't exist
+
     try:
+        # slice dataset by args.start and args.end, overrided by args.q (single `task_id`)
         dataset_slice = (
             [
                 dataset_record
@@ -139,6 +154,8 @@ if __name__ == "__main__":
             if args.q is not None
             else full_dataset[args.start : args.end]
         )
+
+        # main loop to execute questions
         for i, dataset_i in enumerate(dataset_slice):
             # specify `task_id`
             if args.q and args.q != dataset_i["task_id"]:
@@ -146,10 +163,7 @@ if __name__ == "__main__":
             # only valid for args.q==None
             if not args.q:
                 # blacklist
-                if dataset_i["task_id"] in (
-                    "676e5e31-a554-4acc-9286-b60d90a92d26",
-                    "46719c30-f4c3-4cad-be07-d5cb21eee6bb",
-                ):
+                if dataset_i["task_id"] in blacklist:
                     continue
 
                 # pass
