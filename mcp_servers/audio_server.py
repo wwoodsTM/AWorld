@@ -4,19 +4,20 @@ import json
 import os
 import traceback
 from typing import List
-from pydantic import Field
-from aworld.logs.util import logger
-from mcp_servers.utils import get_file_from_source
+
 from mcp.server.fastmcp import FastMCP
 from openai import OpenAI
+from pydantic import Field
+
+from aworld.logs.util import logger
+from mcp_servers.utils import get_file_from_source
 
 # Initialize MCP server
 mcp = FastMCP("audio-server")
 
 
 client = OpenAI(
-    api_key=os.getenv("AUDIO_LLM_API_KEY"), 
-    base_url=os.getenv("AUDIO_LLM_BASE_URL")
+    api_key=os.getenv("AUDIO_LLM_API_KEY"), base_url=os.getenv("AUDIO_LLM_BASE_URL")
 )
 
 AUDIO_TRANSCRIBE = (
@@ -24,6 +25,7 @@ AUDIO_TRANSCRIBE = (
     "Return a json string with the following format: "
     '{"audio_text": "transcribed text from audio"}'
 )
+
 
 def encode_audio(audio_source: str, with_header: bool = True) -> str:
     """
@@ -122,10 +124,12 @@ async def mcp_transcribe_audio(
 
 def main():
     from dotenv import load_dotenv
+
     load_dotenv()
 
     print("Starting Audio MCP Server...", file=sys.stderr)
-    mcp.run(transport='stdio')
+    mcp.run(transport="stdio")
+
 
 # Make the module callable
 def __call__():
@@ -138,6 +142,7 @@ def __call__():
 
 # Add this for compatibility with uvx
 import sys
+
 sys.modules[__name__].__call__ = __call__
 
 # Run the server when the script is executed directly
