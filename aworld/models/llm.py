@@ -68,7 +68,7 @@ class LLMModel:
         # Get basic parameters
         base_url = kwargs.get("base_url") or (conf.llm_base_url if conf else None)
         model_name = kwargs.get("model_name") or (conf.llm_model_name if conf else None)
-        llm_provider = conf.llm_provider if conf and "llm_provider" in conf else None
+        llm_provider = conf.llm_provider if conf_contains_key(conf, "llm_provider") else None
 
         # Get API key from configuration (if any)
         if conf and conf.llm_api_key:
@@ -82,9 +82,9 @@ class LLMModel:
         kwargs['model_name'] = model_name
 
         # Fill parameters for llm provider
-        kwargs['sync_enabled'] = conf.llm_sync_enabled if conf and "llm_sync_enabled" in conf else True
-        kwargs['async_enabled'] = conf.llm_async_enabled if conf and "llm_async_enabled" in conf else True
-        kwargs['client_type'] = conf.llm_client_type if conf and "client_type" in conf else ClientType.SDK
+        kwargs['sync_enabled'] = conf.llm_sync_enabled if conf_contains_key(conf, "llm_sync_enabled") else True
+        kwargs['async_enabled'] = conf.llm_async_enabled if conf_contains_key(conf, "llm_async_enabled") else True
+        kwargs['client_type'] = conf.llm_client_type if conf_contains_key(conf, "llm_client_type") else ClientType.SDK
 
         kwargs.update(self._transfer_conf_to_args(conf))
 
@@ -307,6 +307,20 @@ def register_llm_provider(provider: str, provider_class: type):
         raise TypeError("provider_class must be a subclass of LLMProviderBase")
     PROVIDER_CLASSES[provider] = provider_class
 
+def conf_contains_key(conf: Union[ConfigDict, AgentConfig], key:str) -> bool:
+    """Check if conf contains key.
+    Args:
+        conf: Config object.
+        key: Key to check.
+    Returns:
+        bool: Whether conf contains key.
+    """
+    if not conf:
+        return False
+    if type(conf).__name__ == 'AgentConfig':
+        return hasattr(conf, key)
+    else:
+        return key in conf
 
 def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: LLMProviderBase = None, **kwargs) -> Union[LLMModel, ChatOpenAI]:
     """Get a unified LLM model instance.
@@ -324,15 +338,16 @@ def get_llm_model(conf: Union[ConfigDict, AgentConfig] = None, custom_provider: 
         Unified model interface.
     """
     # Create and return LLMModel instance directly
-    llm_provider = conf.llm_provider if conf and "llm_provider" in conf else None
+    llm_provider = conf.llm_provider if conf_contains_key(conf, "llm_provider") else None
+
     if (llm_provider == "chatopenai"):
-        base_url = kwargs.get("base_url") or (conf.llm_base_url if conf and "base_url" in conf else None)
-        model_name = kwargs.get("model_name") or (conf.llm_model_name if conf and "model_name" in conf else None)
-        api_key = kwargs.get("api_key") or (conf.llm_api_key if conf and "api_key" in conf else None)
+        base_url = kwargs.get("base_url") or (conf.llm_base_url if conf_contains_key(conf, "llm_base_url") else None)
+        model_name = kwargs.get("model_name") or (conf.llm_model_name if conf_contains_key(conf, "llm_model_name") else None)
+        api_key = kwargs.get("api_key") or (conf.llm_api_key if conf_contains_key(conf, "llm_api_key") else None)
 
         return ChatOpenAI(
             model=model_name,
-            temperature=kwargs.get("temperature", conf.llm_temperature if conf and "temperature" in conf else 0.0),
+            temperature=kwargs.get("temperature", conf.llm_temperature if conf_contains_key(conf, "llm_temperature") else 0.0),
             base_url=base_url,
             api_key=api_key,
         )
