@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 import base64
 import os
 import sys
@@ -299,7 +301,6 @@ def get_video_keyframes(
         saved_timestamps = []
         for _, (frame, timestamp) in enumerate(zip(frames, frame_times)):
             filename = f"{output_dir}/frame_{timestamp:.2f}s.jpg"
-        """Save extracted frames to disk"""
         os.makedirs(output_dir, exist_ok=True)
         saved_paths = []
         saved_timestamps = []

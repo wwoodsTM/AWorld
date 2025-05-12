@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import json
 import os
@@ -68,7 +67,7 @@ def encode_audio(audio_source: str, with_header: bool = True) -> str:
 
         return final_audio
 
-    except Exception as e:
+    except Exception:
         logger.error(
             f"Error encoding audio from {audio_source}: {traceback.format_exc()}"
         )
@@ -94,7 +93,7 @@ async def mcp_transcribe_audio(
     for audio_url in audio_urls:
         try:
             # Get file with validation (only audio files allowed)
-            file_path, mime_type, content = get_file_from_source(
+            file_path, _, _ = get_file_from_source(
                 audio_url,
                 allowed_mime_prefixes=["audio/"],
                 max_size_mb=25.0,  # 25MB limit for audio files

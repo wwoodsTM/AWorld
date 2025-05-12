@@ -220,13 +220,13 @@ class DocumentError(BaseModel):
 
 
 class ComplexEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.strftime("%Y-%m-%d %H:%M:%S")
-        elif isinstance(obj, date):
-            return obj.strftime("%Y-%m-%d")
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.strftime("%Y-%m-%d %H:%M:%S")
+        elif isinstance(o, date):
+            return o.strftime("%Y-%m-%d")
         else:
-            return json.JSONEncoder.default(self, obj)
+            return json.JSONEncoder.default(self, o)
 
 
 def handle_error(e: Exception, error_type: str, file_path: Optional[str] = None) -> str:
@@ -539,7 +539,7 @@ def mcpreaddocx(
         md_file_path = f"{file_name}.md"
         docx_to_markdown(document_path, md_file_path)
 
-        with open(md_file_path, "r") as f:
+        with open(md_file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         os.remove(md_file_path)

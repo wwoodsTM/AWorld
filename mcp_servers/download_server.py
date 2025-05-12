@@ -136,7 +136,6 @@ def _download_single_file(
 
         # Get content type and size
         content_type = response.headers.get("Content-Type")
-        file_size = int(response.headers.get("Content-Length", 0))
 
         # Save the file
         with open(file_path, "wb") as f:
