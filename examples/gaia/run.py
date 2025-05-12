@@ -184,7 +184,9 @@ if __name__ == "__main__":
                 logging.info(f"Level: {dataset_i['Level']}")
                 logging.info(f"Tools: {dataset_i['Annotator Metadata']['Tools']}")
 
-                question = add_file_path(dataset_i, gaia_dataset_path)["Question"]
+                question = add_file_path(
+                    dataset_i, file_path=gaia_dataset_path, split=args.split
+                )["Question"]
 
                 result = Runners.sync_run_task(
                     task=Task(input=question, agent=super_agent, conf=TaskConfig())

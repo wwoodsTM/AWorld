@@ -93,9 +93,11 @@ def load_dataset_meta(path: str, split: str = "validation"):
     return dataset
 
 
-def add_file_path(task: Dict[str, Any], file_path: str = "./gaia_dataset"):
+def add_file_path(
+    task: Dict[str, Any], file_path: str = "./gaia_dataset", split: str = "validation"
+):
     if task["file_name"]:
-        file_path = Path(f"{file_path}/2023/validation/") / task["file_name"]
+        file_path = Path(f"{file_path}/{split}") / task["file_name"]
         if file_path.suffix in [".pdf", ".docx", ".doc", ".txt"]:
             task["Question"] += f" Here are the necessary document files: {file_path}"
 
