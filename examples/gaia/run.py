@@ -20,6 +20,10 @@ from examples.gaia.utils import (
     report_results,
 )
 
+# Create log directory if it doesn't exist
+if not os.path.exists(os.getenv("LOG_FILE_PATH")):
+    os.makedirs(os.getenv("LOG_FILE_PATH"))
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--start",
@@ -42,6 +46,12 @@ parser.add_argument(
     "--skip",
     action="store_true",
     help="Skip the question if it has been processed before.",
+)
+parser.add_argument(
+    "--split",
+    type=str,
+    default="validation",
+    help="Split of the dataset, e.g., validation, test",
 )
 args = parser.parse_args()
 
@@ -79,7 +89,7 @@ if __name__ == "__main__":
     setup_logging()
 
     gaia_dataset_path = os.getenv("GAIA_DATASET_PATH", "./gaia_dataset")
-    full_dataset = load_dataset_meta(gaia_dataset_path)
+    full_dataset = load_dataset_meta(gaia_dataset_path, split=args.split)
 
     agent_config = AgentConfig(
         llm_provider="openai",
