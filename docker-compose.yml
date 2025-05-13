@@ -11,7 +11,7 @@ services:
       - ./mcp_servers:/app/aworld/mcp_servers
     ports:
       - 8080:8080
-    restart: never
+    restart: on-failure:3
     deploy:
       resources:
         limits:
