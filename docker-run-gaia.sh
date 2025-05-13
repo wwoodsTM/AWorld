@@ -5,4 +5,4 @@ if [ ! -d "examples/gaia/GAIA" ]; then
 fi
 
 # Build docker image
-docker compose up -d
+docker compose up --build -d

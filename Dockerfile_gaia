@@ -2,8 +2,6 @@ FROM ghcr.io/open-webui/open-webui:main as base
 
 RUN mkdir /app/aworld
 
-WORKDIR /app/aworld
-
 RUN pip install -U pip pysocks -i https://mirrors.aliyun.com/pypi/simple/
 
 RUN apt-get update && apt-get install -y wget unzip openssh-client nodejs npm
@@ -17,17 +15,14 @@ ENV CHROME_DRIVER_PATH=/app/aworld/chromedriver-linux64/chromedriver
 
 FROM base as runner
 
-COPY . .
+COPY . /app/aworld
 
 # Install AWorld
-RUN pip install -r aworld/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-RUN pip install . -i https://mirrors.aliyun.com/pypi/simple/
+RUN pip install -r /app/aworld/aworld/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+RUN pip install /app/aworld -i https://mirrors.aliyun.com/pypi/simple/
 
 # Install Gaia
-RUN pip install -r examples/gaia/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-
-# Start mcp servers
-RUN pip install mcp-server
+RUN pip install -r /app/aworld/examples/gaia/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # Create GAIA benchmark directory
 RUN mkdir -p /app/aworld/gaia-benchmark/fs && \
