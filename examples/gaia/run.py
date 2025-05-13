@@ -137,7 +137,7 @@ if __name__ == "__main__":
         results: List[Dict[str, Any]] = []
 
     # load blacklist `task_id`
-    if os.path.exists(args.blacklist_file_path):
+    if args.blacklist_file_path and os.path.exists(args.blacklist_file_path):
         with open(args.blacklist_file_path, "r", encoding="utf-8") as f:
             blacklist = set(f.read().splitlines())
     else:
