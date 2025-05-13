@@ -1,0 +1,18 @@
+services:
+  gaia:
+    build:
+      context: .
+      dockerfile: Dockerfile_gaia
+    container_name: gaia
+    env_file:
+      - ./.env
+    volumes:
+      - ./examples:/app/aworld/examples
+      - ./mcp_servers:/app/aworld/mcp_servers
+    ports:
+      - 8080:8080
+    restart: never
+    deploy:
+      resources:
+        limits:
+          memory: 1G
