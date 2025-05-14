@@ -6,29 +6,36 @@ import sys
 import traceback
 import logging
 import os
-import uuid
-logger = logging.getLogger(__name__)
+import json
 
+logger = logging.getLogger(__name__)
 
 class Pipe:
     class Valves(BaseModel):
-        GAIA_MODEL_ID: str = Field(
-            default="claude-3-7-sonnet,gpt_4o",
-            description="Gaia模型ID，多模型名可使用`,`分隔",
-        )
+        pass
 
     def __init__(self):
         self.valves = self.Valves()
         self.data_prefix = "data:"
         self.emitter = None
 
+    def _get_model_config(self):
+        try:
+            model_cfg = os.getenv("GAIA_MODEL_CONFIG")
+            return json.loads(model_cfg)
+        except Exception as e:
+            logger.error(
+                f">>> Gaia Agent: Error loading model config, model_cfg={model_cfg}: {traceback.format_exc()}"
+            )
+            raise e
+
     def pipes(self):
-        models = self.valves.GAIA_MODEL_ID.split(",")
+        models = self._get_model_config()
 
         return [
             {
-                "id": model.strip(),
-                "name": f"gaia_agent@{model.strip()}",
+                "id": model["id"],
+                "name": f"gaia_agent@{model['model']}",
             }
             for model in models
         ]
@@ -44,7 +51,7 @@ class Pipe:
             logger.info(f">>> Gaia Agent: body={body}")
 
             prompt = body["messages"][-1]["content"]
-            model = body["model"]
+            model = body["model"].replace("gaia_agent.", "")
             logger.info(f">>> Gaia Agent: prompt={prompt}, model={model}")
 
             # 准备命令
@@ -52,24 +59,35 @@ class Pipe:
                 sys.executable,
                 "-m",
                 "examples.gaia.gaia_agent_runner",
-                "--provider",
-                "openai",
-                "--model",
-                model,
                 "--prompt",
                 prompt,
             ]
 
-            # cmd = ["ping", "-c", "5", "www.baidu.com"]
-
             # 创建并启动子进程
+            env = os.environ.copy()
+            models = self._get_model_config()
+            selected_model = next((m for m in models if m["id"] == model), None)
+            if not selected_model:
+                logger.warning(f">>> Gaia Agent: Model ID '{model}' not found in configuration!")
+                yield self._wrap_line(f">>> Gaia Agent: Model ID '{model}' not found in configuration!")
+                return
+
+            # Set environment variables based on the selected model configuration
+            env["LLM_PROVIDER"] = selected_model.get("provider")
+            env["LLM_API_KEY"] = selected_model.get("api_key")
+            env["LLM_BASE_URL"] = selected_model.get("base_url")
+            env["LLM_MODEL_NAME"] = selected_model.get("model")
+            env["LLM_TEMPERATURE"] = str(selected_model.get("temperature", 0))
+
+            logger.info(f">>> Gaia Agent: Using model configuration: {selected_model['model']}")
+
             process = await asyncio.subprocess.create_subprocess_exec(
                 *cmd,
                 cwd="/app/aworld",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 stdin=asyncio.subprocess.DEVNULL,
-                env=os.environ.copy(),
+                env=env,
             )
 
             logger.info(f">>> Gaia Agent: process={process}")
@@ -81,20 +99,18 @@ class Pipe:
 
                 line = line.decode("utf-8").rstrip()
                 logger.info(f">>> Gaia Agent: line={line}")
-                yield self._wrap_line(f"{line}\n")
+                yield self._wrap_line(f"{line}")
 
-            # 等待进程结束
             return_code = await process.wait()
-            yield self._wrap_line(f"Process exited with code {return_code}\n")
+            yield self._wrap_line(f"Process exited with code {return_code}")
             await asyncio.sleep(0.1)
 
         except Exception as e:
             emsg = traceback.format_exc()
             logger.error(f">>> Gaia Agent: exception {emsg}")
-            yield self._wrap_line(f"Gaia Agent Error: {emsg}\n")
+            yield self._wrap_line(f"Gaia Agent Error: {emsg}")
 
         finally:
-            # 确保进程被终止
             if process:
                 try:
                     logger.info("Stopping gaia agent process...")
@@ -111,9 +127,9 @@ class Pipe:
                         logger.info("Gaia agent process force killed!")
                 except Exception as e:
                     logger.error(f"Error stopping gaia agent process: {e}")
-            yield self._wrap_line(f"Gaia Task End!")
+            yield self._wrap_line(f"[Done]Gaia Task End!")
 
     def _wrap_line(self, line: str) -> str:
         line = line.replace("<think>", "<_think_>")
         line = line.replace("</think>", "<_think_/>")
-        return line
+        return f"{line}\n"

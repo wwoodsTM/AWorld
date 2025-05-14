@@ -40,17 +40,15 @@ with open("gaia_agent_runner.log", "w") as f:
     f.write(f"Start gaia agent runner!\n")
 
 if __name__ == "__main__":
-    print(f"Start gaia agent runner!")
-    
+    logger.info(f"Start gaia agent runner!")
+
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", type=str, default="openai")
-    parser.add_argument("--model", type=str, default="gpt-4o")
     parser.add_argument("--prompt", type=str, default="")
     args = parser.parse_args()
 
-    logger.info(f"Gaia agent runner parameter: provider={args.provider}, model={args.model}, prompt={args.prompt}")
+    logger.info(f"Gaia agent runner parameter: prompt={args.prompt}")
 
     load_dotenv()
 
@@ -59,10 +57,10 @@ if __name__ == "__main__":
     logger.info(f"Total questions: {len(full_dataset)}")
 
     agent_config = AgentConfig(
-        llm_provider="openai",
-        llm_model_name=os.getenv("LLM_MODEL_NAME", "gpt-4o"),
-        llm_api_key=os.getenv("LLM_API_KEY", "your_openai_api_key"),
-        llm_base_url=os.getenv("LLM_BASE_URL", "your_openai_base_url"),
+        llm_provider=os.getenv("LLM_PROVIDER"),
+        llm_model_name=os.getenv("LLM_MODEL_NAME"),
+        llm_api_key=os.getenv("LLM_API_KEY"),
+        llm_base_url=os.getenv("LLM_BASE_URL"),
     )
     super_agent = Agent(
         conf=agent_config,
@@ -126,6 +124,6 @@ if __name__ == "__main__":
             "is_correct": question_scorer(answer, data_item["Final answer"]),
         }
 
-        logger.info(f"Result: {new_result}")
+        logger.info(f"Final Result: {new_result}")
     except Exception as e:
         logger.error(f"Error processing {args.prompt}: {traceback.format_exc()}")

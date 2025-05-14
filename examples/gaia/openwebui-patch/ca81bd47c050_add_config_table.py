@@ -8,9 +8,9 @@ Create Date: 2024-08-25 15:26:35.241684
 
 from typing import Sequence, Union
 
-from fastapi import params
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = "ca81bd47c050"
@@ -41,29 +41,50 @@ def upgrade():
 def downgrade():
     op.drop_table("config")
 
+
 def init_gaia_config():
     import json
+    import time
     prompt_suggestions = None
-    with(open("/app/aworld/examples/gaia/GAIA/2023/validation/metadata.jsonl", 'r', 'utf-8')) as f:
+    with open(
+        "/app/aworld/examples/gaia/GAIA/2023/validation/metadata.jsonl",
+        "r",
+        encoding="utf-8",
+    ) as f:
         data_set = [json.loads(line) for line in f]
 
-        prompts = [
-            {"title": [i["Question"], i["task_id"]], "content": {"task_id": i["task_id"], "Question": i["Question"]}}
+        prompt_suggestions = [
+            {
+                "title": [
+                    i["task_id"],
+                    i["Question"][:100],
+                ],
+                "content": json.dumps({"task_id": i["task_id"]}),
+            }
             for i in data_set
         ]
-        prompt_suggestions = json.dumps(prompts, ensure_ascii=False, indent=None)
 
-    op.execute(
-        f"INSERT INTO config (id, data, version) VALUES (1, %s, 0)",
-        params=(prompt_suggestions)
+    conn = op.get_bind()
+    conn.execute(
+        text("INSERT INTO config (id, data, version) VALUES (1, :data, 0)"),
+        {"data": json.dumps({"ui": {"prompt_suggestions": prompt_suggestions}})},
     )
     print(f">>> patch gaia_agent: add prompt_suggestions success!")
 
     func_content = None
-    with(open("/app/aworld/examples/gaia/openwebui-patch/gaia_agent.py", 'r', 'utf-8')) as f:
+    with open(
+        "/app/aworld/examples/gaia/openwebui-patch/gaia_agent.py", "r", encoding="utf-8"
+    ) as f:
         func_content = f.read()
-    op.execute(
-        f"INSERT INTO function (id, user_id, name, type, content, meta, is_activate, is_global) VALUES('gaia_agent', '00000000-0000-0000-0000-000000000000', 'pipe', %s, %s,1,1)",
-        params={func_content, '{"description": "gaia_agent", "manifest": {}}'},
+    conn.execute(
+        text(
+            "INSERT INTO function (id, user_id, name, type, content, meta, created_at, updated_at, is_active, is_global) VALUES('gaia_agent', '00000000-0000-0000-0000-000000000000', 'gaia_agent', 'pipe', :content, :meta, :created_at, :updated_at, 1, 0)"
+        ),
+        {
+            "content": func_content,
+            "meta": '{"description": "gaia_agent", "manifest": {}}',
+            "created_at": int(time.time()),
+            "updated_at": int(time.time()),
+        },
     )
     print(f">>> patch gaia_agent: add gaia_agent function success!")
