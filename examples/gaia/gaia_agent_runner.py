@@ -42,9 +42,6 @@ with open("gaia_agent_runner.log", "w") as f:
 if __name__ == "__main__":
     print(f"Start gaia agent runner!")
     
-    with open("gaia_agent_runner.log", "w") as f:
-        f.write(f"Start gaia agent runner!\n")
-    
     import argparse
 
     parser = argparse.ArgumentParser()
