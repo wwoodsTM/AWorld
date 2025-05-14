@@ -6,13 +6,15 @@ services:
     container_name: gaia
     env_file:
       - ./.env
+      - ./.env.gaia
     volumes:
       - ./examples:/app/aworld/examples
       - ./mcp_servers:/app/aworld/mcp_servers
+      - ./.data:/app/backend/data
     ports:
       - 8080:8080
     restart: on-failure:3
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 8G
