@@ -207,3 +207,5 @@ yarl==1.20.0
 youtube-transcript-api==1.0.3
 yt-dlp==2025.4.30
 zstandard==0.23.0
+
+pygame
