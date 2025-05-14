@@ -9,9 +9,11 @@ services:
       - ./examples/gaia/openwebui-patch/ca81bd47c050_add_config_table.py:/app/backend/open_webui/migrations/versions/ca81bd47c050_add_config_table.py
       - ./examples:/app/aworld/examples
       - ./mcp_servers:/app/aworld/mcp_servers
-      - ./.data:/app/backend/data
+      # - ./.data:/app/backend/data
+    env_file:
+      - ./.env
     ports:
-      - 127.0.0.8080:8080
+      - 127.0.0.1:8080:8080
     restart: on-failure:3
     deploy:
       resources:

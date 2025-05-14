@@ -1,7 +1,8 @@
 
-# Download GAIA dataset
-if [ ! -d "examples/gaia/GAIA" ]; then
-    git clone git@hf.co:datasets/gaia-benchmark/GAIA examples/gaia/GAIA
+# Check your env file
+if [ ! -f ".env" ]; then
+    echo "Please add your own .env config file from template .env.template before running gaia test!"
+    exit 1
 fi
 
 # Build docker image
