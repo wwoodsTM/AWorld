@@ -1,5 +1,4 @@
 import asyncio
-import time
 from typing import AsyncGenerator, Callable, Awaitable
 from pydantic import BaseModel, Field
 import sys
@@ -7,7 +6,7 @@ import traceback
 import logging
 import os
 import json
-
+import re
 logger = logging.getLogger(__name__)
 
 class Pipe:
@@ -54,7 +53,6 @@ class Pipe:
             model = body["model"].replace("gaia_agent.", "")
             logger.info(f">>> Gaia Agent: prompt={prompt}, model={model}")
 
-            # 准备命令
             cmd = [
                 sys.executable,
                 "-m",
@@ -63,7 +61,6 @@ class Pipe:
                 prompt,
             ]
 
-            # 创建并启动子进程
             env = os.environ.copy()
             models = self._get_model_config()
             selected_model = next((m for m in models if m["id"] == model), None)
@@ -72,7 +69,6 @@ class Pipe:
                 yield self._wrap_line(f">>> Gaia Agent: Model ID '{model}' not found in configuration!")
                 return
 
-            # Set environment variables based on the selected model configuration
             env["LLM_PROVIDER"] = selected_model.get("provider")
             env["LLM_API_KEY"] = selected_model.get("api_key")
             env["LLM_BASE_URL"] = selected_model.get("base_url")
@@ -99,16 +95,21 @@ class Pipe:
 
                 line = line.decode("utf-8").rstrip()
 
-                if (
-                    " - __main__ - " in line
-                    or "- [agent] " in line
-                    or "ActionModel" in line
-                    or "- INFO - step:" in line
-                ):
+                if re.search(r"\d{4}-\d{2}-\d{2}", line) : 
+                    if (
+                        " - __main__ - " in line
+                        or "- [agent] " in line
+                        or "ActionModel" in line
+                        or "- INFO - step:" in line
+                        or "- INFO -  mcp observation:" in line
+                    ):
+                        logger.info(f">>> Gaia Agent: line={line}")
+                        yield self._wrap_line(f"{line}")
+                    else:
+                        logger.info(f">>> Gaia Agent: ignore line={line}")
+                else:
                     logger.info(f">>> Gaia Agent: line={line}")
                     yield self._wrap_line(f"{line}")
-                else:
-                    logger.info(f">>> Gaia Agent: ignore line={line}")
 
             return_code = await process.wait()
             yield self._wrap_line(f"Process exited with code {return_code}")

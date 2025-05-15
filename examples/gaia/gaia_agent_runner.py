@@ -36,9 +36,6 @@ logger = logging.getLogger(__name__)
 if not os.path.exists(os.getenv("LOG_FILE_PATH")):
     os.makedirs(os.getenv("LOG_FILE_PATH"))
 
-with open("gaia_agent_runner.log", "w") as f:
-    f.write(f"Start gaia agent runner!\n")
-
 if __name__ == "__main__":
     logger.info(f"Start gaia agent runner!")
 
@@ -48,13 +45,10 @@ if __name__ == "__main__":
     parser.add_argument("--prompt", type=str, default="")
     args = parser.parse_args()
 
-    logger.info(f"Gaia agent runner parameter: prompt={args.prompt}")
-
     load_dotenv()
 
     gaia_dataset_path = os.getenv("GAIA_DATASET_PATH", "./GAIA/2023/test")
     full_dataset = load_dataset_meta_dict(gaia_dataset_path)
-    logger.info(f"Total questions: {len(full_dataset)}")
 
     agent_config = AgentConfig(
         llm_provider=os.getenv("LLM_PROVIDER"),
@@ -88,12 +82,12 @@ if __name__ == "__main__":
     try:
         prompt = args.prompt
 
-        logger.info(f"Start to process: {prompt}")
-
         json_data = json.loads(prompt)
         task_id = json_data["task_id"]
 
         data_item = full_dataset[task_id]
+
+        logger.info(f"Start to process: {data_item}")
 
         question = add_file_path(
             data_item, file_path=gaia_dataset_path

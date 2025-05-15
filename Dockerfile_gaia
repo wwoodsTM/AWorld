@@ -34,8 +34,9 @@ RUN mkdir -p /app/aworld/gaia-benchmark/fs && \
     mkdir -p /app/aworld/gaia-benchmark/logs
 
 # Config Env
-# RUN npx playwright install --with-deps --only-shell
+RUN npx playwright install chrome
 
+ENV HF_HUB_OFFLINE=1
 ENV ENABLE_OLLAMA_API=False
 ENV ENABLE_OPENAI_API=False
 ENV ENABLE_DIRECT_CONNECTIONS=False

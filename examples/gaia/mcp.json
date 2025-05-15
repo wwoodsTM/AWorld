@@ -63,7 +63,8 @@
         "ms-playwright": {
             "command": "npx",
             "args": [
-                "@playwright/mcp@latest"
+                "@playwright/mcp@latest",
+                "--no-sandbox"
             ],
             "env": {
                 "PLAYWRIGHT_TIMEOUT": "120000"
