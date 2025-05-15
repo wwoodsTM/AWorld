@@ -5,5 +5,12 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# Check GAIA dataset
+if [ ! -d "examples/gaia/gaia_dataset" ]; then
+    echo "Please download GAIA dataset from https://huggingface.co/datasets/gaia-benchmark/GAIA and put it in examples/gaia/GAIA"
+    echo "git clone git@hf.co:datasets/gaia-benchmark/GAIA examples/gaia/GAIA"
+    exit 1
+fi
+
 # Build docker image
 docker compose up --build -d

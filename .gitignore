@@ -126,4 +126,4 @@ package.json
 package-lock.json
 
 .data/
-examples/gaia/GAIA/.git*
+examples/gaia/GAIA/
