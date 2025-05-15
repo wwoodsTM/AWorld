@@ -1,4 +1,5 @@
-FROM ghcr.io/open-webui/open-webui:main as base
+# FROM ghcr.io/open-webui/open-webui:main as base
+FROM --platform=linux/amd64 ghcr.io/open-webui/open-webui:main as base
 
 RUN mkdir /app/aworld
 
@@ -32,9 +33,8 @@ COPY . /app/aworld
 RUN mkdir -p /app/aworld/gaia-benchmark/fs && \
     mkdir -p /app/aworld/gaia-benchmark/logs
 
-# # Patch OpenWebUI
-# RUN cd /app/aworld/examples/gaia/openwebui-patch && \
-#     python patch_openwebui.py
+# Config Env
+# RUN npx playwright install --with-deps --only-shell
 
 ENV ENABLE_OLLAMA_API=False
 ENV ENABLE_OPENAI_API=False

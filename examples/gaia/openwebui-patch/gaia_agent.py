@@ -98,8 +98,17 @@ class Pipe:
                     break
 
                 line = line.decode("utf-8").rstrip()
-                logger.info(f">>> Gaia Agent: line={line}")
-                yield self._wrap_line(f"{line}")
+
+                if (
+                    " - __main__ - " in line
+                    or "- [agent] " in line
+                    or "ActionModel" in line
+                    or "- INFO - step:" in line
+                ):
+                    logger.info(f">>> Gaia Agent: line={line}")
+                    yield self._wrap_line(f"{line}")
+                else:
+                    logger.info(f">>> Gaia Agent: ignore line={line}")
 
             return_code = await process.wait()
             yield self._wrap_line(f"Process exited with code {return_code}")
