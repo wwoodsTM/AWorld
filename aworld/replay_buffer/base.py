@@ -1,13 +1,15 @@
 import random
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, TypeVar, Union
+from typing import Dict, List, TypeVar
 from abc import ABC, abstractmethod
 
 from aworld.core.common import ActionModel, Observation
+from aworld.replay_buffer.query_filter import QueryCondition, QueryFilter
+from aworld.logs.util import logger
 
 T = TypeVar('T')
-QueryCondition = Union[Dict[str, Any], List[Dict[str, any]]]
+
 
 @dataclass
 class Experience:
@@ -16,9 +18,9 @@ class Experience:
     '''
     state: Observation
     action: ActionModel
-    reward_t: float
-    adv_t: float
-    v_t: float
+    reward_t: float = None
+    adv_t: float = None
+    v_t: float = None
 
 
 @dataclass
@@ -30,7 +32,7 @@ class ExpMeta:
     task_name: str
     agent_id: str
     step: int
-    timestamp: float
+    execute_time: float
 
 
 @dataclass
@@ -65,7 +67,7 @@ class Storage(ABC):
         '''
 
     @abstractmethod
-    def size(self, query_contion: QueryCondition) -> int:
+    def size(self, query_condition: QueryCondition = None) -> int:
         '''
         Get the size of the storage.
         Returns:
@@ -73,7 +75,7 @@ class Storage(ABC):
         '''
 
     @abstractmethod
-    def get_paginated(self, page: int, page_size: int, query_contion: QueryCondition) -> List[DataRow]:
+    def get_paginated(self, page: int, page_size: int, query_condition: QueryCondition = None) -> List[DataRow]:
         '''
         Get paginated data from the storage.
         Args:
@@ -84,7 +86,7 @@ class Storage(ABC):
         '''
 
     @abstractmethod
-    def get_all(self) -> List[DataRow]:
+    def get_all(self, query_condition: QueryCondition = None) -> List[DataRow]:
         '''
         Get all data from the storage.
         Returns:
@@ -92,7 +94,7 @@ class Storage(ABC):
         '''
 
     @abstractmethod
-    def get_by_task_ids(self, task_id: str) -> List[DataRow]:
+    def get_by_task_id(self, task_id: str) -> List[DataRow]:
         '''
         Get data by task_id from the storage.
         Args:
@@ -121,36 +123,44 @@ class Sampler(ABC):
 
     def sorted_by_step(self, task_experience: List[DataRow]) -> List[DataRow]:
         '''
-        Sort the task experience by step.
+        Sort the task experience by step and execute_time.
         Args:
             task_experience (List[DataRow]): List of task experience.
         Returns:
-            List[DataRow]: List of task experience sorted by step.
+            List[DataRow]: List of task experience sorted by step and execute_time.
         '''
-        return sorted(task_experience, key=lambda x: x.step)
+        return sorted(task_experience, key=lambda x: (x.exp_meta.step, x.exp_meta.execute_time))
 
-    def sample(self, storage: Storage, batch_size: int) -> Dict[str, List[DataRow]]:
+    def sample(self,
+               storage: Storage,
+               batch_size: int,
+               query_condition: QueryCondition = None) -> Dict[str, List[DataRow]]:
         '''
         Sample data from the storage.
         Args:
             storage (Storage): Storage to sample from.
             batch_size (int): Number of data to sample.
+            query_condition (QueryCondition, optional): Query condition. Defaults to None.
         Returns:
             Dict[str, List[DataRow]]: Dictionary of sampled data.
             The key is the task_id and the value is the list of data.
             The list of data is sorted by step.
         '''
-        task_ids = self.sample_task_ids(storage, batch_size)
+        task_ids = self.sample_task_ids(storage, batch_size, query_condition)
         raws = storage.get_bacth_by_task_ids(task_ids)
         return {task_id: self.sorted_by_step(raws) for task_id, raws in raws.items()}
 
     @abstractmethod
-    def sample_task_ids(self, storage: Storage, batch_size: int) -> List[str]:
+    def sample_task_ids(self,
+                        storage: Storage,
+                        batch_size: int,
+                        query_condition: QueryCondition = None) -> List[str]:
         '''
         Sample task_ids from the storage.
         Args:
             storage (Storage): Storage to sample from.
             batch_size (int): Number of task_ids to sample.
+            query_condition (QueryCondition, optional): Query condition. Defaults to None.
         Returns:
             List[str]: List of task_ids.
         '''
@@ -206,26 +216,32 @@ class InMemoryStorage(Storage):
         for data in data_batch:
             self.add(data)
 
-    def size(self) -> int:
-        return sum([len(data) for data in self._data.values()])
+    def size(self, query_condition: QueryCondition = None) -> int:
+        return len(self.get_all(query_condition))
 
-    def get_paginated(self, page: int, page_size: int) -> List[DataRow]:
+    def get_paginated(self, page: int, page_size: int, query_condition: QueryCondition = None) -> List[DataRow]:
         if page < 1:
             raise ValueError("Page must be greater than 0")
         if page_size < 1:
             raise ValueError("Page size must be greater than 0")
-        all_data = self.get_all()
+        all_data = self.get_all(query_condition)
         start_index = (page - 1) * page_size
         end_index = start_index + page_size
         return all_data[start_index:end_index]
 
-    def get_all(self) -> List[DataRow]:
+    def get_all(self, query_condition: QueryCondition = None) -> List[DataRow]:
         all_data = []
+        query_filter = None
+        if query_condition:
+            query_filter = QueryFilter(query_condition)
         for data in self._data.values():
-            all_data.extend(data)
+            if query_filter:
+                all_data.extend(query_filter.filter(data))
+            else:
+                all_data.extend(data)
         return all_data
 
-    def get_by_task_ids(self, task_id: str) -> List[DataRow]:
+    def get_by_task_id(self, task_id: str) -> List[DataRow]:
         return self._data.get(task_id, [])
 
     def get_bacth_by_task_ids(self, task_ids: List[str]) -> Dict[str, List[DataRow]]:
@@ -241,10 +257,13 @@ class RandomSample(Sampler):
     Randomly sample data from the storage.
     '''
 
-    def sample_task_ids(self, storage: Storage, batch_size: int) -> List[str]:
+    def sample_task_ids(self,
+                        storage: Storage,
+                        batch_size: int,
+                        query_condition: QueryCondition = None) -> List[str]:
         total_size = storage.size()
         if total_size <= batch_size:
-            return storage.get_all()
+            return storage.get_all(query_condition)
 
         sampled_task_ids = set()
         page_size = min(100, batch_size * 2)
@@ -255,7 +274,8 @@ class RandomSample(Sampler):
                 [p for p in range(1, total_pages+1) if p not in visited_pages])
             visited_pages.add(page)
 
-            current_page = storage.get_paginated(page, page_size)
+            current_page = storage.get_paginated(
+                page, page_size, query_condition)
             if not current_page:
                 continue
             current_page_task_ids = set(
@@ -263,7 +283,7 @@ class RandomSample(Sampler):
             sample_count = min(len(current_page_task_ids),
                                batch_size - len(sampled_task_ids))
             sampled_task_ids.update(random.sample(
-                current_page_task_ids, sample_count))
+                list(current_page_task_ids), sample_count))
 
         return list(sampled_task_ids)
 
@@ -306,133 +326,13 @@ class ReplayBuffer:
 
     def sample_and_convert(self,
                            sampler: Sampler = RandomSample(),
+                           query_condition: QueryCondition = None,
                            converter: Converter = DefaultConverter(),
                            batch_size: int = 1000) -> List[T]:
         '''
         Sample data from the replay buffer and convert to dataset row.
         DefaultConverter return List[DataRow]
         '''
-
-        sampled_data = sampler.sample(self._storage, batch_size)
+        sampled_data = sampler.sample(
+            self._storage, batch_size, query_condition)
         return [converter.to_dataset_row(task_experiences) for task_experiences in sampled_data.values()]
-
-class QueryBuilder:
-    '''
-    Query builder for replay buffer. result example:
-    {
-        "and": [
-            {"field": "field1", "value": "value1", "op": "eq"}, 
-            {"or": [{"field": "field2", "value": "value2", "op": "eq"}, {"field": "field3", "value": "value3", "op": "eq"}]}
-        ]
-    }
-    '''
-
-    def __init__(self) -> None:
-        self.conditions: List[Dict[str, any]] = []
-        self.logical_ops: List[str] = []
-
-    def eq(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "eq"})
-        return self
-
-    def ne(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "ne"})
-        return self
-
-    def gt(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "gt"})
-        return self
-
-    def gte(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "gte"})
-        return self
-
-    def lt(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "lt"})
-        return self
-
-    def lte(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "lte"})
-        return self
-
-    def in_(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "in"})
-        return self
-
-    def not_in(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append(
-            {"field": field, "value": value, "op": "not_in"})
-        return self
-
-    def like(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "value": value, "op": "like"})
-        return self
-
-    def not_like(self, field: str, value: any) -> 'QueryBuilder':
-        self.conditions.append(
-            {"field": field, "value": value, "op": "not_like"})
-        return self
-
-    def is_null(self, field: str) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "op": "is_null"})
-        return self
-
-    def is_not_null(self, field: str) -> 'QueryBuilder':
-        self.conditions.append({"field": field, "op": "is_not_null"})
-        return self
-
-    def and_(self) -> 'QueryBuilder':
-        self.logical_ops.append("and")
-        return self
-
-    def or_(self) -> 'QueryBuilder':
-        self.logical_ops.append("or")
-        return self
-
-    def nested(self, builder: 'QueryBuilder') -> 'QueryBuilder':
-        self.conditions.append({"nested": builder.build()})
-        return self
-
-    def build(self) -> QueryCondition:
-        conditions = self.conditions  # all conditions（including nested）
-        operators = self.logical_ops
-
-        # Validate condition and operator counts (n conditions need n-1 operators)
-        if len(operators) != len(conditions) - 1:
-            raise ValueError("Mismatch between condition and operator counts")
-
-        # Use stack to handle operator precedence (simplified version supporting and/or)
-        stack: List[Union[Dict[str, any], str]] = []
-
-        for i, item in enumerate(conditions):
-            if i == 0:
-                # First element goes directly to stack (condition or nested)
-                stack.append(item)
-                continue
-
-            # Pop stack top as left operand
-            left = stack.pop()
-            op = operators[i-1]       # Current operator (and/or)
-            right = item              # Right operand (current condition)
-
-            # Build logical expression: {op: [left, right]}
-            expr = {op: [left, right]}
-            # Push result back to stack for further operations
-            stack.append(expr)
-
-        # Process nested conditions (recursive unfolding)
-        def process_nested(cond: any) -> any:
-            if isinstance(cond, dict):
-                if "nested" in cond:
-                    # Recursively process sub-conditions
-                    return process_nested(cond["nested"])
-                # Recursively process child elements
-                return {k: process_nested(v) for k, v in cond.items()}
-            elif isinstance(cond, list):
-                return [process_nested(item) for item in cond]
-            return cond
-
-        # Final result: only one element left in stack, return after processing nested
-        result = stack[0] if stack else None
-        return process_nested(result) if result else None
-
