@@ -1,4 +1,5 @@
 import random
+import re
 import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, TypeVar
@@ -121,6 +122,28 @@ class Sampler(ABC):
     Sample data from the storage.
     '''
 
+    def sample(self,
+               storage: Storage,
+               batch_size: int,
+               query_condition: QueryCondition = None) -> List[DataRow]:
+        '''
+        Sample data from the storage.
+        Args:
+            storage (Storage): Storage to sample from.
+            batch_size (int): Number of data to sample.
+            query_condition (QueryCondition, optional): Query condition. Defaults to None.
+        Returns:
+            List[DataRow] 
+        '''
+
+
+class TaskSampler(Sampler):
+    '''
+    Sample task data from storage, returns Dict[str, List[DataRow]] where:
+    - key is task_id
+    - value is list of task all data rows 
+    '''
+
     def sorted_by_step(self, task_experience: List[DataRow]) -> List[DataRow]:
         '''
         Sort the task experience by step and execute_time.
@@ -134,7 +157,14 @@ class Sampler(ABC):
     def sample(self,
                storage: Storage,
                batch_size: int,
-               query_condition: QueryCondition = None) -> Dict[str, List[DataRow]]:
+               query_condition: QueryCondition = None) -> List[DataRow]:
+        task_ids = self.sample_task_ids(storage, batch_size, query_condition)
+        return storage.get_bacth_by_task_ids(task_ids)
+
+    def sample_tasks(self,
+                     storage: Storage,
+                     batch_size: int,
+                     query_condition: QueryCondition = None) -> Dict[str, List[DataRow]]:
         '''
         Sample data from the storage.
         Args:
@@ -252,7 +282,7 @@ class InMemoryStorage(Storage):
         self._fifo_queue = []
 
 
-class RandomSample(Sampler):
+class RandomTaskSample(TaskSampler):
     '''
     Randomly sample data from the storage.
     '''
@@ -324,15 +354,28 @@ class ReplayBuffer:
             raise ValueError("Data batch is required")
         self._storage.add_batch(data_batch)
 
-    def sample_and_convert(self,
-                           sampler: Sampler = RandomSample(),
-                           query_condition: QueryCondition = None,
-                           converter: Converter = DefaultConverter(),
-                           batch_size: int = 1000) -> List[T]:
+    def sample_task(self,
+                    sampler: TaskSampler = RandomTaskSample(),
+                    query_condition: QueryCondition = None,
+                    converter: Converter = DefaultConverter(),
+                    batch_size: int = 1000) -> List[T]:
+        '''
+        Sample Task from the replay buffer and convert to dataset row.
+        DefaultConverter return List[DataRow]
+        '''
+        sampled_task = sampler.sample_tasks(
+            self._storage, batch_size, query_condition)
+        return [converter.to_dataset_row(task_experiences) for task_experiences in sampled_task.values()]
+
+    def sample(self,
+               sampler: Sampler = RandomTaskSample(),
+               query_condition: QueryCondition = None,
+               converter: Converter = DefaultConverter(),
+               batch_size: int = 1000) -> List[T]:
         '''
         Sample data from the replay buffer and convert to dataset row.
         DefaultConverter return List[DataRow]
         '''
         sampled_data = sampler.sample(
             self._storage, batch_size, query_condition)
-        return [converter.to_dataset_row(task_experiences) for task_experiences in sampled_data.values()]
+        return converter.to_dataset_row(sampled_data)

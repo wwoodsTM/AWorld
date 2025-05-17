@@ -34,7 +34,7 @@ def read_processing_by_task(replay_buffer: ReplayBuffer, task_id: str):
     while True:
         try:
             query_condition = QueryBuilder().eq("exp_meta.task_id", task_id).build()
-            data = replay_buffer.sample_and_convert(
+            data = replay_buffer.sample_task(
                 query_condition=query_condition, batch_size=2)
             logger.info(f"read data of task[{task_id}]: {data}")
         except Exception as e:
@@ -48,7 +48,7 @@ def read_processing_by_agent(replay_buffer: ReplayBuffer, agent_id: str):
     while True:
         try:
             query_condition = QueryBuilder().eq("exp_meta.agent_id", agent_id).build()
-            data = replay_buffer.sample_and_convert(
+            data = replay_buffer.sample_task(
                 query_condition=query_condition, batch_size=2)
             logger.info(f"read data of agent[{agent_id}]: {data}")
         except Exception as e:
