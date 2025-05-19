@@ -207,8 +207,10 @@ class InMemorySpanExporter(SpanExporter):
             self._storage.add_span(span)
             span_model_list.append(SpanModel.from_span(span).model_dump())
 
-        output_dir = os.path.abspath("./trace_data/replays")
-        ReplayBufferExporter.replay_buffer_exporter(spans=span_model_list, output_dir=output_dir)
+        if (os.getenv("EXPORT_REPLAY_TRACE_TO_FILES") or "true").lower() == "true":
+            replay_dataset_path = os.getenv("REPLAY_TRACE_DATASET_PATH", "./trace_data/replays")
+            output_dir = os.path.abspath(replay_dataset_path)
+            ReplayBufferExporter.replay_buffer_exporter(spans=span_model_list, output_dir=output_dir)
 
     def shutdown(self):
         pass
