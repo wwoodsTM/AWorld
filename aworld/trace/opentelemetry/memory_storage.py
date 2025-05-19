@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, Union
 from opentelemetry.sdk.trace import Span, SpanContext
 from opentelemetry.sdk.trace.export import SpanExporter
 from aworld.logs.util import logger
+from aworld.trace.rl_trace_processor import ReplayBufferExporter
 
 class SpanStatus(BaseModel):
     code: str = "UNSET"
@@ -201,8 +202,13 @@ class InMemorySpanExporter(SpanExporter):
         self._storage = storage
 
     def export(self, spans):
+        span_model_list = []
         for span in spans:
             self._storage.add_span(span)
+            span_model_list.append(SpanModel.from_span(span).model_dump())
+
+        output_dir = os.path.abspath("./trace_data/replays")
+        ReplayBufferExporter.replay_buffer_exporter(spans=span_model_list, output_dir=output_dir)
 
     def shutdown(self):
         pass
