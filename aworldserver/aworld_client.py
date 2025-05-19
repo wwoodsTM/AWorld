@@ -1,10 +1,8 @@
-import asyncio
-import uuid
 from typing import Optional, Any, AsyncGenerator
 
+from aworld.models.llm import acall_llm_model, get_llm_model
 from aworld.models.model_response import ModelResponse
 from pydantic import BaseModel, Field
-from aworld.models.llm import acall_llm_model, get_llm_model
 
 
 class AworldTask(BaseModel):
@@ -21,9 +19,7 @@ class AworldTaskResult(BaseModel):
 
 class AworldTaskClient(BaseModel):
     """
-    分布式任务提交客户端
-
-
+    AworldTaskClient
     """
     know_hosts: list[str] = Field(default_factory=list, description="aworldserver list")
     tasks: list[AworldTask] = Field(default_factory=list, description="submitted task list")
@@ -46,7 +42,7 @@ class AworldTaskClient(BaseModel):
         
     async def _submit_task(self, aworld_server, task: AworldTask):
         try:
-            print(f"submit task to {aworld_server}")    
+            print(f"submit task#{task.task_id} to {aworld_server}")
 
             return await self._submit_task_to_server(aworld_server, task)
         except Exception as e:
@@ -54,7 +50,7 @@ class AworldTaskClient(BaseModel):
             return None
 
     async def _submit_task_to_server(self, aworld_server, task: AworldTask):
-        # 构造llm模型参数
+        # build params
         llm_model = get_llm_model(
             llm_provider="openai",
             model_name=task.agent_id,
@@ -64,7 +60,7 @@ class AworldTaskClient(BaseModel):
         messages = [
             {"role": "user", "content": task.agent_input}
         ]
-        # 调用acall_llm_model
+        #call_llm_model
         data = await acall_llm_model(llm_model, messages, stream=True)
         result_data = ""
         if isinstance(data, AsyncGenerator):
@@ -80,7 +76,6 @@ class AworldTaskClient(BaseModel):
         return AworldTaskResult(server_host=aworld_server, data=result_data)
 
     async def get_task_state(self, task_id: str):
-        # 修复dict.get调用
         if not isinstance(self.task_states, dict):
             self.task_states = dict(self.task_states)
         return self.task_states.get(task_id, None)
