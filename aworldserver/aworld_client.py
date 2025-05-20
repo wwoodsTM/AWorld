@@ -61,7 +61,11 @@ class AworldTaskClient(BaseModel):
             {"role": "user", "content": task.agent_input}
         ]
         #call_llm_model
-        data = await acall_llm_model(llm_model, messages, stream=True)
+        data = await acall_llm_model(llm_model, messages, stream=True, user={
+            "user_id": task.user_id,
+            "session_id": task.session_id,
+            "task_id": task.task_id
+        })
         result_data = ""
         if isinstance(data, AsyncGenerator):
             async for item in data:

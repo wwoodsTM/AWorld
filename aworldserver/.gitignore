@@ -6,6 +6,7 @@ __pycache__
 pipelines/*
 !pipelines/.gitignore
 .DS_Store
+datasets/gaia_dataset/**
 
 aworldspace/agents/**/*.json
 

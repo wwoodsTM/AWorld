@@ -82,6 +82,27 @@ You can modify the `docker-compose.yaml` file to adjust the number of server ins
        # Run batch processing for questions 1-5
        asyncio.run(_batch_run_gaia_task(1, 5))
    ```
+   c. user curl
+```shell
+curl http://localhost:9299/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer 0p3n-w3bu!" \
+  -d '{
+  "model": "gaia_agent",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "5"
+        }
+      ]
+    }
+  ]
+}'
+
+```
 
 
 ## 🔑 Key Features

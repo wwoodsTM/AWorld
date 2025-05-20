@@ -35,9 +35,10 @@ class AworldBaseAgent:
         try:
             print(f"body is {body}")
             print(f"user_message is {user_message}")
-            print(f"body is {body}")
 
-            chat_id = str(uuid.uuid4())
+            task_id = str(uuid.uuid4())
+            if body['user']:
+                task_id = body['user']['task_id']
             user_input = await self.get_custom_input(user_message, model_id, messages, body)
 
             # build agent task read from config
@@ -45,10 +46,10 @@ class AworldBaseAgent:
                                            history_messages=self.get_history_messages())
 
             # return task
-            task = await self.build_task(agent=agent, task_id=chat_id, user_input=user_input, user_message=user_message)
+            task = await self.build_task(agent=agent, task_id=task_id, user_input=user_input, user_message=user_message)
 
             # render output
-            async_generator = await self.parse_task_output(chat_id, task)
+            async_generator = await self.parse_task_output(task_id, task)
 
             return async_generator()
 
@@ -109,6 +110,8 @@ class AworldBaseAgent:
 
     async def build_task(self, agent, task_id, user_input, user_message):
         task = Task(
+            id=task_id,
+            name=task_id,
             input=user_input,
             agent=agent,
             conf=TaskConfig(
