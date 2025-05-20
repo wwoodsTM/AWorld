@@ -40,25 +40,6 @@ ENV CHROME_DRIVER_PATH=/app/chromedriver-linux64/chromedriver
 
 RUN npx playwright install chrome
 
-RUN apt-get update && apt-get install -y \
-  libgstreamer1.0-0 \
-  libgtk-4-1 \
-  libgraphene-1.0-0 \
-  libxslt1.1 \
-  libwoff2-1.0.2 \
-  libvpx7 \
-  libevent-2.1-7 \
-  libopus0 \
-  libgstreamer-plugins-base1.0-0 \
-  libflite1 \
-  libharfbuzz-icu0 \
-  libwebp6 \
-  libenchant-2-2 \
-  libsecret-1-0 \
-  libhyphen0 \
-  libmanette-0.2-0 \
-  x264
-
 
 FROM base as runner
 
