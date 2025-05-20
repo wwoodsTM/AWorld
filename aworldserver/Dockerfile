@@ -38,6 +38,7 @@ RUN cd /app/ && \
     rm chromedriver-linux64.zip
 ENV CHROME_DRIVER_PATH=/app/chromedriver-linux64/chromedriver
 
+RUN npx playwright install chrome
 
 
 FROM base as runner
