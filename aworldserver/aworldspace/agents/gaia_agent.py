@@ -244,7 +244,9 @@ class Pipeline(AworldBaseAgent):
                 "ms-playwright": {
                     "command": "npx",
                     "args": [
-                        "@playwright/mcp@latest"
+                        "@playwright/mcp@latest",
+                        "--no-sandbox",
+                        "--headless"
                     ],
                     "env": {
                         "PLAYWRIGHT_TIMEOUT": "120000",
@@ -291,7 +293,10 @@ class Pipeline(AworldBaseAgent):
                     "args": [
                         "-m",
                         "mcp_servers.download_server"
-                    ]
+                    ],
+                    "env": {
+                        "SESSION_REQUEST_CONNECT_TIMEOUT": "120"
+                    }
                 },
                 "document_server": {
                     "command": "python",
