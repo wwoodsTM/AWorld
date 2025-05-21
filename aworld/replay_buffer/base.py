@@ -37,6 +37,18 @@ class ExpMeta:
 
 
 @dataclass
+class ExpMeta:
+    '''
+    Experience meta data.
+    '''
+    task_id: str
+    task_name: str
+    agent_id: str
+    step: int
+    execute_time: float
+
+
+@dataclass
 class DataRow:
     '''
     Data row for storing data.
