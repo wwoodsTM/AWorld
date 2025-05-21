@@ -50,4 +50,4 @@ async def _batch_run_gaia_task(start_i: int, end_i: int) -> None:
 
 if __name__ == '__main__':
     # Run batch processing for questions 1-5
-    asyncio.run(_batch_run_gaia_task(1, 5))
+    asyncio.run(_batch_run_gaia_task(138, 138))
