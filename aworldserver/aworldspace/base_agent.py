@@ -37,7 +37,7 @@ class AworldBaseAgent:
             print(f"user_message is {user_message}")
 
             task_id = str(uuid.uuid4())
-            if body['user']:
+            if body['user'] and body['user']['task_id']:
                 task_id = body['user']['task_id']
             user_input = await self.get_custom_input(user_message, model_id, messages, body)
 
