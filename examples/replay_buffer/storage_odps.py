@@ -10,12 +10,20 @@ from aworld.replay_buffer.base import (
 )
 from aworld.replay_buffer.query_filter import QueryBuilder
 from aworld.logs.util import logger
+from aworld.replay_buffer.storage.odps import OdpsStorage
 
 
-buffer = ReplayBuffer()
+buffer = ReplayBuffer(storage=OdpsStorage(
+    table_name="adm_aworld_replay_buffer",
+    project="alifin_jtest_dev",
+    endpoint="",
+    access_id="",
+    access_key=""
+))
 
 
 def write_data():
+    rows = []
     for task_id in range(5):
         for i in range(10):
             task_id = f"task_{task_id}"
@@ -33,7 +41,8 @@ def write_data():
                 exp_data=Experience(state=Observation(),
                                     actions=[ActionModel()])
             )
-            buffer.store(row)
+            rows.append(row)
+    buffer.store_batch(rows)
 
 
 def read_data():
@@ -41,7 +50,7 @@ def read_data():
     datas = buffer.sample_task(query_condition=query,
                                sampler=RandomTaskSample(),
                                converter=DefaultConverter(),
-                               batch_size=2)
+                               batch_size=1)
     for data in datas:
         logger.info(f"task_1 data: {data}")
 
@@ -55,5 +64,5 @@ def read_data():
 
 
 if __name__ == "__main__":
-    write_data()
+    # write_data()
     read_data()
