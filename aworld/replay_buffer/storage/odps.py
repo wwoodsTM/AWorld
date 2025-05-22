@@ -135,20 +135,20 @@ class OdpsStorage(Storage):
         return DataRow(
             id=record.id,
             exp_meta=ExpMeta(
-                task_id=record.task_id,
-                task_name=record.task_name,
-                agent_id=record.agent_id,
-                step=record.step,
-                execute_time=record.execute_time,
-                pre_agent=record.pre_agent
+                task_id=record['task_id'],
+                task_name=record['task_name'],
+                agent_id=record['agent_id'],
+                step=record['step'],
+                execute_time=record['execute_time'],
+                pre_agent=record['pre_agent'] if 'pre_agent' in record else None
             ),
             exp_data=Experience(
-                state=parse_obj_as(Observation, json.loads(record.state)),
-                actions=[parse_obj_as(ActionModel, json.loads(item))
-                         for item in json.loads(record.actions)],
-                reward_t=record.reward_t,
-                adv_t=record.adv_t,
-                v_t=record.v_t,
+                state=parse_obj_as(Observation, json.loads(record['state'])),
+                actions=[parse_obj_as(ActionModel, item)
+                         for item in json.loads(record['actions'])],
+                reward_t=record['reward_t'] if 'reward_t' in record else None,
+                adv_t=record['adv_t'] if 'adv_t' in record else None,
+                v_t=record['v_t'] if 'v_t' in record else None,
             )
         )
 
@@ -206,11 +206,11 @@ class OdpsStorage(Storage):
             return rows
 
     def get_by_task_id(self, task_id: str) -> List[DataRow]:
-        query_condition = QueryBuilder().eq("task_id", task_id)
+        query_condition = QueryBuilder().eq("task_id", task_id).build()
         return self.get_all(query_condition)
 
     def get_bacth_by_task_ids(self, task_ids: List[str]) -> Dict[str, List[DataRow]]:
-        query_condition = QueryBuilder().in_("task_id", task_ids)
+        query_condition = QueryBuilder().in_("task_id", task_ids).build()
         sql = self._build_sql(query_condition)
         logger.info(f"get_bacth_by_task_ids sql: {sql}")
         result = {}

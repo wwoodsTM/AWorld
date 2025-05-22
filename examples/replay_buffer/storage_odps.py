@@ -24,24 +24,26 @@ buffer = ReplayBuffer(storage=OdpsStorage(
 
 def write_data():
     rows = []
-    for task_id in range(5):
-        for i in range(10):
-            task_id = f"task_{task_id}"
+    for id in range(5):
+        task_id = f"task_{id+1}"
+        for i in range(5):
             agent_id = f"agent_{i+1}"
-            step = i + 1
-            execute_time = time.time() + i
-            row = DataRow(
-                exp_meta=ExpMeta(
-                    task_id=task_id,
-                    task_name="default_task_name",
-                    agent_id=agent_id,
-                    step=step,
-                    execute_time=execute_time,
-                ),
-                exp_data=Experience(state=Observation(),
-                                    actions=[ActionModel()])
-            )
-            rows.append(row)
+            for j in range(5):
+                step = j + 1
+                execute_time = time.time() + j
+                row = DataRow(
+                    exp_meta=ExpMeta(
+                        task_id=task_id,
+                        task_name="default_task_name",
+                        agent_id=agent_id,
+                        step=step,
+                        execute_time=execute_time,
+                        pre_agent="pre_agent_id"
+                    ),
+                    exp_data=Experience(state=Observation(),
+                                        actions=[ActionModel()])
+                )
+                rows.append(row)
     buffer.store_batch(rows)
 
 
