@@ -28,7 +28,7 @@ class Experience:
     def to_dict(self):
         return {
             "state": self.state,
-            "action": self.action,
+            "actions": self.actions,
             "reward_t": self.reward_t,
             "adv_t": self.adv_t,
             "v_t": self.v_t,
@@ -57,20 +57,6 @@ class ExpMeta:
             "execute_time": self.execute_time,
             "pre_agent": self.pre_agent
         }
-
-
-@dataclass
-class ExpMeta:
-    '''
-    Experience meta data.
-    '''
-    task_id: str
-    task_name: str
-    agent_id: str
-    step: int
-    execute_time: float
-
-
 @dataclass
 class DataRow:
     '''
