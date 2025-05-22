@@ -171,6 +171,15 @@ Task Answer: Time-Parking 2: Parallel Universe
   <video src="https://github.com/user-attachments/assets/84ccf675-08df-47c1-bd0e-416480ad7cff" controls="controls" muted="muted" style="width: 45%;"></video>
 </p>
 
+<iframe width="560" height="315" 
+src="https://www.youtube.com/embed/fwzZn12OsWQ?autoplay=1&mute=1" 
+title="YouTube video player" 
+frameborder="0" 
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+referrerpolicy="strict-origin-when-cross-origin" 
+allowfullscreen>
+</iframe>
+
 ## Framework Architecture
 
 AWorld uses a client-server architecture with three main components:
