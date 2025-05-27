@@ -1,3 +1,4 @@
+import sys
 import streamlit as st
 from dotenv import load_dotenv
 import logging
@@ -16,6 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 def agent_page(trace_id):
+    st.set_page_config(
+        page_title="AWorld Agent",
+        page_icon=":robot_face:",
+        layout="wide",
+    )
+
 
     with st.sidebar:
         agent_list_tab, trace_tab = st.tabs(
@@ -49,9 +56,6 @@ def agent_page(trace_id):
                 st.markdown(prompt)
 
             with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-
                 agent_name = st.session_state.selected_agent
                 agent_path = os.path.join(
                     os.path.dirname(os.path.abspath(__file__)),
@@ -71,8 +75,7 @@ def agent_page(trace_id):
                     st.error("Error importing agent module")
                     return
 
-                Agent = agent_module.Agent
-                agent = Agent()
+                agent = agent_module.AWorldAgent()
 
                 async def markdown_generator():
                     with trace.span("start") as span:
