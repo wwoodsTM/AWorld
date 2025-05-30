@@ -6,7 +6,6 @@ import os
 import traceback
 import utils
 import importlib.util
-import inspect
 import aworld.trace as trace
 from trace_net import generate_trace_graph, generate_trace_graph_full
 
