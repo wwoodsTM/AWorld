@@ -7,12 +7,14 @@ import traceback
 import utils
 import importlib.util
 import aworld.trace as trace
+from aworld.trace.instrumentation.uni_llmmodel import LLMModelInstrumentor
 from trace_net import generate_trace_graph, generate_trace_graph_full
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+LLMModelInstrumentor().instrument()
 
 
 def agent_page(trace_id):
@@ -98,7 +100,7 @@ def agent_page(trace_id):
 
 
 try:
-    agent_page("26b118648c5ee5f90b71dcc61303892b")
+    agent_page("90b46aee9e97eb1cd87f2f85ad478b93")
 except Exception as e:
     logger.error(f">>> Error: {traceback.format_exc()}")
     st.error(f"Error: {str(e)}")

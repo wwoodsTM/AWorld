@@ -74,9 +74,8 @@ def _chat_wrapper(tracer: Tracer):
     return wrapper
 
 
-def _achat_wrapper(tracer: Tracer):
+def _achat_class_wrapper(tracer: Tracer):
 
-    @wrapt.decorator
     async def awrapper(wrapped, instance, args, kwargs):
         model_name = kwargs.get("model", "")
         if not model_name:
@@ -116,6 +115,16 @@ def _achat_wrapper(tracer: Tracer):
         return response
 
     return awrapper
+
+
+def _achat_instance_wrapper(tracer: Tracer):
+
+    @wrapt.decorator
+    async def _awrapper(wrapped, instance, args, kwargs):
+        wrapper_func = _achat_class_wrapper(tracer)
+        return await wrapper_func(wrapped, instance, args, kwargs)
+
+    return _awrapper
 
 
 def record_exception(span, start_time, exception):
@@ -286,7 +295,7 @@ class OpenAIInstrumentor(Instrumentor):
         wrapt.wrap_function_wrapper(
             "openai.resources.chat.completions",
             "AsyncCompletions.create",
-            _achat_wrapper(tracer)
+            _achat_class_wrapper(tracer)
         )
 
     def _instrument(self, **kwargs: Any):
@@ -312,7 +321,7 @@ def wrap_openai(client: Union[openai.OpenAI, openai.AsyncOpenAI]):
             logger.info(
                 f"[{client.__class__}]client.chat.completions.create be warpped")
         if isinstance(client, openai.AsyncOpenAI):
-            awrapper = _achat_wrapper(tracer)
+            awrapper = _achat_instance_wrapper(tracer)
             client.chat.completions.create = awrapper(
                 client.chat.completions.create)
             logger.info(

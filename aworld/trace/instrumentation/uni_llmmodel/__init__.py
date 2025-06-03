@@ -78,9 +78,8 @@ def _completion_wrapper(tracer: Tracer):
     return wrapper
 
 
-def _acompletion_wrapper(tracer: Tracer):
+def _acompletion_class_wrapper(tracer: Tracer):
 
-    @wrapt.decorator
     async def awrapper(wrapped, instance, args, kwargs):
         model_name = instance.provider.model_name
         if not model_name:
@@ -122,6 +121,17 @@ def _acompletion_wrapper(tracer: Tracer):
     return awrapper
 
 
+@wrapt.decorator
+async def _acompletion_instance_wrapper(tracer: Tracer):
+
+    @wrapt.decorator
+    async def _awrapper(wrapped, instance, args, kwargs):
+        wrapper_func = _acompletion_class_wrapper(tracer)
+        return await wrapper_func(wrapped, instance, args, kwargs)
+
+    return _awrapper
+
+
 def is_streaming_response(response):
     return inspect.isgenerator(response)
 
@@ -152,23 +162,30 @@ def record_completion(span,
     response_dict = response_to_dic(response)
     attributes = get_common_attributes_from_response(instance, is_async, False)
     usage = response_dict.get("usage")
-    choices = response_dict.get("choices")
-    prompt_tokens = usage.get("prompt_tokens")
-    completion_tokens = usage.get("completion_tokens")
+    content = response_dict.get("content", "")
+    tool_calls = response_dict.get("tool_calls")
+    prompt_tokens = -1
+    completion_tokens = -1
+    total_tokens = -1
+    if usage:
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        total_tokens = usage.get("total_tokens")
 
     span_attributes = {
         **attributes,
         "llm.prompt_tokens": prompt_tokens,
         "llm.completion_tokens": completion_tokens,
-        "llm.duration": duration
+        "llm.total_tokens": total_tokens,
+        "llm.duration": duration,
+        "llm.content": content
     }
-    span_attributes.update(parse_response_message(choices))
+    span_attributes.update(parse_response_message(tool_calls))
     span.set_attributes(span_attributes)
     record_chat_response_metric(attributes=attributes,
                                 prompt_tokens=prompt_tokens,
                                 completion_tokens=completion_tokens,
-                                duration=duration,
-                                choices=choices
+                                duration=duration
                                 )
 
 
@@ -275,6 +292,54 @@ class LLMModelInstrumentor(Instrumentor):
         return ()
 
     def _instrument(self, **kwargs):
-        tracer_provider = kwargs.get("tracer_provider")
+        tracer_provider = get_tracer_provider_silent()
+        if not tracer_provider:
+            return
         tracer = tracer_provider.get_tracer(
             "aworld.trace.instrumentation.llmmodel")
+
+        wrapt.wrap_function_wrapper(
+            "aworld.models.llm",
+            "LLMModel.completion",
+            _completion_wrapper(tracer=tracer)
+        )
+
+        wrapt.wrap_function_wrapper(
+            "aworld.models.llm",
+            "LLMModel.stream_completion",
+            _completion_wrapper(tracer=tracer)
+        )
+        wrapt.wrap_function_wrapper(
+            "aworld.models.llm",
+            "LLMModel.acompletion",
+            _acompletion_class_wrapper(tracer)
+        )
+
+        wrapt.wrap_function_wrapper(
+            "aworld.models.llm",
+            "LLMModel.astream_completion",
+            _acompletion_class_wrapper(tracer)
+        )
+
+    def _uninstrument(self, **kwargs: Any):
+        pass
+
+
+def wrap_llmmodel(client: LLMModel):
+    try:
+        tracer_provider = get_tracer_provider_silent()
+        if not tracer_provider:
+            return
+        tracer = tracer_provider.get_tracer(
+            "aworld.trace.instrumentation.llmmodel")
+
+        wrapper = _completion_wrapper(tracer)
+        awrapper = _acompletion_instance_wrapper(tracer)
+        client.completion = wrapper(client.completion)
+        client.stream_completion = wrapper(client.stream_completion)
+        client.acompletion = awrapper(client.acompletion)
+        client.astream_completion = awrapper(client.astream_completion)
+    except Exception:
+        logger.warning(traceback.format_exc())
+
+    return client

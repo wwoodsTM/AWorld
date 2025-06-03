@@ -31,10 +31,21 @@ def record_stream_token_usage(complete_response, request_kwargs) -> tuple[int, i
     return (0, 0)
 
 
-def parse_response_message(choices) -> dict:
-    return {}
+def parse_response_message(tool_calls) -> dict:
+    attributes = {}
+    prefix = "llm.completions"
+    if tool_calls:
+        for i, tool_call in enumerate(tool_calls):
+            function = tool_call.get("function")
+            attributes.update(
+                {f"{prefix}.tool_calls.{i}.id": tool_call.get("id")})
+            attributes.update(
+                {f"{prefix}.tool_calls.{i}.name": function.get("name")})
+            attributes.update(
+                {f"{prefix}.tool_calls.{i}.arguments": function.get("arguments")})
+    return attributes
 
 
-def response_to_dic(response) -> dict:
+def response_to_dic(response: ModelResponse) -> dict:
     logger.info(f"completion response= {response}")
-    return {}
+    return response.to_dict()

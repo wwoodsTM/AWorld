@@ -82,7 +82,7 @@ def record_chat_response_metric(attributes,
                                 prompt_tokens,
                                 completion_tokens,
                                 duration,
-                                choices
+                                choices=None
                                 ):
     '''
     Record chat response to metrics
