@@ -121,7 +121,6 @@ def _acompletion_class_wrapper(tracer: Tracer):
     return awrapper
 
 
-@wrapt.decorator
 async def _acompletion_instance_wrapper(tracer: Tracer):
 
     @wrapt.decorator
@@ -329,7 +328,7 @@ def wrap_llmmodel(client: LLMModel):
     try:
         tracer_provider = get_tracer_provider_silent()
         if not tracer_provider:
-            return
+            return client
         tracer = tracer_provider.get_tracer(
             "aworld.trace.instrumentation.llmmodel")
 
