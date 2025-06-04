@@ -15,7 +15,7 @@ _PYDANTIC_VERSION = version("pydantic")
 def should_trace_prompts():
     '''Determine whether it is necessary to record the message
     '''
-    return (os.getenv("should_trace_prompts") or "true").lower() == "true"
+    return (os.getenv("SHOULD_TRACE_PROMPTS") or "true").lower() == "true"
 
 
 def run_async(method):
@@ -68,7 +68,7 @@ async def handle_openai_request(span: Span, kwargs, instance):
 
 def parser_request_params(kwargs, instance):
     attributes = {
-        "llm.systerm": "OpenAI",
+        "llm.system": "OpenAI",
         "llm.model": kwargs.get("model", ""),
         "llm.max_tokens": kwargs.get("max_tokens", ""),
         "llm.temperature": kwargs.get("temperature", ""),
@@ -96,7 +96,7 @@ def is_streaming_response(response):
 
 def parse_openai_response(response, request_kwargs, instance, is_streaming):
     return {
-        "llm.systerm": "OpenAI",
+        "llm.system": "OpenAI",
         "llm.response.model": response.get("model") or request_kwargs.get("model") or None,
         "llm.operation.name": "chat",
         "llm.server.address": _get_openai_base_url(instance),

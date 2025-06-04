@@ -1,5 +1,3 @@
-
-
 import wrapt
 import time
 import inspect
@@ -23,8 +21,10 @@ from aworld.trace.instrumentation.uni_llmmodel.model_response_parse import (
     get_common_attributes_from_response,
     record_stream_token_usage,
     parse_response_message,
-    response_to_dic
+    response_to_dic,
+    handle_request
 )
+from aworld.trace.instrumentation.openai.inout_parse import run_async
 
 from aworld.metrics.template import MetricTemplate
 from aworld.metrics.context_manager import MetricContext
@@ -47,6 +47,7 @@ def _completion_wrapper(tracer: Tracer):
         span = tracer.start_span(
             name=model_name, span_type=SpanType.CLIENT, attributes=span_attributes)
 
+        run_async(handle_request(span, kwargs, instance))
         start_time = time.time()
         try:
             response = wrapped(*args, **kwargs)
@@ -90,6 +91,7 @@ def _acompletion_class_wrapper(tracer: Tracer):
         span = tracer.start_span(
             name=model_name, span_type=SpanType.CLIENT, attributes=span_attributes)
 
+        await handle_request(span, kwargs, instance)
         start_time = time.time()
         try:
             response = await wrapped(*args, **kwargs)

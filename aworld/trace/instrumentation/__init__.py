@@ -22,7 +22,8 @@ class Instrumentor(ABC):
         Instrument the library.
         """
         if self._has_instrumented:
-            logger.warning("Instrumentor has already instrumented, skip")
+            logger.warning(
+                f"Instrumentor[{self.__class__.__name__}] has already instrumented, skip")
             return
 
         if not self._check_dependency_conflicts():
