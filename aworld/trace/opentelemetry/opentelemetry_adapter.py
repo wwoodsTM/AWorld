@@ -346,13 +346,13 @@ def configure_otlp_provider(
         elif backend == "memory":
             logger.info("Using in-memory storage for traces.")
             if (os.getenv("START_TRACE_SERVER") or "true").lower() == "true":
-                logger.info("Starting trace server on port 8000.")
+                logger.info("Starting trace server on port 7079.")
                 storage_dir = os.path.join("./", "trace_data", get_local_ip())
                 storage = kwargs.get(
                     "storage", InMemoryWithPersistStorage(storage_dir=storage_dir))
                 processor.add_span_processor(
-                    BatchSpanProcessor(InMemorySpanExporter(storage)))
-                start_trace_server(storage=storage, port=8000)
+                    BatchSpanProcessor(InMemorySpanExporter(storage=storage)))
+                start_trace_server(storage=storage, port=7079)
             else:
                 processor.add_span_processor(
                     BatchSpanProcessor(NoOpSpanExporter()))
@@ -394,8 +394,10 @@ def _configure_otlp_exporter(base_url: str = None) -> None:
         base_url: The base URL to use.
         **kwargs: Additional keyword arguments to pass to the exporter.
     """
+    import requests
     from opentelemetry.exporter.otlp.proto.http import Compression
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
     otlp_traces_endpoint = os.getenv("OTLP_TRACES_ENDPOINT")
     base_url = base_url or otlp_traces_endpoint
     session = requests.Session()
