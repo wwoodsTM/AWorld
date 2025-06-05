@@ -85,6 +85,8 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
 
         self._name = kwargs.pop("name", self.conf.get("name", convert_to_snake(self.__class__.__name__)))
         self._desc = kwargs.pop("desc") if kwargs.get("desc") else self.conf.get('desc', '')
+        if not self._desc:
+            self._desc = self._name
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
