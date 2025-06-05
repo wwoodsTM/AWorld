@@ -120,7 +120,7 @@ class ModelConfig(BaseConfig):
 
 class AgentConfig(BaseConfig):
     name: str = None
-    desc: str = None
+    desc: str = ''
     llm_config: ModelConfig = ModelConfig()
     # for compatibility
     llm_provider: str = None
