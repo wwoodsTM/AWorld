@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from aworldspace.base_agent import AworldBaseAgent
 from aworldspace.utils.mcp_utils import load_all_mcp_config
 
-SYSTEM_PROMPT = f"""You are an helpful AI assistant, aimed at solving any task presented by the user. """
+SYSTEM_PROMPT = f"""You are an helpful AI assistant, aimed at solving any task presented by the user. 1"""
 
 class Pipeline(AworldBaseAgent):
     class Valves(BaseModel):
