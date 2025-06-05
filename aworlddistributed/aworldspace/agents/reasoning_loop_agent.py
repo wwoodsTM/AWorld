@@ -22,7 +22,6 @@ agent_config = AgentConfig(
 # reasoning_loop_agent
 reasoning_loop_agent = Agent(
     name="reasoning_loop_agent",
-    desc="reasoning_loop",
     conf=agent_config,
     system_prompt=reasoning_loop_sys_prompt,
     mcp_servers=[
