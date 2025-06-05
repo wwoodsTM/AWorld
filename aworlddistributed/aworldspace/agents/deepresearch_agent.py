@@ -3,9 +3,9 @@
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.runner import Runners
-import plan_agent
-import reasoning_loop_agent
-import reporting_agent
+from plan_agent import plan_agent
+from reasoning_loop_agent import reasoning_loop_agent
+from reporting_agent import reporting_agent
 
 def main():
     goal = """ 帮我做一个国庆节去北京旅游的7天计划 """
