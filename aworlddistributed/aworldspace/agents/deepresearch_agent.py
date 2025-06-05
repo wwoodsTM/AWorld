@@ -6,6 +6,7 @@ from aworld.runner import Runners
 from plan_agent import plan_agent
 from reasoning_loop_agent import reasoning_loop_agent
 from reporting_agent import reporting_agent
+from dotenv import load_dotenv
 
 def main():
     goal = """ 帮我做一个国庆节去北京旅游的7天计划 """
@@ -20,4 +21,5 @@ def main():
     Runners.sync_run_task(task)
 
 if __name__ == '__main__':
+    load_dotenv()
     main()
