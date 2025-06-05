@@ -184,6 +184,9 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         """
         messages = []
         if sys_prompt:
+            if '{task}' in sys_prompt:
+                sys_prompt = sys_prompt.format(task=content)
+
             messages.append({'role': 'system', 'content': sys_prompt if self.use_tools_in_prompt else sys_prompt.format(
                 tool_list=self.tools)})
 
