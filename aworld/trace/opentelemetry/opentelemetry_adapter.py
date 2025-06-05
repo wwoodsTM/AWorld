@@ -17,6 +17,7 @@ from opentelemetry.trace import (
     SpanContext,
     TraceFlags
 )
+from opentelemetry.trace.status import StatusCode
 from opentelemetry.sdk.trace import (
     ReadableSpan,
     SynchronousMultiSpanProcessor,
@@ -238,6 +239,11 @@ class OTLPSpan(Span, ReadableSpan):
     def end(self, end_time: Optional[int] = None) -> None:
         self._remove_from_open_spans()
         end_time = end_time or time.time_ns()
+        if not self._span._status or self._span._status.status_code == StatusCode.UNSET:
+            self._span.set_status(
+                status=StatusCode.OK,
+                description="",
+            )
         self._span.end(end_time=end_time)
         self._detach()
 
@@ -264,18 +270,25 @@ class OTLPSpan(Span, ReadableSpan):
         timestamp = timestamp or time.time_ns()
         attributes = {**(attributes or {})}
 
+        stacktrace = ''.join(traceback.format_exception(
+            type(exception), exception, exception.__traceback__))
+        self._span.set_attributes({
+            SpanAttributes.EXCEPTION_STACKTRACE: stacktrace,
+            SpanAttributes.EXCEPTION_TYPE: type(exception).__name__,
+            SpanAttributes.EXCEPTION_MESSAGE: str(exception),
+            SpanAttributes.EXCEPTION_ESCAPED: escaped
+        })
         if exception is not sys.exc_info()[1]:
-            # OTEL's record_exception uses `traceback.format_exc()` which is for the current exception,
-            # ignoring the passed exception.
-            # So we override the stacktrace attribute with the correct one.
-            stacktrace = ''.join(traceback.format_exception(
-                type(exception), exception, exception.__traceback__))
             attributes[SpanAttributes.EXCEPTION_STACKTRACE] = stacktrace
 
         self._span.record_exception(exception=exception,
                                     attributes=attributes,
                                     timestamp=timestamp,
                                     escaped=escaped)
+        self._span.set_status(
+            status=StatusCode.ERROR,
+            description=str(exception),
+        )
 
     def get_trace_id(self) -> str:
         """Get the trace ID of the span.
