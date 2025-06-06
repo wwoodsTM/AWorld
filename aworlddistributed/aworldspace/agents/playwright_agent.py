@@ -286,7 +286,7 @@ class PlayWrightAgent(Agent):
         span_name = f"llm_call_{exp_id}"
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps([str(m) for m in messages], ensure_ascii=False)
             })
@@ -421,7 +421,7 @@ class PlayWrightAgent(Agent):
         span_name = f"llm_call_{exp_id}"
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps([str(m) for m in messages], ensure_ascii=False)
             })

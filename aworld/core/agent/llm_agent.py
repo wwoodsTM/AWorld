@@ -24,7 +24,7 @@ from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
-from aworld.sandbox.main import Sandbox
+from aworld.sandbox.base import Sandbox
 from aworld.utils.common import sync_exec
 from string import Template
 
@@ -36,7 +36,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                  conf: Union[Dict[str, Any], ConfigDict, AgentConfig],
                  resp_parse_func: Callable[..., Any] = None,
                  **kwargs):
-        """A base class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
+        """A api class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
 
         Args:
             conf: Agent config, supported AgentConfig, ConfigDict or dict.
@@ -478,7 +478,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         serializable_messages = self._to_serializable(messages)
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps(serializable_messages, ensure_ascii=False)
             })
@@ -577,7 +577,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         serializable_messages = self._to_serializable(messages)
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps(serializable_messages, ensure_ascii=False)
             })
@@ -593,6 +593,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None,
                     stream=kwargs.get("stream", False)
                 )
+                logger.info(f"Execute response: {llm_response.message}")
                 if outputs and isinstance(outputs, Outputs):
                     await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
 
