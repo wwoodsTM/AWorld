@@ -11,7 +11,7 @@ import threading
 from aworld.replay_buffer.base import DataRow, Experience, ExpMeta
 from aworld.logs.util import logger
 from aworld.utils.common import get_local_ip
-
+from aworld.utils.import_package import import_package
 
 class ReplayBufferExporter:
     def __init__(self):
@@ -36,6 +36,7 @@ class ReplayBufferExporter:
             output_dir: output directory path
         """
         # Ensure output directory exists
+        import_package("oss2")
         import oss2
 
         os.makedirs(output_dir, exist_ok=True)

@@ -26,6 +26,7 @@ from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
 from aworld.sandbox.main import Sandbox
 from aworld.utils.common import sync_exec
+from string import Template
 
 
 class Agent(BaseAgent[Observation, List[ActionModel]]):
@@ -182,10 +183,24 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         Returns:
             Message list for LLM.
         """
+        # def _safe_template_substitute(template_str: str, **kwargs) -> str:
+        #     """
+        #     使用 string.Template 进行安全的模板替换
+        #     """
+        #     try:
+        #         # 将 {variable} 格式转换为 $variable 格式
+        #         template_str = template_str.replace('{task}', '$task')
+        #         template = Template(template_str)
+        #         return template.safe_substitute(**kwargs)
+        #     except Exception as e:
+        #         print(f"模板替换失败: {e}")
+        #         return template_str
+
         messages = []
         if sys_prompt:
-            if '{task}' in sys_prompt:
-                sys_prompt = sys_prompt.format(task=content)
+            if '$task' in sys_prompt:
+                sys_prompt = Template(sys_prompt).safe_substitute(task=content)
+                # sys_prompt = sys_prompt.format(task=content)
 
             messages.append({'role': 'system', 'content': sys_prompt if self.use_tools_in_prompt else sys_prompt.format(
                 tool_list=self.tools)})
