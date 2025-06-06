@@ -575,6 +575,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None,
                     stream=kwargs.get("stream", False)
                 )
+                logger.info(f"Execute response: {llm_response.message}")
                 if outputs and isinstance(outputs, Outputs):
                     await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
 
