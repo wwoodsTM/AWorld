@@ -236,6 +236,18 @@ class OpenAIProvider(LLMProviderBase):
             else:
                 response = self.provider.chat.completions.create(**openai_params)
 
+            if (hasattr(response, 'error') and response.error) or (
+                    hasattr(response, 'model_extra') and response.model_extra.get("error")):
+                error_msg = response.error if hasattr(response, 'error') else response.model_extra.get("error")
+                logger.warn(f"API Error: {error_msg}")
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
+
+            if isinstance(response, dict) and (response.get("error") or response.get("model_extra", {}).get("error")):
+                error_msg = response.get("error") or response.get("model_extra", {}).get("error")
+                logger.warn(f"API Error: {error_msg}")
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
+
+
             if (hasattr(response, 'code') and response.code != 0) or (
                     isinstance(response, dict) and response.get("code", 0) != 0):
                 error_msg = getattr(response, 'msg', 'Unknown error')
@@ -398,6 +410,17 @@ class OpenAIProvider(LLMProviderBase):
                 response = await self.http_provider.async_call(openai_params)
             else:
                 response = await self.async_provider.chat.completions.create(**openai_params)
+
+            if (hasattr(response, 'error') and response.error) or (
+                    hasattr(response, 'model_extra') and response.model_extra.get("error")):
+                error_msg = response.error if hasattr(response, 'error') else response.model_extra.get("error")
+                logger.warn(f"API Error: {error_msg}")
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
+
+            if isinstance(response, dict) and (response.get("error") or response.get("model_extra", {}).get("error")):
+                error_msg = response.get("error") or response.get("model_extra", {}).get("error")
+                logger.warn(f"API Error: {error_msg}")
+                raise LLMResponseError(error_msg, kwargs.get("model_name", self.model_name or "unknown"), response)
 
             if (hasattr(response, 'code') and response.code != 0) or (
                     isinstance(response, dict) and response.get("code", 0) != 0):
