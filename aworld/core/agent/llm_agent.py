@@ -460,7 +460,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         serializable_messages = self._to_serializable(messages)
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps(serializable_messages, ensure_ascii=False)
             })
@@ -559,7 +559,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         serializable_messages = self._to_serializable(messages)
         with trace.span(span_name) as llm_span:
             llm_span.set_attributes({
-                "exp_id": exp_id,
+                "exp_id": exp_id or "",
                 "step": step,
                 "messages": json.dumps(serializable_messages, ensure_ascii=False)
             })
