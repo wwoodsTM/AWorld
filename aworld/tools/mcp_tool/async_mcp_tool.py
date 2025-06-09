@@ -7,7 +7,7 @@ from aworld.core.event.base import Message
 
 from aworld.config.conf import ToolConfig, ConfigDict
 from aworld.core.agent.base import AgentFactory
-from aworld.core.common import ActionModel, Observation
+from aworld.core.common import ActionModel, Observation, ActionResult
 from aworld.core.tool.base import ToolFactory, AsyncTool
 from aworld.logs.util import logger
 from aworld.tools.mcp_tool.executor import MCPToolExecutor
@@ -116,6 +116,14 @@ class McpTool(AsyncTool):
 
             observation.action_result = action_results
             observation.content = action_results[-1].content
+        else:
+            logger.warning(f"{actions} no action results, will use fail action results")
+            # every action need has the result
+            action_results = []
+            for _ in actions:
+                action_results.append(ActionResult(success=False, content=fail_error, error=fail_error))
+            observation.action_result = action_results
+            observation.content = fail_error
 
         info = {"exception": fail_error, **kwargs}
         return (observation,
