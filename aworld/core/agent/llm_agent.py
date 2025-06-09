@@ -532,7 +532,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
         # Get current step information for trace recording
         step = kwargs.get("step", 0)
-        exp_id = kwargs.get("exp_id", None)
+        exp_id = kwargs.get("exp_id", "")
         source_span = trace.get_current_span()
 
         if hasattr(observation, 'context') and observation.context:
@@ -601,6 +601,13 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         llm_response.id = resp.id
                         llm_response.model = resp.model
                         llm_response.usage = nest_dict_counter(llm_response.usage, resp.usage)
+                        # if event_bus and resp:
+                        #     await event_bus.publish(Message(
+                        #         category=Constants.OUTPUT,
+                        #         payload=resp,
+                        #         sender=self.name(),
+                        #         session_id=Context.instance().session_id
+                        #     ))
 
                 else:
                     llm_response = await acall_llm_model(
