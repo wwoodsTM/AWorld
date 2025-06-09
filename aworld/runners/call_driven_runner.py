@@ -70,8 +70,9 @@ class SequenceRunner(TaskRunner):
             "task_name": self.task.name,
             "start_time": start
         }) as task_span:
+            response = None
             try:
-                await self._common_process(task_span)
+                response = await self._common_process(task_span)
             except Exception as err:
                 logger.error(f"Runner run failed, err is {traceback.format_exc()}")
             finally:
@@ -97,12 +98,7 @@ class SequenceRunner(TaskRunner):
                                 await agent.sandbox.cleanup()
                         except Exception as e:
                             logger.warning(f"call_driven_runner Failed to cleanup sandbox for agent {agent_name}: {e}")
-            return TaskResponse(msg=msg,
-                                answer=observation.content,
-                                success=True if not msg else False,
-                                id=self.task.id,
-                                time_cost=(time.time() - start),
-                                usage=self.context.token_usage)
+            return response
 
     async def _common_process(self, task_span):
         start = time.time()
@@ -193,7 +189,17 @@ class SequenceRunner(TaskRunner):
                                 observations.append(observation)
                         elif status == 'break':
                             observation = self.swarm.action_to_observation(policy, observations)
-                            break
+                            if idx == len(self.swarm.ordered_agents) - 1:
+                                return TaskResponse(
+                                    msg=f"Unrecognized policy: {policy[0]}, need to check prompt or agent / tool.",
+                                    answer=observation.content,
+                                    success=True,
+                                    id=self.task.id,
+                                    time_cost=(time.time() - start),
+                                    usage=self.context.token_usage
+                                )
+                            else:
+                                break
                         elif status == 'return':
                             await self.outputs.add_output(
                                 StepOutput.build_finished_output(name=f"Step{step}", step_num=step)
@@ -295,7 +301,7 @@ class SequenceRunner(TaskRunner):
                 # dynamic only use default config in module.
                 conf = self.tools_conf.get(act.tool_name)
                 if not conf:
-                    conf = ToolConfig(exit_on_failure=self.task.conf.exit_on_failure)
+                    conf = ToolConfig(exit_on_failure=self.task.conf.get('exit_on_failure'))
                 tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async if conf else False)
                 if isinstance(tool, Tool):
                     tool.reset()

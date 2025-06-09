@@ -7,6 +7,7 @@ from typing import Any, Union, List, Dict, Callable, Optional
 
 from pydantic import BaseModel
 
+from aworld.config.conf import TaskConfig
 from aworld.core.agent.llm_agent import Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.core.common import Config
@@ -22,7 +23,7 @@ class Task:
     session_id: str = None
     input: Any = None
     # task config
-    conf: Config = None
+    conf: Config = field(default_factory=TaskConfig)
     # global tool instance
     tools: List[Union[Tool, AsyncTool]] = field(default_factory=list)
     # global tool names
