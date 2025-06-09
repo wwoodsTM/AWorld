@@ -117,13 +117,16 @@ class McpTool(AsyncTool):
             observation.action_result = action_results
             observation.content = action_results[-1].content
         else:
-            logger.warning(f"{actions} no action results, will use fail action results")
-            # every action need has the result
-            action_results = []
-            for _ in actions:
-                action_results.append(ActionResult(success=False, content=fail_error, error=fail_error))
-            observation.action_result = action_results
-            observation.content = fail_error
+            if self.conf.get('exit_on_failure'):
+                raise Exception(fail_error)
+            else:
+                logger.warning(f"{actions} no action results, fail info: {fail_error}, will use fail action results")
+                # every action need has the result
+                action_results = []
+                for _ in actions:
+                    action_results.append(ActionResult(success=False, content=fail_error, error=fail_error))
+                observation.action_result = action_results
+                observation.content = fail_error
 
         info = {"exception": fail_error, **kwargs}
         return (observation,

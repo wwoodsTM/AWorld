@@ -3,6 +3,7 @@
 import os
 import sys
 
+from aworld.config.conf import TaskConfig
 
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
@@ -21,7 +22,8 @@ def main():
     task = Task(
         swarm=swarm,
         input=goal,
-        endless_threshold=5
+        endless_threshold=5,
+        conf=TaskConfig(exit_on_failure=True)
     )
     result = Runners.sync_run_task(task)
     print("finalResult:", result)

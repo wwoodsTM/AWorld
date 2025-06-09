@@ -294,6 +294,8 @@ class SequenceRunner(TaskRunner):
             if not self.tools or (self.tools and act.tool_name not in self.tools):
                 # dynamic only use default config in module.
                 conf = self.tools_conf.get(act.tool_name)
+                if not conf:
+                    conf = ToolConfig(exit_on_failure=self.task.conf.exit_on_failure)
                 tool = ToolFactory(act.tool_name, conf=conf, asyn=conf.use_async if conf else False)
                 if isinstance(tool, Tool):
                     tool.reset()
