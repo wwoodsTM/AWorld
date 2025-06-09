@@ -24,7 +24,7 @@ from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
-from aworld.sandbox.base import Sandbox
+from aworld.sandbox import Sandbox
 from aworld.utils.common import sync_exec
 from string import Template
 
@@ -34,7 +34,25 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
     def __init__(self,
                  conf: Union[Dict[str, Any], ConfigDict, AgentConfig],
+                 *,
+                 name: str = None,
+                 desc: str = None,
+                 system_prompt: str = None,
+                 agent_prompt: str = None,
+                 tool_names: List[str] = [],
+                 agent_names: List[str] = [],
+                 mcp_servers: List[str] = [],
+                 mcp_config: Dict[str, Any] = {},
+                 sandbox: Sandbox = None,
+                 memory_store: str = 'inmemory',
+                 history_messages: int = 100,
                  resp_parse_func: Callable[..., Any] = None,
+                 handler: Callable[..., Any] = None,
+                 black_tool_actions: List[str] = [],
+                 need_reset: bool = True,
+                 step_reset: bool = False,
+                 use_tools_in_prompt: bool = True,
+                 event_driven: bool = True,
                  **kwargs):
         """A api class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
 
@@ -42,27 +60,36 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
             conf: Agent config, supported AgentConfig, ConfigDict or dict.
             resp_parse_func: Response parse function for the agent standard output, transform llm response.
         """
-        super(Agent, self).__init__(conf, **kwargs)
+        super(Agent, self).__init__(conf,
+                                    name=name,
+                                    desc=desc,
+                                    tool_names=tool_names,
+                                    agent_names=agent_names,
+                                    mcp_servers=mcp_servers,
+                                    mcp_config=mcp_config,
+                                    sandbox=sandbox,
+                                    **kwargs)
         conf = self.conf
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
         self._llm = None
-        self.memory = Memory.from_config(
-            {"memory_store": kwargs.pop("memory_store") if kwargs.get("memory_store") else "inmemory"})
-        self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
-        self.agent_prompt: str = kwargs.get("agent_prompt") if kwargs.get("agent_prompt") else conf.agent_prompt
+        self.system_prompt: str = system_prompt if system_prompt else conf.system_prompt
+        self.agent_prompt: str = agent_prompt if agent_prompt else conf.agent_prompt
+        self.memory_store_name = memory_store if memory_store else "inmemory"
+        self.memory = Memory.from_config({"memory_store": self.memory_store_name})
 
-        self.event_driven = kwargs.pop('event_driven', conf.get('event_driven', False))
-        self.handler: Callable[..., Any] = kwargs.get('handler')
+        self.event_driven = event_driven if event_driven is None else conf.get('event_driven', False)
+        self.handler: Callable[..., Any] = handler
 
-        self.need_reset = kwargs.get('need_reset') if kwargs.get('need_reset') else conf.need_reset
+        # agent reset on create
+        self.need_reset = need_reset if need_reset is None else conf.need_reset
         # whether to keep contextual information, False means keep, True means reset in every step by the agent call
-        self.step_reset = kwargs.get('step_reset') if kwargs.get('step_reset') else True
+        self.step_reset = step_reset if step_reset is None else True
         # tool_name: [tool_action1, tool_action2, ...]
-        self.black_tool_actions: Dict[str, List[str]] = kwargs.get("black_tool_actions") if kwargs.get(
-            "black_tool_actions") else conf.get('black_tool_actions', {})
+        self.black_tool_actions: Dict[str, List[str]] = black_tool_actions if black_tool_actions \
+            else conf.get('black_tool_actions', {})
         self.resp_parse_func = resp_parse_func if resp_parse_func else self.response_parse
-        self.history_messages = kwargs.get("history_messages") if kwargs.get("history_messages") else 100
-        self.use_tools_in_prompt = kwargs.get('use_tools_in_prompt', conf.use_tools_in_prompt)
+        self.history_messages = history_messages if history_messages else 100
+        self.use_tools_in_prompt = use_tools_in_prompt if use_tools_in_prompt is None else conf.use_tools_in_prompt
 
     def reset(self, options: Dict[str, Any]):
         super().reset(options)

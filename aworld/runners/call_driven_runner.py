@@ -8,9 +8,10 @@ import aworld.trace as trace
 
 from typing import List, Dict, Any, Tuple
 
+from aworld.agents.loop_llm_agent import LoopableAgent
 from aworld.config.conf import ToolConfig
 from aworld.core.agent.base import is_agent
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.context.base import Context
 from aworld.core.event.base import Message
@@ -63,6 +64,7 @@ class SequenceRunner(TaskRunner):
 
         start = time.time()
         msg = None
+        response = None
 
         # Use trace.span to record the entire task execution process
         with trace.span(f"task_execution_{self.task.id}", attributes={
@@ -188,17 +190,31 @@ class SequenceRunner(TaskRunner):
                             if info:
                                 observations.append(observation)
                         elif status == 'break':
-                            observation = self.swarm.action_to_observation(policy, observations)
-                            if idx == len(self.swarm.ordered_agents) - 1:
-                                return TaskResponse(
-                                    msg=f"Unrecognized policy: {policy[0]}, need to check prompt or agent / tool.",
-                                    answer=observation.content,
-                                    success=True,
-                                    id=self.task.id,
-                                    time_cost=(time.time() - start),
-                                    usage=self.context.token_usage
-                                )
+                            if isinstance(agent, LoopableAgent):
+                                agent.cur_run_times += 1
+                                if agent.finished:
+                                    observation = self.swarm.action_to_observation(policy, observations)
+                                    if idx == len(self.swarm.ordered_agents) - 1:
+                                        return TaskResponse(
+                                            answer=observation.content,
+                                            success=True,
+                                            id=self.task.id,
+                                            time_cost=(time.time() - start),
+                                            usage=self.context.token_usage
+                                        )
+                                    break
+                                else:
+                                    step = 0
                             else:
+                                observation = self.swarm.action_to_observation(policy, observations)
+                                if idx == len(self.swarm.ordered_agents) - 1:
+                                    return TaskResponse(
+                                        answer=observation.content,
+                                        success=True,
+                                        id=self.task.id,
+                                        time_cost=(time.time() - start),
+                                        usage=self.context.token_usage
+                                    )
                                 break
                         elif status == 'return':
                             await self.outputs.add_output(
