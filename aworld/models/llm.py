@@ -408,7 +408,7 @@ async def acall_llm_model(
         stop: List[str] = None,
         stream: bool = False,
         **kwargs
-) -> Union[ModelResponse, AsyncGenerator[ModelResponse, None]]:
+) -> ModelResponse:
     """Convenience function to asynchronously call LLM model.
 
     Args:
@@ -423,23 +423,54 @@ async def acall_llm_model(
     Returns:
         Model response or response generator.
     """
-    if stream:
-        async def _stream_wrapper():
-            async for chunk in llm_model.astream_completion(
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    stop=stop,
-                    **kwargs
-            ):
-                yield chunk
+    # if stream:
+    #     # return llm_model.astream_completion(
+    #     #     messages=messages,
+    #     #     temperature=temperature,
+    #     #     max_tokens=max_tokens,
+    #     #     stop=stop,
+    #     #     **kwargs
+    #     # )
+    #     async for chunk in llm_model.astream_completion(
+    #         messages=messages,
+    #         temperature=temperature,
+    #         max_tokens=max_tokens,
+    #         stop=stop,
+    #         **kwargs
+    #     ):
+    #         yield chunk
+    #     # async def _stream_wrapper():
+    #     #     async for chunk in llm_model.astream_completion(
+    #     #             messages=messages,
+    #     #             temperature=temperature,
+    #     #             max_tokens=max_tokens,
+    #     #             stop=stop,
+    #     #             **kwargs
+    #     #     ):
+    #     #         yield chunk
+    #     # return _stream_wrapper()
+    # else:
+    return await llm_model.acompletion(
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stop=stop,
+        **kwargs
+    )
 
-        return _stream_wrapper()
-    else:
-        return await llm_model.acompletion(
+async def acall_llm_model_stream(
+        llm_model: LLMModel,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: int = None,
+        stop: List[str] = None,
+        **kwargs
+) -> AsyncGenerator[ModelResponse, None]:
+    async for chunk in llm_model.astream_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             stop=stop,
             **kwargs
-        )
+    ):
+        yield chunk

@@ -11,6 +11,7 @@ from aworld.logs.util import logger
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.tool import DefaultToolHandler
 from aworld.runners.utils import endless_detect, TaskType
+from aworld.output.base import StepOutput, Output, ToolResultOutput
 
 
 class DefaultAgentHandler(DefaultHandler):
@@ -30,6 +31,15 @@ class DefaultAgentHandler(DefaultHandler):
         data = message.payload
         if not data:
             # error message, p2p
+            agent = self.swarm.agents.get(message.receiver)
+            yield Message(
+                category=Constants.OUTPUT,
+                payload=StepOutput.build_failed_output(name=f"Step{self.swarm.cur_step}",
+                                                       step_num=self.swarm.cur_step,
+                                                       data=f"current agent {agent.name()} no policy to use."),
+                sender=self.name(),
+                session_id=Context.instance().session_id
+            )
             yield Message(
                 category=Constants.TASK,
                 payload=TaskItem(msg="no data to process.", data=data, stop=True),
