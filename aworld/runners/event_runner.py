@@ -168,6 +168,14 @@ class TaskEventRunner(TaskRunner):
                                                        id=self.task.id,
                                                        time_cost=(time.time() - start),
                                                        usage=self.context.token_usage)
+                    output_message = Message(
+                        category=Constants.OUTPUT,
+                        payload=self._task_response,
+                        sender=self.name(),
+                        session_id=Context.instance().session_id,
+                        topic=TaskType.FINISHED
+                    )
+                    self.output_handler.handle(output_message)
                 break
 
 

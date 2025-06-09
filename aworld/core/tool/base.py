@@ -12,9 +12,11 @@ from aworld.core.tool.action import ToolAction
 from aworld.core.tool.action_factory import ActionFactory
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.context.base import Context
-from aworld.core.event.base import Message, ToolMessage, AgentMessage
+from aworld.core.event.base import Message, ToolMessage, AgentMessage, Constants
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
+from aworld.models.model_response import ToolCall
+from aworld.output import ToolResultOutput
 from aworld.utils.common import convert_to_snake
 
 AgentInput = TypeVar("AgentInput")
@@ -67,6 +69,31 @@ class BaseTool(Generic[AgentInput, ToolInput]):
         self.pre_step(action, **kwargs)
         res = self.do_step(action, **kwargs)
         final_res = self.post_step(res, action, **kwargs)
+        event_bus = kwargs.get("event_bus")
+        if event_bus:
+            for idx, act in enumerate(action):
+                event_bus = kwargs.get("event_bus")
+                if event_bus:
+                    tool_output = ToolResultOutput(
+                        tool_type=act.tool_name,
+                        tool_name=act.tool_name,
+                        data=res[0].content,
+                        origin_tool_call=ToolCall.from_dict({
+                            "function": {
+                                "name": act.action_name,
+                                "arguments": act.params,
+                            }
+                        })
+                    )
+                    tool_message = Message(
+                        category=Constants.OUTPUT,
+                        payload=tool_output,
+                        sender=self.name(),
+                        session_id=Context.instance().session_id
+                    )
+                    event_bus.pulish(tool_message)
+        else:
+            logger.warn(f"{self.name()} event_bus is None")
         return final_res
 
     @abc.abstractmethod
@@ -144,6 +171,31 @@ class AsyncBaseTool(Generic[AgentInput, ToolInput]):
         await self.pre_step(action, **kwargs)
         res = await self.do_step(action, **kwargs)
         final_res = await self.post_step(res, action, **kwargs)
+        event_bus = kwargs.get("event_bus")
+        if event_bus:
+            for idx, act in enumerate(action):
+                event_bus = kwargs.get("event_bus")
+                if event_bus:
+                    tool_output = ToolResultOutput(
+                        tool_type=act.tool_name,
+                        tool_name=act.tool_name,
+                        data=res[0].content,
+                        origin_tool_call=ToolCall.from_dict({
+                            "function": {
+                                "name": act.action_name,
+                                "arguments": act.params,
+                            }
+                        })
+                    )
+                    tool_message = Message(
+                        category=Constants.OUTPUT,
+                        payload=tool_output,
+                        sender=self.name(),
+                        session_id=Context.instance().session_id
+                    )
+                    event_bus.pulish(tool_message)
+        else:
+            logger.warn(f"{self.name()} event_bus is None")
         return final_res
 
     @abc.abstractmethod
