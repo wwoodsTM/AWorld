@@ -26,33 +26,40 @@ reasoning_loop_agent = Agent(
     conf=agent_config,
     system_prompt=reasoning_loop_sys_prompt,
     mcp_servers=[
-        "ms-playwright", "google-search",
+        #"ms-playwright", "google-search",
+        "tavily"
     ],
     mcp_config={
         "mcpServers": {
-            "ms-playwright": {
+            # "ms-playwright": {
+            #     "command": "npx",
+            #     "args": [
+            #         "@playwright/mcp@0.0.27",
+            #         "--no-sandbox",
+            #         "--headless"
+            #     ],
+            #     "env": {
+            #         "PLAYWRIGHT_TIMEOUT": "120000",
+            #         "SESSION_REQUEST_CONNECT_TIMEOUT": "120"
+            #     }
+            # },
+            # "google-search": {
+            #     "command": "npx",
+            #     "args": [
+            #         "-y",
+            #         "@adenot/mcp-google-search"
+            #     ],
+            #     "env": {
+            #         "GOOGLE_API_KEY": os.environ["GOOGLE_API_KEY"],
+            #         "GOOGLE_SEARCH_ENGINE_ID": os.environ["GOOGLE_CSE_ID"],
+            #         "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
+            #     }
+            # },
+            "tavily": {
                 "command": "npx",
-                "args": [
-                    "@playwright/mcp@0.0.27",
-                    "--vision",
-                    "--no-sandbox",
-                    "--headless"
-                ],
+                "args": ["-y", "tavily-mcp@0.2.2"],
                 "env": {
-                    "PLAYWRIGHT_TIMEOUT": "120000",
-                    "SESSION_REQUEST_CONNECT_TIMEOUT": "120"
-                }
-            },
-            "google-search": {
-                "command": "npx",
-                "args": [
-                    "-y",
-                    "@adenot/mcp-google-search"
-                ],
-                "env": {
-                    "GOOGLE_API_KEY": os.environ["GOOGLE_API_KEY"],
-                    "GOOGLE_SEARCH_ENGINE_ID": os.environ["GOOGLE_CSE_ID"],
-                    "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
+                    "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"]
                 }
             }
         }

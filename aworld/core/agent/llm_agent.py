@@ -494,7 +494,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None
                 )
 
-                logger.info(f"Execute response: {llm_response.message}")
+                logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
@@ -593,7 +593,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None,
                     stream=kwargs.get("stream", False)
                 )
-                logger.info(f"Execute response: {llm_response.message}")
+                logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
                 if outputs and isinstance(outputs, Outputs):
                     await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
 
