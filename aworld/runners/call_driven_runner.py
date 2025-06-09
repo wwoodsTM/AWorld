@@ -64,6 +64,7 @@ class SequenceRunner(TaskRunner):
 
         start = time.time()
         msg = None
+        response = None
 
         # Use trace.span to record the entire task execution process
         with trace.span(f"task_execution_{self.task.id}", attributes={
@@ -72,7 +73,7 @@ class SequenceRunner(TaskRunner):
             "start_time": start
         }) as task_span:
             try:
-                await self._common_process(task_span)
+                response = await self._common_process(task_span)
             except Exception as err:
                 logger.error(f"Runner run failed, err is {traceback.format_exc()}")
             finally:
@@ -98,12 +99,7 @@ class SequenceRunner(TaskRunner):
                                 await agent.sandbox.cleanup()
                         except Exception as e:
                             logger.warning(f"call_driven_runner Failed to cleanup sandbox for agent {agent_name}: {e}")
-            return TaskResponse(msg=msg,
-                                answer=observation.content,
-                                success=True if not msg else False,
-                                id=self.task.id,
-                                time_cost=(time.time() - start),
-                                usage=self.context.token_usage)
+            return response
 
     async def _common_process(self, task_span):
         start = time.time()
@@ -199,17 +195,26 @@ class SequenceRunner(TaskRunner):
                                     observation = self.swarm.action_to_observation(policy, observations)
                                     if idx == len(self.swarm.ordered_agents) - 1:
                                         return TaskResponse(
-                                            msg=f"Unrecognized policy: {policy[0]}, need to check prompt or agent / tool.",
                                             answer=observation.content,
                                             success=True,
                                             id=self.task.id,
                                             time_cost=(time.time() - start),
                                             usage=self.context.token_usage
                                         )
-                                    else:
-                                        break
+                                    break
                                 else:
                                     step = 0
+                            else:
+                                observation = self.swarm.action_to_observation(policy, observations)
+                                if idx == len(self.swarm.ordered_agents) - 1:
+                                    return TaskResponse(
+                                        answer=observation.content,
+                                        success=True,
+                                        id=self.task.id,
+                                        time_cost=(time.time() - start),
+                                        usage=self.context.token_usage
+                                    )
+                                break
                         elif status == 'return':
                             await self.outputs.add_output(
                                 StepOutput.build_finished_output(name=f"Step{step}", step_num=step)
