@@ -7,13 +7,11 @@ import os
 from dotenv import load_dotenv
 
 from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.core.agent.llm_agent import Agent
-from aworld.core.agent.swarm import Swarm
+from aworld.agents.llm_agent import Agent
 from aworld.core.task import Task
 
 from aworld.runner import Runners
 from aworld.sandbox.main import Sandbox
-from aworld.sandbox.models import SandboxEnvType
 
 
 async def run():

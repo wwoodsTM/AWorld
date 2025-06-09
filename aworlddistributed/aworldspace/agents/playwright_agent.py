@@ -7,7 +7,7 @@ from typing import Optional
 import aworld.trace as trace
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.config.conf import TaskConfig
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel
 from aworld.core.memory import MemoryItem
 from aworld.core.task import Task

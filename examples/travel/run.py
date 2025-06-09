@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 from aworld.config.conf import AgentConfig, ToolConfig
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.config import ModelConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task

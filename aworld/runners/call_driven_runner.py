@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 
 from aworld.config.conf import ToolConfig
 from aworld.core.agent.base import is_agent
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.context.base import Context
 from aworld.core.event.base import Message
