@@ -8,6 +8,7 @@ import aworld.trace as trace
 
 from typing import List, Dict, Any, Tuple
 
+from aworld.agents.loop_llm_agent import LoopableAgent
 from aworld.config.conf import ToolConfig
 from aworld.core.agent.base import is_agent
 from aworld.agents.llm_agent import Agent
@@ -192,8 +193,13 @@ class SequenceRunner(TaskRunner):
                             if info:
                                 observations.append(observation)
                         elif status == 'break':
-                            observation = self.swarm.action_to_observation(policy, observations)
-                            break
+                            if isinstance(agent, LoopableAgent):
+                                agent.cur_run_times += 1
+                                if agent.finished:
+                                    observation = self.swarm.action_to_observation(policy, observations)
+                                    break
+                                else:
+                                    step = 0
                         elif status == 'return':
                             await self.outputs.add_output(
                                 StepOutput.build_finished_output(name=f"Step{step}", step_num=step)

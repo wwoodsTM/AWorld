@@ -1,6 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
 from aworld.core.agent.base import AgentFactory
@@ -135,7 +135,7 @@ class Swarm(object):
             elif self.topology_type == SOCIAL:
                 self.topology_type = SOCIAL_EVENT
 
-    def reset(self, content: str, context: Context = None, tools: List[str] = []):
+    def reset(self, content: Any, context: Context = None, tools: List[str] = []):
         """Resets the initial internal state, and init supported tools in agent in swarm.
 
         Args:
@@ -143,6 +143,7 @@ class Swarm(object):
         """
         # can use the tools in the agents in the swarm as a global
         self.tools = tools
+        self.task = content
 
         self._init()
         if not self.agents:
