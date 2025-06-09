@@ -17,13 +17,14 @@ def main():
 
     swarm = Swarm(plan_agent, reasoning_loop_agent,
                   #reporting_agent,
-                  sequence=True, event_driven=False)
+                  sequence=True)
 
     task = Task(
         swarm=swarm,
         input=goal,
         endless_threshold=5,
-        conf=TaskConfig(exit_on_failure=True)
+        conf=TaskConfig(exit_on_failure=True),
+        event_driven=False
     )
     result = Runners.sync_run_task(task)
     print("finalResult:", result)
