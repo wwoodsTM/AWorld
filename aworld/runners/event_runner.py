@@ -18,7 +18,7 @@ from aworld.runners.handler.agent import DefaultAgentHandler
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.task import DefaultTaskHandler
 from aworld.runners.handler.tool import DefaultToolHandler
-
+from aworld.runners.handler.output import DefaultOutputHandler
 from aworld.runners.task_runner import TaskRunner
 from aworld.runners.utils import TaskType
 from aworld.utils.common import override_in_subclass
@@ -55,9 +55,24 @@ class TaskEventRunner(TaskRunner):
                 await self.event_mng.register(Constants.AGENT, agent.name(), agent.handler)
             else:
                 if override_in_subclass('async_policy', agent.__class__, Agent):
-                    await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
+                    # await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
+                    async def handler(obs, **kwargs):
+                        return await agent.async_run(obs, event_bus=self.event_mng.event_bus, **kwargs)
+                    await self.event_mng.register(
+                        Constants.AGENT,
+                        agent.name(),
+                        handler
+                    )
                 else:
-                    await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
+                    # await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
+                    def handler(obs, **kwargs):
+                        return agent.run(obs, event_bus=self.event_mng.event_bus, **kwargs)
+                    await self.event_mng.register(
+                        Constants.AGENT,
+                        agent.name(),
+                        handler
+                    )
+
         # register tool handler
         for key, tool in self.tools.items():
             if tool.handler:
@@ -74,6 +89,8 @@ class TaskEventRunner(TaskRunner):
         self.agent_handler = DefaultAgentHandler(swarm=self.swarm, endless_threshold=self.endless_threshold)
         self.tool_handler = DefaultToolHandler(tools=self.tools, tools_conf=self.tools_conf)
         self.task_handler = DefaultTaskHandler(runner=self)
+        self.output_handler = DefaultOutputHandler(runner=self)
+        self.handlers = [self.agent_handler, self.tool_handler, self.task_handler, self.output_handler]
 
     async def _common_process(self, message: Message) -> List[Message]:
         event_bus = self.event_mng.event_bus
@@ -106,6 +123,7 @@ class TaskEventRunner(TaskRunner):
 
                     if isinstance(con, Message):
                         results.append(con)
+
                         con = message.payload
                 except Exception as e:
                     logger.warning(f"{handler} process fail. {traceback.format_exc()}")
@@ -138,7 +156,9 @@ class TaskEventRunner(TaskRunner):
         answer = None
 
         while True:
-            if await self.is_stopped():
+            # consume message
+            message: Message = await self.event_mng.consume()
+            if message.category != Constants.OUTPUT and await self.is_stopped():
                 logger.info("stop task...")
                 if self._task_response is None:
                     # send msg to output
@@ -150,8 +170,6 @@ class TaskEventRunner(TaskRunner):
                                                        usage=self.context.token_usage)
                 break
 
-            # consume message
-            message: Message = await self.event_mng.consume()
 
             # use registered handler to process message
             results = await self._common_process(message)
@@ -161,7 +179,7 @@ class TaskEventRunner(TaskRunner):
             # process in framework
             async for event in self._inner_handler_process(
                     results=results,
-                    handlers=[self.agent_handler, self.tool_handler, self.task_handler]
+                    handlers=self.handlers
             ):
                 await self.event_mng.emit_message(event)
 

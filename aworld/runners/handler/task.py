@@ -12,6 +12,7 @@ from aworld.core.task import TaskResponse
 from aworld.logs.util import logger
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.utils import TaskType
+from aworld.core.context.base import Context
 
 
 class DefaultTaskHandler(DefaultHandler):
@@ -45,6 +46,13 @@ class DefaultTaskHandler(DefaultHandler):
                                                           id=self.runner.task.id,
                                                           time_cost=(time.time() - self.runner.start_time),
                                                           usage=self.runner.context.token_usage)
+                yield Message(
+                    category=Constants.OUTPUT,
+                    payload=self.runner._task_response,
+                    sender=self.name(),
+                    session_id=Context.instance().session_id,
+                    topic=TaskType.ERROR
+                )
                 return
             # restart
             logger.warning(f"The task {self.runner.task.id} will be restarted due to error: {task_item.msg}.")
@@ -61,6 +69,13 @@ class DefaultTaskHandler(DefaultHandler):
                                                       id=self.runner.task.id,
                                                       time_cost=(time.time() - self.runner.start_time),
                                                       usage=self.runner.context.token_usage)
+            yield Message(
+                category=Constants.OUTPUT,
+                payload=self.runner._task_response,
+                sender=self.name(),
+                session_id=Context.instance().session_id,
+                topic=TaskType.FINISHED
+            )
             await self.runner.stop()
 
             # clean sandbox
