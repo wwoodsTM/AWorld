@@ -1,7 +1,7 @@
 import os
 import uuid
 from aworld.config.conf import AgentConfig
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.task import Task
 from aworld.config import ModelConfig, TaskConfig
 from aworldspace.prompt.deepresearch_prompt import *

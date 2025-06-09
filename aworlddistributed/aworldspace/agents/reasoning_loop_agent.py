@@ -1,7 +1,9 @@
 import os
 import uuid
+
+from aworld.agents.loop_llm_agent import LoopableAgent
 from aworld.config.conf import AgentConfig, ToolConfig
-from aworld.core.agent.llm_agent import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.task import Task
 from aworld.config import ModelConfig, TaskConfig
 from aworldspace.prompt.deepresearch_prompt import *
@@ -26,7 +28,7 @@ reasoning_loop_agent = Agent(
     conf=agent_config,
     system_prompt=reasoning_loop_sys_prompt,
     mcp_servers=[
-        #"ms-playwright", "google-search",
+        # "ms-playwright", "google-search",
         "tavily"
     ],
     mcp_config={
@@ -67,6 +69,32 @@ reasoning_loop_agent = Agent(
     }
 )
 
+# loop agent
+# reasoning_loop_agent = LoopableAgent(
+#     name="reasoning_loop_agent",
+#     desc="reasoning_loop_agent",
+#     conf=agent_config,
+#     max_run_times=5,
+#     system_prompt=reasoning_loop_sys_prompt,
+#     mcp_servers=[
+#         # "ms-playwright", "google-search",
+#         "tavily"
+#     ],
+#     mcp_config={
+#         "mcpServers": {
+#             "tavily": {
+#                 "command": "npx",
+#                 "args": ["-y", "tavily-mcp@0.2.2"],
+#                 "env": {
+#                     "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"],
+#                     "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
+#                 }
+#             }
+#         }
+#     }
+# )
+
+
 def main():
     user_input = """
         I need a 7-day Japan itinerary from April 2 to April 8 2025, departing from Hangzhou, We want to see beautiful cherry blossoms and experience traditional Japanese culture (kendo, tea ceremonies, Zen meditation). We would like to taste matcha in Uji and enjoy the hot springs in Kobe. I am planning to propose during this trip, so I need a special location recommendation. Please provide a detailed itinerary and create a simple HTML travel handbook that includes a 7-day Japan itinerary, an updated cherry blossom table, attraction descriptions, essential Japanese phrases, and travel tips for us to reference throughout our journey.
@@ -88,6 +116,7 @@ def main():
         )
     )
     Runners.sync_run_task(task)
+
 
 if __name__ == '__main__':
     main()
