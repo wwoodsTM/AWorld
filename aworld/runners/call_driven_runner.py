@@ -197,7 +197,17 @@ class SequenceRunner(TaskRunner):
                                 agent.cur_run_times += 1
                                 if agent.finished:
                                     observation = self.swarm.action_to_observation(policy, observations)
-                                    break
+                                    if idx == len(self.swarm.ordered_agents) - 1:
+                                        return TaskResponse(
+                                            msg=f"Unrecognized policy: {policy[0]}, need to check prompt or agent / tool.",
+                                            answer=observation.content,
+                                            success=True,
+                                            id=self.task.id,
+                                            time_cost=(time.time() - start),
+                                            usage=self.context.token_usage
+                                        )
+                                    else:
+                                        break
                                 else:
                                     step = 0
                         elif status == 'return':
