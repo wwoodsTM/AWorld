@@ -59,7 +59,8 @@ reasoning_loop_agent = Agent(
                 "command": "npx",
                 "args": ["-y", "tavily-mcp@0.2.2"],
                 "env": {
-                    "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"]
+                    "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"],
+                    "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
                 }
             }
         }
