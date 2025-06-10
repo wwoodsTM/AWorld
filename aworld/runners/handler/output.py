@@ -1,4 +1,5 @@
 # aworld/runners/handler/output.py
+import json
 from aworld.core.task import TaskResponse
 from aworld.models.model_response import ModelResponse
 from aworld.runners.handler.base import DefaultHandler
@@ -33,6 +34,11 @@ class DefaultOutputHandler(DefaultHandler):
             if isinstance(payload, Output):
                 await outputs.add_output(payload)
             elif isinstance(payload, TaskResponse):
+                await outputs.add_output(
+                    Output(
+                        data=f"usage: {json.dumps(payload.usage)}"
+                    )
+                )
                 if message.topic == TaskType.FINISHED or message.topic == TaskType.ERROR:
                     await outputs.mark_completed()
             else:

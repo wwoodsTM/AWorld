@@ -22,6 +22,7 @@ from aworld.runners.handler.output import DefaultOutputHandler
 from aworld.runners.task_runner import TaskRunner
 from aworld.runners.utils import TaskType
 from aworld.utils.common import override_in_subclass
+from aworld.output.base import StepOutput
 
 
 class TaskEventRunner(TaskRunner):
@@ -154,11 +155,16 @@ class TaskEventRunner(TaskRunner):
         start = time.time()
         msg = None
         answer = None
+        start_message = Message(
+            category=Constants.OUTPUT,
+            payload=StepOutput.build_start_output(name=f"Step1", step_num=1),
+            sender='runner',
+            session_id=Context.instance().session_id
+        )
+        await self.event_mng.emit_message(start_message)
 
         while True:
-            # consume message
-            message: Message = await self.event_mng.consume()
-            if message.category != Constants.OUTPUT and await self.is_stopped():
+            if await self.is_stopped():
                 logger.info("stop task...")
                 if self._task_response is None:
                     # send msg to output
@@ -168,17 +174,18 @@ class TaskEventRunner(TaskRunner):
                                                        id=self.task.id,
                                                        time_cost=(time.time() - start),
                                                        usage=self.context.token_usage)
-                    output_message = Message(
-                        category=Constants.OUTPUT,
-                        payload=self._task_response,
-                        sender=self.name(),
-                        session_id=Context.instance().session_id,
-                        topic=TaskType.FINISHED
-                    )
-                    self.output_handler.handle(output_message)
+                output_message = Message(
+                    category=Constants.OUTPUT,
+                    payload=self._task_response,
+                    sender='runner',
+                    session_id=Context.instance().session_id,
+                    topic=TaskType.FINISHED
+                )
+                self.output_handler.handle(output_message)
                 break
 
-
+            # consume message
+            message: Message = await self.event_mng.consume()
             # use registered handler to process message
             results = await self._common_process(message)
             if not results:
@@ -194,7 +201,6 @@ class TaskEventRunner(TaskRunner):
     async def do_run(self, context: Context = None):
         if not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
-
         await self.event_mng.emit_message(self.init_message)
         await self._do_run()
         return self._task_response

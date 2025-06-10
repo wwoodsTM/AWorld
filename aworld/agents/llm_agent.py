@@ -636,6 +636,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                             sender=self.name(),
                             session_id=Context.instance().session_id
                         ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=resp_stream, json_parse=False))
                     async for resp in resp_stream:
                         if resp.content:
                             llm_response.content += resp.content
@@ -670,6 +672,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                             sender=self.name(),
                             session_id=Context.instance().session_id
                         ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
 
                 logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
                 # Record LLM response
