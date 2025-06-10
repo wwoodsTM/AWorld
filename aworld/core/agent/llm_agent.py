@@ -14,6 +14,7 @@ from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.agent.base import BaseAgent, AgentResult, is_agent_by_name, is_agent
 from aworld.core.common import Observation, ActionModel
+from aworld.core.event.event_bus import Eventbus, InMemoryEventbus
 from aworld.core.tool.tool_desc import get_tool_desc
 from aworld.core.event.base import Message, ToolMessage, Constants
 from aworld.logs.util import logger
@@ -354,7 +355,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 for tool_call in msg.get('tool_calls'):
                     if isinstance(tool_call, dict):
                         logger.info(f"[agent] Tool call: {tool_call.get('name')} - ID: {tool_call.get('id')}")
-                        args = str(tool_call.get('args', {}))[:1000]
+                        args = str(json.dumps(tool_call.get('args', {}), ensure_ascii=False))[:1000]
                         logger.info(f"[agent] Tool args: {args}...")
                     elif isinstance(tool_call, ToolCall):
                         logger.info(f"[agent] Tool call: {tool_call.function.name} - ID: {tool_call.id}")
@@ -478,7 +479,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None
                 )
 
-                logger.info(f"Execute response: {llm_response.message}")
+                logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
             except Exception as e:
                 logger.warn(traceback.format_exc())
                 raise e
@@ -527,8 +528,6 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         outputs = None
         if kwargs.get("outputs") and isinstance(kwargs.get("outputs"), Outputs):
             outputs = kwargs.get("outputs")
-        
-        event_bus = kwargs.get("event_bus")
 
         # Get current step information for trace recording
         step = kwargs.get("step", 0)
@@ -584,13 +583,15 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         stream=True
                     )
 
-                    if event_bus and resp_stream:
-                        await event_bus.publish(Message(
+                    if InMemoryEventbus.instance() and resp_stream:
+                        await InMemoryEventbus.instance().publish(Message(
                             category=Constants.OUTPUT,
                             payload=resp_stream,
                             sender=self.name(),
                             session_id=Context.instance().session_id
                         ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=resp_stream, json_parse=False))
                     async for resp in resp_stream:
                         if resp.content:
                             llm_response.content += resp.content
@@ -618,13 +619,15 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         tools=self.tools if self.use_tools_in_prompt and self.tools else None,
                         stream=kwargs.get("stream", False)
                     )
-                    if event_bus and llm_response:
-                        await event_bus.publish(Message(
+                    if InMemoryEventbus.instance() and llm_response:
+                        await InMemoryEventbus.instance().publish(Message(
                             category=Constants.OUTPUT,
                             payload=llm_response,
                             sender=self.name(),
                             session_id=Context.instance().session_id
                         ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
 
                 # Record LLM response
                 llm_span.set_attributes({
