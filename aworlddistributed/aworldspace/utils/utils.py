@@ -3,8 +3,7 @@ import re
 import string
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-from loguru import logger
+import logging
 from tabulate import tabulate
 
 
@@ -30,7 +29,7 @@ def normalize_number_str(number_str: str) -> float:
     try:
         return float(number_str)
     except ValueError:
-        logger.error(f"String {number_str} cannot be normalized to number str.")
+        logging.error(f"String {number_str} cannot be normalized to number str.")
         return float("inf")
 
 
@@ -44,17 +43,17 @@ def question_scorer(model_answer: str, ground_truth: str) -> bool:
 
     try:
         if is_float(ground_truth):
-            logger.info(f"Evaluating {model_answer} as a number.")
+            logging.info(f"Evaluating {model_answer} as a number.")
             normalized_answer = normalize_number_str(model_answer)
             return normalized_answer == float(ground_truth)
 
         elif any(char in ground_truth for char in [",", ";"]):
-            logger.info(f"Evaluating {model_answer} as a comma separated list.")
+            logging.info(f"Evaluating {model_answer} as a comma separated list.")
             gt_elems = split_string(ground_truth)
             ma_elems = split_string(model_answer)
 
             if len(gt_elems) != len(ma_elems):
-                logger.warning("Answer lists have different lengths, returning False.")
+                logging.warning("Answer lists have different lengths, returning False.")
                 return False
 
             comparisons = []
@@ -68,12 +67,12 @@ def question_scorer(model_answer: str, ground_truth: str) -> bool:
                     comparisons.append(ma_elem == gt_elem)
             return all(comparisons)
         else:
-            logger.info(f"Evaluating {model_answer} as a string.")
+            logging.info(f"Evaluating {model_answer} as a string.")
             ma_elem = normalize_str(model_answer)
             gt_elem = normalize_str(ground_truth)
             return ma_elem == gt_elem
     except Exception as e:
-        logger.error(f"Error during evaluation: {e}")
+        logging.error(f"Error during evaluation: {e}")
         return False
 
 
@@ -164,7 +163,7 @@ def report_results(entries):
             stats["accuracy"] = (stats["correct"] / stats["total"]) * 100
 
     # Print overall statistics with colorful logging
-    logger.info("Overall Statistics:")
+    logging.info("Overall Statistics:")
     overall_accuracy = (total_correct / total_entries) * 100
 
     # Create overall statistics table
@@ -173,11 +172,11 @@ def report_results(entries):
         ["Total Correct", total_correct],
         ["Overall Accuracy", f"{overall_accuracy:.2f}%"],
     ]
-    logger.success(tabulate(overall_table, tablefmt="grid"))
-    logger.info("")
+    logging.success(tabulate(overall_table, tablefmt="grid"))
+    logging.info("")
 
     # Create level statistics table
-    logger.info("Statistics by Level:")
+    logging.info("Statistics by Level:")
     level_table = []
     headers = ["Level", "Total Entries", "Correct Answers", "Accuracy"]
 
@@ -187,7 +186,7 @@ def report_results(entries):
             [level, stats["total"], stats["correct"], f"{stats['accuracy']:.2f}%"]
         )
 
-    logger.success(tabulate(level_table, headers=headers, tablefmt="grid"))
+    logging.success(tabulate(level_table, headers=headers, tablefmt="grid"))
 
 
 import uuid
