@@ -18,6 +18,7 @@ from aworld.core.factory import Factory
 from aworld.logs.util import logger
 from aworld.models.model_response import ToolCall
 from aworld.output import ToolResultOutput
+from aworld.output.base import StepOutput
 from aworld.utils.common import convert_to_snake
 
 AgentInput = TypeVar("AgentInput")
@@ -169,28 +170,6 @@ class AsyncBaseTool(Generic[AgentInput, ToolInput]):
         await self.pre_step(action, **kwargs)
         res = await self.do_step(action, **kwargs)
         final_res = await self.post_step(res, action, **kwargs)
-        if InMemoryEventbus.instance():
-            for idx, act in enumerate(action):
-                tool_output = ToolResultOutput(
-                    tool_type=act.tool_name,
-                    tool_name=act.tool_name,
-                    data=res[0].content,
-                    origin_tool_call=ToolCall.from_dict({
-                        "function": {
-                            "name": act.action_name,
-                            "arguments": act.params,
-                        }
-                    })
-                )
-                tool_output_message = Message(
-                    category=Constants.OUTPUT,
-                    payload=tool_output,
-                    sender=self.name(),
-                    session_id=Context.instance().session_id
-                )
-                await InMemoryEventbus.instance().publish(tool_output_message)
-        else:
-            logger.warn(f"{self.name()} event_bus is None")
         return final_res
 
     @abc.abstractmethod
@@ -248,9 +227,41 @@ class AsyncTool(AsyncBaseTool[Observation, List[ActionModel]]):
         if not step_res:
             raise Exception(f'{self.name()} no observation has been made.')
 
+        event_bus = InMemoryEventbus.instance()
         step_res[0].from_agent_name = action[0].agent_name
         for idx, act in enumerate(action):
             step_res[0].action_result[idx].tool_id = act.tool_id
+
+            # send tool results output
+            if event_bus:
+                tool_output = ToolResultOutput(
+                    tool_type=act.tool_name,
+                    tool_name=act.tool_name,
+                    data=step_res[0].content,
+                    origin_tool_call=ToolCall.from_dict({
+                        "function": {
+                            "name": act.action_name,
+                            "arguments": act.params,
+                        }
+                    })
+                )
+                tool_output_message = Message(
+                    category=Constants.OUTPUT,
+                    payload=tool_output,
+                    sender=self.name(),
+                    session_id=Context.instance().session_id
+                )
+                await event_bus.publish(tool_output_message)
+
+        if event_bus:
+            await event_bus.publish(Message(
+                category=Constants.OUTPUT,
+                payload=StepOutput.build_finished_output(name=f"Step[tool]:{action[0].agent_name if action else ''}",
+                                                         step_num=0),
+                sender=self.name(),
+                session_id=Context.instance().session_id
+            ))
+
         return AgentMessage(payload=step_res,
                             caller=action[0].agent_name,
                             sender=self.name(),

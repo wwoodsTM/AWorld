@@ -141,13 +141,6 @@ class TaskEventRunner(TaskRunner):
         start = time.time()
         msg = None
         answer = None
-        start_message = Message(
-            category=Constants.OUTPUT,
-            payload=StepOutput.build_start_output(name=f"Step1", step_num=1),
-            sender='runner',
-            session_id=Context.instance().session_id
-        )
-        await self.event_mng.emit_message(start_message)
 
         while True:
             if await self.is_stopped():

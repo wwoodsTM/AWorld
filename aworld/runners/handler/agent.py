@@ -32,12 +32,11 @@ class DefaultAgentHandler(DefaultHandler):
         data = message.payload
         if not data:
             # error message, p2p
-            agent = self.swarm.agents.get(message.receiver)
             yield Message(
                 category=Constants.OUTPUT,
-                payload=StepOutput.build_failed_output(name=f"Step{self.swarm.cur_step}",
-                                                       step_num=self.swarm.cur_step,
-                                                       data=f"current agent {agent.name()} no policy to use."),
+                payload=StepOutput.build_failed_output(name=f"Step-Agent {message.caller}",
+                                                       step_num=0,
+                                                       data="no data to process."),
                 sender=self.name(),
                 session_id=Context.instance().session_id
             )
@@ -84,6 +83,14 @@ class DefaultAgentHandler(DefaultHandler):
             if not isinstance(action, ActionModel):
                 # error message, p2p
                 yield Message(
+                    category=Constants.OUTPUT,
+                    payload=StepOutput.build_failed_output(name=f"Step-Agent {message.caller}",
+                                                           step_num=0,
+                                                           data="action not a ActionModel."),
+                    sender=self.name(),
+                    session_id=Context.instance().session_id
+                )
+                yield Message(
                     category=Constants.TASK,
                     payload=TaskItem(msg="action not a ActionModel.", data=data, stop=True),
                     sender=self.name(),
@@ -107,6 +114,14 @@ class DefaultAgentHandler(DefaultHandler):
                 sender=self.name(),
                 session_id=Context.instance().session_id,
                 receiver=DefaultToolHandler.name(),
+            )
+        else:
+            yield Message(
+                category=Constants.OUTPUT,
+                payload=StepOutput.build_finished_output(name=f"Step[agent]: {message.caller}",
+                                                         step_num=0),
+                sender=self.name(),
+                session_id=Context.instance().session_id
             )
 
         for agent in agents:
@@ -209,13 +224,6 @@ class DefaultAgentHandler(DefaultHandler):
             else:
                 logger.info(f"execute loop {self.swarm.cur_step}.")
                 yield Message(
-                    category=Constants.OUTPUT,
-                    payload=StepOutput.build_finished_output(name=f"Step{self.swarm.cur_step}",
-                                                           step_num=self.swarm.cur_step),
-                    sender=agent.name(),
-                    session_id=Context.instance().session_id
-                )
-                yield Message(
                     category=Constants.TASK,
                     payload=action.policy_info,
                     sender=agent.name(),
@@ -276,13 +284,6 @@ class DefaultAgentHandler(DefaultHandler):
                 else:
                     # means the task finished
                     yield Message(
-                        category=Constants.OUTPUT,
-                        payload=StepOutput.build_finished_output(name=f"Step{self.swarm.cur_step}",
-                                                               step_num=self.swarm.cur_step),
-                        sender=agent.name(),
-                        session_id=Context.instance().session_id
-                    )
-                    yield Message(
                         category=Constants.TASK,
                         payload=action.policy_info,
                         sender=agent.name(),
@@ -292,13 +293,6 @@ class DefaultAgentHandler(DefaultHandler):
             else:
                 self.swarm.cur_step += 1
                 logger.info(f"execute loop {self.swarm.cur_step}.")
-                yield Message(
-                    category=Constants.OUTPUT,
-                    payload=StepOutput.build_start_output(name=f"Step{self.swarm.cur_step}",
-                                                        step_num=self.swarm.cur_step),
-                    sender=agent.name(),
-                    session_id=Context.instance().session_id
-                )
                 yield Message(
                     category=Constants.TASK,
                     payload='',
@@ -332,13 +326,6 @@ class DefaultAgentHandler(DefaultHandler):
                           endless_threshold=self.endless_threshold,
                           root_agent_name=self.swarm.communicate_agent.name()):
             yield Message(
-                category=Constants.OUTPUT,
-                payload=StepOutput.build_finished_output(name=f"Step{self.swarm.cur_step}",
-                                                       step_num=self.swarm.cur_step),
-                sender=agent.name(),
-                session_id=Context.instance().session_id
-            )
-            yield Message(
                 category=Constants.TASK,
                 payload=action.policy_info,
                 sender=agent.name(),
@@ -350,13 +337,6 @@ class DefaultAgentHandler(DefaultHandler):
         if not caller or caller == self.swarm.communicate_agent.name():
             if self.swarm.cur_step >= self.swarm.max_steps or self.swarm.finished:
                 yield Message(
-                    category=Constants.OUTPUT,
-                    payload=StepOutput.build_finished_output(name=f"Step{self.swarm.cur_step}",
-                                                           step_num=self.swarm.cur_step),
-                    sender=agent.name(),
-                    session_id=Context.instance().session_id
-                )
-                yield Message(
                     category=Constants.TASK,
                     payload=action.policy_info,
                     sender=agent.name(),
@@ -366,13 +346,6 @@ class DefaultAgentHandler(DefaultHandler):
             else:
                 self.swarm.cur_step += 1
                 logger.info(f"execute loop {self.swarm.cur_step}.")
-                yield Message(
-                    category=Constants.OUTPUT,
-                    payload=StepOutput.build_start_output(name=f"Step{self.swarm.cur_step}",
-                                                        step_num=self.swarm.cur_step),
-                    sender=agent.name(),
-                    session_id=Context.instance().session_id
-                )
                 yield Message(
                     category=Constants.AGENT,
                     payload=Observation(content=action.policy_info),

@@ -14,9 +14,11 @@ from pydantic import BaseModel
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.context.base import Context
-from aworld.core.event.base import Message
+from aworld.core.event.base import Message, Constants, ToolMessage
+from aworld.core.event.event_bus import InMemoryEventbus
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
+from aworld.output.base import StepOutput
 from aworld.sandbox.base import Sandbox
 
 from aworld.utils.common import convert_to_snake, replace_env_variables
@@ -131,6 +133,15 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             return final_result if final_result else result
 
     async def async_run(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Message:
+        if InMemoryEventbus.instance():
+            await InMemoryEventbus.instance().publish(Message(
+            category=Constants.OUTPUT,
+            payload=StepOutput.build_start_output(name=f"Step-Agent {self.name()}",
+                                                   step_num=0),
+            sender=self.name(),
+            session_id=Context.instance().session_id
+        ))
+
         with trace.span(self._name, run_type=trace.RunType.AGNET) as agent_span:
             await self.async_pre_run()
             result = await self.async_policy(observation, info, **kwargs)
