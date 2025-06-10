@@ -4,10 +4,11 @@ import os
 import traceback
 import uuid
 from abc import abstractmethod
-from typing import List, AsyncGenerator, Any
+from typing import List, AsyncGenerator, Any, Optional
 
 from aworld.config import AgentConfig, TaskConfig
-from aworld.core.agent.base import Agent
+from aworld.agents.llm_agent import Agent
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.output import WorkSpace, AworldUI, Outputs
 from aworld.runner import Runners
@@ -52,13 +53,15 @@ class AworldBaseAgent:
                 user_input = task.llm_custom_input
             logging.info(f"🤖{self.agent_name()} call llm input is [{user_input}]")
 
-            # build agent task read from config
-            agent = await self.build_agent(body = body)
-            logging.info(f"🤖{self.agent_name()} build agent finished")
-
+            swarm = await self.build_swarm(body = body)
+            agent = None
+            if not swarm:
+                # build single agent task read from config
+                agent = await self.build_agent(body=body)
+                logging.info(f"🤖{self.agent_name()} build agent finished")
 
             # return task
-            task = await self.build_task(agent=agent, task_id=task_id, user_input=user_input, user_message=user_message, body=body)
+            task = await self.build_task(agent=agent, task_id=task_id, user_input=user_input, user_message=user_message, body=body, swarm = swarm)
             logging.info(f"🤖{self.agent_name()} build task finished, task_id is {task_id}")
 
             # render output
@@ -127,12 +130,13 @@ class AworldBaseAgent:
         )
         return agent
 
-    async def build_task(self, agent, task_id, user_input, user_message, body):
+    async def build_task(self, agent: Optional[Agent],swarm: Optional[Swarm], task_id, user_input, user_message, body):
         aworld_task = await self.get_task_from_body(body)
         task = Task(
             id=task_id,
             name=task_id,
             input=user_input,
+            swarm=swarm,
             agent=agent,
             conf=TaskConfig(
                 task_id=task_id,
@@ -220,3 +224,6 @@ class AworldBaseAgent:
     @abstractmethod
     async def load_mcp_config(self) -> dict:
         pass
+
+    async def build_swarm(self, body):
+        return None

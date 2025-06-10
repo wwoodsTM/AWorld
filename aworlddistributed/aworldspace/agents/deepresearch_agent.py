@@ -1,32 +1,44 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import logging
 import os
-import sys
+from typing import Optional
 
-from aworld.config.conf import TaskConfig
+from anthropic import BaseModel
+from aworld.agents.llm_agent import Agent
+from aworld.config.conf import TaskConfig, ModelConfig
 
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.runner import Runners
-from plan_agent import plan_agent
-from reasoning_loop_agent import reasoning_loop_agent
-from reporting_agent import reporting_agent
+from aworldspace.agents.sub_agents.plan_agent import plan_agent
+from aworldspace.agents.sub_agents.reasoning_loop_agent import reasoning_loop_agent
+from aworldspace.agents.sub_agents.reporting_agent import reporting_agent
+from aworldspace.base_agent import AworldBaseAgent
 
-def main():
-    goal = """ 帮我做一个国庆节去北京旅游的7天计划 """
 
-    swarm = Swarm(plan_agent, reasoning_loop_agent, reporting_agent,
-                  sequence=True)
+class Pipeline(AworldBaseAgent):
+    class Valves(BaseModel):
+        pass
 
-    task = Task(
-        swarm=swarm,
-        input=goal,
-        endless_threshold=5,
-        conf=TaskConfig(exit_on_failure=True),
-        event_driven=True
-    )
-    result = Runners.sync_run_task(task)
-    print("finalResult:", result)
+    def __init__(self):
+        self.valves = self.Valves()
+        logging.info("deepresearch_agent init success")
 
-if __name__ == '__main__':
-    main()
+    async def build_swarm(self, body):
+        return Swarm(plan_agent, reasoning_loop_agent, reporting_agent,
+                      sequence=True)
+
+    async def build_task(self, agent: Optional[Agent],swarm: Optional[Swarm], task_id, user_input, user_message, body):
+        task = Task(
+            id = task_id,
+            swarm=swarm,
+            input=user_input,
+            endless_threshold=5,
+            conf=TaskConfig(exit_on_failure=True),
+            event_driven=False
+        )
+        return task
+
+    def agent_name(self) -> str:
+        return "DeepSearchAgent"
