@@ -6,8 +6,15 @@ from aworld.agents.llm_agent import Agent
 
 
 class LoopableAgent(Agent):
+    """Support for loop agents in the swarm.
+
+    # NOTE: Can only be used for deterministic execution.
+    """
     max_run_times: int = 1
     cur_run_times: int = 0
+    # the loop agent only consider the starting and ending agent in the graph
+    start_agent: Agent
+    end_agent: Agent
     # todo: API to be determined
     transfer_condition: Callable[..., Any] = None
     stop_condition: Callable[..., Any] = None
