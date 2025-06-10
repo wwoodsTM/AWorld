@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import abc
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Callable
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
 from aworld.core.agent.base import AgentFactory
@@ -28,9 +28,9 @@ class Swarm(object):
                  **kwargs):
         self._communicate_agent = root_agent
         if root_agent and root_agent not in args:
-            self._topology = [root_agent] + list(args)
+            self._topology: List[Agent] = [root_agent] + list(args)
         else:
-            self._topology = args
+            self._topology: List[Agent] = list(args)
         self.sequence = determinacy
         self.max_steps = max_steps
         self._cur_step = 0
@@ -91,6 +91,61 @@ class Swarm(object):
 
         self.cur_step = 1
         self.initialized = True
+
+    def loop_agent(self,
+                   agent: Agent,
+                   max_run_times: int,
+                   loop_point: str = None,
+                   loop_point_finder: Callable[..., Any] = None,
+                   stop_func: Callable[..., Any] = None):
+        """Loop execution of the flow.
+
+        Args:
+            agent: The agent.
+            max_run_times: Maximum number of loops.
+            loop_point: Loop point of the desired execution.
+            loop_point_finder: Strategy function for obtaining execution loop point.
+            stop_func: Termination function.
+        """
+        from aworld.agents.loop_llm_agent import LoopableAgent
+
+        if agent not in self.topology:
+            raise RuntimeError(f"{agent.name()} not in swarm, agent instance {agent}.")
+
+        loop_agent: LoopableAgent = type(LoopableAgent)(agent)
+        loop_agent.max_run_times = max_run_times
+        loop_agent.loop_point = loop_point
+        loop_agent.loop_point_finder = loop_point_finder
+        loop_agent.stop_func = stop_func
+
+        idx = self.topology.index(agent)
+        self.topology[idx] = loop_agent
+
+    def parallel_agent(self,
+                       agent: Agent,
+                       agents: List[Agent],
+                       aggregate_func: Callable[..., Any] = None):
+        """Parallel execution of agents.
+
+        Args:
+            agent: The agent.
+            agents: Agents that require parallel execution.
+            aggregate_func: Aggregate strategy function.
+        """
+        from aworld.agents.parallel_llm_agent import ParallelizableAgent
+
+        if agent not in self.topology:
+            raise RuntimeError(f"{agent.name()} not in swarm, agent instance {agent}.")
+        for agent in agents:
+            if agent not in self.topology:
+                raise RuntimeError(f"{agent.name()} not in swarm, agent instance {agent}.")
+
+        parallel_agent: ParallelizableAgent = type(ParallelizableAgent)(agent)
+        parallel_agent.agents = agents
+        parallel_agent.aggregate_func = aggregate_func
+
+        idx = self.topology.index(agent)
+        self.topology[idx] = parallel_agent
 
     def _check(self):
         if not self.initialized:
@@ -189,6 +244,7 @@ class Swarm(object):
 
 
 class Builder:
+    """Multi-agent execution flow base builder."""
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, swarm: Swarm):
@@ -202,7 +258,7 @@ class Builder:
 class DeterminacyBuilder(Builder):
     """Workflow mechanism.
 
-    Only handle agent pairs based on the handoffs mechanism, examples:
+    Only handle agent pairs based on the workflow mechanism, examples:
     >>> agent1 = Agent(name='agent1'); agent2 = Agent(name='agent2'); agent3 = Agent(name='agent3')
     >>> Swarm((agent1, agent2, agent3)
     """
