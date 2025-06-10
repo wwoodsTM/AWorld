@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import abc
 from typing import Dict, List, Any
 
 from aworld.core.agent.agent_desc import agent_handoffs_desc
@@ -8,37 +9,37 @@ from aworld.agents.llm_agent import Agent
 from aworld.core.common import ActionModel, Observation
 from aworld.core.context.base import Context
 from aworld.logs.util import logger
+from aworld.utils.common import new_instance
 
-SEQUENCE = "sequence"
-SOCIAL = "social"
-SEQUENCE_EVENT = "sequence_event"
-SOCIAL_EVENT = "social_event"
+DETERMINACY = "Determinacy"
+DYNAMIC = "Dynamicy"
 
 
 class Swarm(object):
-    """Multi-agent topology.
+    """Multi-agent topology."""
 
-    Examples:
-        >>> agent1 = Agent(name='agent1'); agent2 = Agent(name='agent2'); agent3 = Agent(name='agent3')
-        # sequencial
-        >>> Swarm(agent1, agent2, agent3)
-        # social
-        >>> Swarm((agent1, agent2), (agent1, agent3), (agent2, agent3), sequence=False)
-    """
-
-    def __init__(self, *args, root_agent: Agent = None, sequence: bool = True, max_steps: int = 0, **kwargs):
-        self.communicate_agent = root_agent
+    def __init__(self,
+                 *args,  # agent
+                 root_agent: Agent = None,
+                 determinacy: bool = True,
+                 max_steps: int = 0,
+                 event_driven: bool = True,
+                 builder_cls: str = None,
+                 **kwargs):
+        self._communicate_agent = root_agent
         if root_agent and root_agent not in args:
             self._topology = [root_agent] + list(args)
         else:
             self._topology = args
-        self._ext_params = kwargs
-        self.sequence = sequence
+        self.sequence = determinacy
         self.max_steps = max_steps
-        self.initialized = False
-        self._finished = False
         self._cur_step = 0
-        self._event_driven = kwargs.get('event_driven', False)
+        self.execute_type = DETERMINACY if determinacy else DYNAMIC
+        self._event_driven = event_driven
+        if builder_cls:
+            self.builder = new_instance(builder_cls, self)
+        else:
+            self.builder = DeterminacyBuilder(self) if determinacy else DynamicyBuilder(self)
         for agent in self._topology:
             if isinstance(agent, Agent):
                 agent = [agent]
@@ -49,91 +50,13 @@ class Swarm(object):
             if self._event_driven:
                 break
 
-    @property
-    def event_driven(self):
-        return self._event_driven
-
-    @event_driven.setter
-    def event_driven(self, event_driven):
-        self._event_driven = event_driven
-
-    def _init(self, **kwargs):
-        """Swarm init, build the agent or agent pairs to the topology of agents."""
-        # prebuild
-        valid_agent_pair = []
-        for pair in self._topology:
-            if isinstance(pair, (list, tuple)):
-                self.topology_type = SOCIAL
-                # (agent1, agent2)
-                if len(pair) != 2:
-                    raise RuntimeError(f"{pair} is not a pair value, please check it.")
-                elif not isinstance(pair[0], Agent) or not isinstance(pair[1], Agent):
-                    raise RuntimeError(f"agent in {pair} is not a base agent instance, please check it.")
-                valid_agent_pair.append(pair)
-            else:
-                # agent
-                if not isinstance(pair, Agent):
-                    raise RuntimeError(f"agent in {pair} is not a base agent instance, please check it.")
-                self.topology_type = SEQUENCE
-                valid_agent_pair.append((pair,))
-
-        if not valid_agent_pair:
-            logger.warning("no valid agent pair to build graph.")
-            return
-
-        # Agent that communicate with the outside world, the default is the first if the root agent is None.
-        if self.communicate_agent is None:
-            self.communicate_agent: Agent = valid_agent_pair[0][0]
-        # agents in swarm.
         self.agents: Dict[str, Agent] = dict()
         self.ordered_agents: List[Agent] = []
-
-        # agent handoffs build.
-        for pair in valid_agent_pair:
-            if self.sequence or self.topology_type == SEQUENCE:
-                self.ordered_agents.append(pair[0])
-                if len(pair) == 2:
-                    self.ordered_agents.append(pair[1])
-
-            if pair[0] not in self.agents:
-                self.agents[pair[0].name()] = pair[0]
-            if pair[0].name() not in AgentFactory:
-                AgentFactory._cls[pair[0].name()] = pair[0].__class__
-                AgentFactory._desc[pair[0].name()] = pair[0].desc()
-                AgentFactory._agent_conf[pair[0].name()] = pair[0].conf
-                AgentFactory._agent_instance[pair[0].name()] = pair[0]
-            elif pair[0].desc():
-                AgentFactory._desc[pair[0].name()] = pair[0].desc()
-
-            if len(pair) == 1:
-                continue
-
-            if pair[1] not in self.agents:
-                self.agents[pair[1].name()] = pair[1]
-                if pair[1].name() not in AgentFactory:
-                    AgentFactory._cls[pair[1].name()] = pair[1].__class__
-                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
-                    AgentFactory._agent_conf[pair[1].name()] = pair[1].conf
-                    AgentFactory._agent_instance[pair[1].name()] = pair[1]
-                elif pair[1].desc():
-                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
-
-            if self.topology_type == SOCIAL:
-                # need to explicitly set handoffs in the agent
-                pair[0].handoffs.append(pair[1].name())
-
-        if self.sequence:
-            self.topology_type = SEQUENCE
-
-        self._cur_step = 1
-        # event driven
-        if self.event_driven:
-            for _, agent in self.agents.items():
-                agent.event_driven = True
-            if self.topology_type == SEQUENCE:
-                self.topology_type = SEQUENCE_EVENT
-            elif self.topology_type == SOCIAL:
-                self.topology_type = SOCIAL_EVENT
+        # global tools
+        self.tools = []
+        self.task = ''
+        self.initialized = False
+        self._finished = False
 
     def reset(self, content: Any, context: Context = None, tools: List[str] = []):
         """Resets the initial internal state, and init supported tools in agent in swarm.
@@ -145,7 +68,7 @@ class Swarm(object):
         self.tools = tools
         self.task = content
 
-        self._init()
+        self.builder.build()
         if not self.agents:
             logger.warning("No valid agent in swarm.")
             return
@@ -156,6 +79,7 @@ class Swarm(object):
             context = Context.instance()
 
         for agent in self.agents.values():
+            agent.event_driven = self.event_driven
             if agent.need_reset:
                 agent.context = context
                 agent.reset({"task": content,
@@ -164,6 +88,8 @@ class Swarm(object):
                              "mcp_servers": agent.mcp_servers})
             # global tools
             agent.tool_names.extend(self.tools)
+
+        self.cur_step = 1
         self.initialized = True
 
     def _check(self):
@@ -222,6 +148,26 @@ class Swarm(object):
         return self.tools
 
     @property
+    def topology(self):
+        return self._topology
+
+    @property
+    def communicate_agent(self):
+        return self._communicate_agent
+
+    @communicate_agent.setter
+    def communicate_agent(self, agent: Agent):
+        self._communicate_agent = agent
+
+    @property
+    def event_driven(self):
+        return self._event_driven
+
+    @event_driven.setter
+    def event_driven(self, event_driven):
+        self._event_driven = event_driven
+
+    @property
     def cur_step(self) -> int:
         return self._cur_step
 
@@ -240,3 +186,119 @@ class Swarm(object):
     @finished.setter
     def finished(self, finished):
         self._finished = finished
+
+
+class Builder:
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, swarm: Swarm):
+        self.swarm = swarm
+
+    @abc.abstractmethod
+    def build(self):
+        """Build the agents' execution graph."""
+
+
+class DeterminacyBuilder(Builder):
+    """Workflow mechanism.
+
+    Only handle agent pairs based on the handoffs mechanism, examples:
+    >>> agent1 = Agent(name='agent1'); agent2 = Agent(name='agent2'); agent3 = Agent(name='agent3')
+    >>> Swarm((agent1, agent2, agent3)
+    """
+
+    def build(self):
+        valid_agents = []
+        for agent in self.swarm.topology:
+            if isinstance(agent, (list, tuple)):
+                raise RuntimeError(f"agent in {agent} is not a agent, please check it.")
+
+            if not isinstance(agent, Agent):
+                raise RuntimeError(f"agent in {agent} is not a base agent instance, please check it.")
+
+            valid_agents.append(agent)
+
+        if not valid_agents:
+            raise RuntimeError(f"no valid agent to build execution graph.")
+
+        if self.swarm.communicate_agent is None:
+            self.swarm.communicate_agent = valid_agents[0]
+
+        for agent in valid_agents:
+            self.swarm.ordered_agents.append(agent)
+
+            if agent.name() not in self.swarm.agents:
+                self.swarm.agents[agent.name()] = agent
+            if agent.name() not in AgentFactory:
+                AgentFactory._cls[agent.name()] = agent.__class__
+                AgentFactory._desc[agent.name()] = agent.desc()
+                AgentFactory._agent_conf[agent.name()] = agent.conf
+                AgentFactory._agent_instance[agent.name()] = agent
+            elif agent.desc():
+                AgentFactory._desc[agent.name()] = agent.desc()
+
+
+class DynamicyBuilder(Builder):
+    """Handoffs mechanism.
+
+    Only handle agent pairs based on the handoffs mechanism, examples:
+    >>> agent1 = Agent(name='agent1'); agent2 = Agent(name='agent2'); agent3 = Agent(name='agent3')
+    >>> Swarm((agent1, agent2), (agent1, agent3), (agent2, agent3), determinacy=False)
+    """
+
+    def build(self):
+        valid_agent_pair = []
+        for pair in self.swarm.topology:
+            if isinstance(pair, (list, tuple)):
+                # (agent1, agent2)
+                if len(pair) != 2:
+                    raise RuntimeError(f"{pair} is not a pair value, please check it.")
+                elif not isinstance(pair[0], Agent) or not isinstance(pair[1], Agent):
+                    raise RuntimeError(f"agent in {pair} is not a base agent instance, please check it.")
+                valid_agent_pair.append(pair)
+            elif len(self.swarm.topology) == 1:
+                # agent
+                if not isinstance(pair, Agent):
+                    raise RuntimeError(f"agent in {pair} is not a base agent instance, please check it.")
+                valid_agent_pair.append((pair,))
+            else:
+                raise RuntimeError(f"{pair} is unsupported in handoffs mechanism of agent, please check it.")
+
+        if not valid_agent_pair:
+            raise RuntimeError(f"no valid agent pair to build execution graph.")
+
+        # Agent that communicate with the outside world, the default is the first if the root agent is None.
+        if self.swarm.communicate_agent is None:
+            self.swarm.communicate_agent = valid_agent_pair[0][0]
+
+        # agent handoffs build.
+        for pair in valid_agent_pair:
+            self.swarm.ordered_agents.append(pair[0])
+            self.swarm.ordered_agents.append(pair[1])
+
+            if pair[0].name() not in self.swarm.agents:
+                self.swarm.agents[pair[0].name()] = pair[0]
+            if pair[0].name() not in AgentFactory:
+                AgentFactory._cls[pair[0].name()] = pair[0].__class__
+                AgentFactory._desc[pair[0].name()] = pair[0].desc()
+                AgentFactory._agent_conf[pair[0].name()] = pair[0].conf
+                AgentFactory._agent_instance[pair[0].name()] = pair[0]
+            elif pair[0].desc():
+                AgentFactory._desc[pair[0].name()] = pair[0].desc()
+
+            # only one agent
+            if len(pair) == 1:
+                continue
+
+            if pair[1].name() not in self.swarm.agents:
+                self.swarm.agents[pair[1].name()] = pair[1]
+                if pair[1].name() not in AgentFactory:
+                    AgentFactory._cls[pair[1].name()] = pair[1].__class__
+                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
+                    AgentFactory._agent_conf[pair[1].name()] = pair[1].conf
+                    AgentFactory._agent_instance[pair[1].name()] = pair[1]
+                elif pair[1].desc():
+                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
+
+            # need to explicitly set handoffs in the agent
+            pair[0].handoffs.append(pair[1].name())

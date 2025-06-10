@@ -186,7 +186,7 @@ class DefaultAgentHandler(DefaultHandler):
             if isinstance(agent, LoopableAgent):
                 agent.cur_run_times += 1
                 if not agent.finished:
-                    receiver = agent.name()
+                    receiver = agent.goto
 
             if receiver:
                 yield Message(
@@ -213,7 +213,7 @@ class DefaultAgentHandler(DefaultHandler):
             if agent.finished:
                 receiver = self.swarm.ordered_agents[idx + 1].name()
             else:
-                receiver = agent.name()
+                receiver = agent.goto
         else:
             # means the loop finished
             receiver=self.swarm.ordered_agents[idx + 1].name()
@@ -246,7 +246,7 @@ class DefaultAgentHandler(DefaultHandler):
                 if isinstance(agent, LoopableAgent):
                     agent.cur_run_times += 1
                     if not agent.finished:
-                        receiver = agent.name()
+                        receiver = agent.goto
 
                 if receiver:
                     yield Message(
@@ -282,7 +282,7 @@ class DefaultAgentHandler(DefaultHandler):
             if agent.finished:
                 receiver = self.swarm.ordered_agents[idx + 1].name()
             else:
-                receiver = agent.name()
+                receiver = agent.goto
         else:
             # means the loop finished
             receiver = self.swarm.ordered_agents[idx + 1].name()

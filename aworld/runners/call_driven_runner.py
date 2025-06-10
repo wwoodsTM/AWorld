@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 
 from aworld.agents.loop_llm_agent import LoopableAgent
 from aworld.config.conf import ToolConfig
-from aworld.core.agent.base import is_agent
+from aworld.core.agent.base import is_agent, AgentFactory
 from aworld.agents.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel, ActionResult
 from aworld.core.context.base import Context
@@ -203,6 +203,7 @@ class SequenceRunner(TaskRunner):
                                         )
                                     break
                                 else:
+                                    cur_agent = AgentFactory.agent_instance(agent.goto)
                                     step = 0
                             else:
                                 observation = self.swarm.action_to_observation(policy, observations)

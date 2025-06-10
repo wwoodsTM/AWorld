@@ -8,20 +8,37 @@ from aworld.agents.llm_agent import Agent
 class LoopableAgent(Agent):
     """Support for loop agents in the swarm.
 
-    # NOTE: Can only be used for deterministic execution.
+    The parameters of the extension function are the agent itself, which can obtain internal information of the agent.
+    `stop_func` function example:
+    >>> def stop(agent: LoopableAgent):
+    >>>     ...
+
+    `loop_point_finder` function example:
+    >>> def find(agent: LoopableAgent):
+    >>>     ...
     """
     max_run_times: int = 1
     cur_run_times: int = 0
-    # the loop agent only consider the starting and ending agent in the graph
-    start_agent: Agent
-    end_agent: Agent
-    # todo: API to be determined
-    transfer_condition: Callable[..., Any] = None
-    stop_condition: Callable[..., Any] = None
+    # The loop agent special the loop point (agent name)
+    loop_point: str = None
+    # Used to determine the loop point for multiple loops
+    loop_point_finder: Callable[..., Any] = None
+    # def stop(agent: LoopableAgent): ...
+    stop_func: Callable[..., Any] = None
+
+    @property
+    def goto(self):
+        """The next loop point is what the loop agent wants to reach."""
+        if self.loop_point_finder:
+            return self.loop_point_finder(self)
+        if self.loop_point:
+            return self.loop_point
+        return self.name()
 
     @property
     def finished(self) -> bool:
-        if self.cur_run_times >= self.max_run_times or (self.stop_condition and self.stop_condition()):
+        """Loop agent termination state detection, achieved loop count or termination condition."""
+        if self.cur_run_times >= self.max_run_times or (self.stop_condition and self.stop_condition(self)):
             self._finished = True
             return True
 

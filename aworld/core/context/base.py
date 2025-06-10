@@ -10,15 +10,21 @@ from aworld.utils.common import nest_dict_counter
 
 
 class Context(InheritanceSingleton):
-    def __init__(self, user: str = None, **kwargs):
+    def __init__(self,
+                 user: str = None,
+                 *,
+                 task_id: str = None,
+                 trace_id: str = None,
+                 session: Session = None,
+                 engine: str = None):
         self._user = user
-        self._init(**kwargs)
+        self._init(task_id=task_id, trace_id=trace_id, session=session, engine=engine)
 
-    def _init(self, **kwargs):
-        self._task_id = kwargs.get('task_id')
-        self._engine = kwargs.get('engine')
-        self._trace_id = kwargs.get('trace_id')
-        self._session: Session = kwargs.get('session')
+    def _init(self, *, task_id: str = None, trace_id: str = None, session: Session = None, engine: str = None):
+        self._task_id = task_id
+        self._engine = engine
+        self._trace_id = trace_id
+        self._session: Session = session
         self.context_info = ConfigDict()
         self.agent_info = ConfigDict()
         self.trajectories = OrderedDict()
