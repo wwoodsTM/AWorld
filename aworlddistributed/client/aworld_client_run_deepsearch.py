@@ -50,7 +50,7 @@ async def _batch_run_gaia_task(gaia_tasks: list[AworldTask]) -> None:
 CUSTOM_SYSTEM_PROMPT = f""" **PLEASE CUSTOM IT **"""
 
 if __name__ == '__main__':
-    gaia_task_ids = ['c61d22de-5f6c-4958-a7f6-5e9707bd3466']
+    gaia_task_ids = ['7天日本旅游']
     gaia_tasks = []
     custom_mcp_servers = [
             # "e2b-server",
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         gaia_tasks.append(
             AworldTask(
                 task_id=task_id,
-                agent_id="gaia_agent",
+                agent_id="deepresearch_agent",
                 agent_input=gaia_task_id,
                 session_id="session_id",
                 user_id=os.getenv("USER", "SYSTEM"),

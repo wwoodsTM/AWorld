@@ -18,10 +18,11 @@ from aworld.runners.handler.agent import DefaultAgentHandler
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.task import DefaultTaskHandler
 from aworld.runners.handler.tool import DefaultToolHandler
-
+from aworld.runners.handler.output import DefaultOutputHandler
 from aworld.runners.task_runner import TaskRunner
 from aworld.runners.utils import TaskType
 from aworld.utils.common import override_in_subclass
+from aworld.output.base import StepOutput
 
 
 class TaskEventRunner(TaskRunner):
@@ -58,6 +59,7 @@ class TaskEventRunner(TaskRunner):
                     await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
                 else:
                     await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
+
         # register tool handler
         for key, tool in self.tools.items():
             if tool.handler:
@@ -74,6 +76,8 @@ class TaskEventRunner(TaskRunner):
         self.agent_handler = DefaultAgentHandler(swarm=self.swarm, endless_threshold=self.endless_threshold)
         self.tool_handler = DefaultToolHandler(tools=self.tools, tools_conf=self.tools_conf)
         self.task_handler = DefaultTaskHandler(runner=self)
+        self.output_handler = DefaultOutputHandler(runner=self)
+        self.handlers = [self.agent_handler, self.tool_handler, self.task_handler, self.output_handler]
 
     async def _common_process(self, message: Message) -> List[Message]:
         event_bus = self.event_mng.event_bus
@@ -106,6 +110,7 @@ class TaskEventRunner(TaskRunner):
 
                     if isinstance(con, Message):
                         results.append(con)
+
                         con = message.payload
                 except Exception as e:
                     logger.warning(f"{handler} process fail. {traceback.format_exc()}")
@@ -136,6 +141,13 @@ class TaskEventRunner(TaskRunner):
         start = time.time()
         msg = None
         answer = None
+        start_message = Message(
+            category=Constants.OUTPUT,
+            payload=StepOutput.build_start_output(name=f"Step1", step_num=1),
+            sender='runner',
+            session_id=Context.instance().session_id
+        )
+        await self.event_mng.emit_message(start_message)
 
         while True:
             if await self.is_stopped():
@@ -148,11 +160,19 @@ class TaskEventRunner(TaskRunner):
                                                        id=self.task.id,
                                                        time_cost=(time.time() - start),
                                                        usage=self.context.token_usage)
+                output_message = Message(
+                    category=Constants.OUTPUT,
+                    payload=self._task_response,
+                    sender='runner',
+                    session_id=Context.instance().session_id,
+                    topic=TaskType.FINISHED
+                )
+                async for _ in self.output_handler.handle(output_message):
+                    pass
                 break
 
             # consume message
             message: Message = await self.event_mng.consume()
-
             # use registered handler to process message
             results = await self._common_process(message)
             if not results:
@@ -161,14 +181,13 @@ class TaskEventRunner(TaskRunner):
             # process in framework
             async for event in self._inner_handler_process(
                     results=results,
-                    handlers=[self.agent_handler, self.tool_handler, self.task_handler]
+                    handlers=self.handlers
             ):
                 await self.event_mng.emit_message(event)
 
     async def do_run(self, context: Context = None):
         if not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
-
         await self.event_mng.emit_message(self.init_message)
         await self._do_run()
         return self._task_response
