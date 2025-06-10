@@ -193,6 +193,7 @@ class SequenceRunner(TaskRunner):
                             if isinstance(agent, LoopableAgent):
                                 agent.cur_run_times += 1
                                 if agent.finished:
+                                    logger.info(f"loop agent {agent.name()} finished loops.")
                                     observation = self.swarm.action_to_observation(policy, observations)
                                     if idx == len(self.swarm.ordered_agents) - 1:
                                         return TaskResponse(
@@ -204,6 +205,7 @@ class SequenceRunner(TaskRunner):
                                         )
                                     break
                                 else:
+                                    logger.info(f"loop agent {agent.name()} execute loop {agent.cur_run_times}.")
                                     step = 0
                             else:
                                 observation = self.swarm.action_to_observation(policy, observations)
