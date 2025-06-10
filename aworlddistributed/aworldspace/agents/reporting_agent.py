@@ -22,7 +22,7 @@ agent_config = AgentConfig(
 # reporting_agent
 reporting_agent = Agent(
     name="reporting_agent",
-    desc="",
+    desc="reporting_agent",
     conf=agent_config,
     system_prompt=reporting_sys_prompt
 )
