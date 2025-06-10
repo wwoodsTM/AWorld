@@ -27,7 +27,7 @@ class DefaultOutputHandler(DefaultHandler):
                 session_id=Context.instance().session_id,
                 topic=TaskType.ERROR
             )
-
+            return
         # 2. build Output
         payload = message.payload
         try:

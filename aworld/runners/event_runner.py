@@ -56,23 +56,9 @@ class TaskEventRunner(TaskRunner):
                 await self.event_mng.register(Constants.AGENT, agent.name(), agent.handler)
             else:
                 if override_in_subclass('async_policy', agent.__class__, Agent):
-                    # await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
-                    async def handler(obs, **kwargs):
-                        return await agent.async_run(obs, event_bus=self.event_mng.event_bus, **kwargs)
-                    await self.event_mng.register(
-                        Constants.AGENT,
-                        agent.name(),
-                        handler
-                    )
+                    await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
                 else:
-                    # await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
-                    def handler(obs, **kwargs):
-                        return agent.run(obs, event_bus=self.event_mng.event_bus, **kwargs)
-                    await self.event_mng.register(
-                        Constants.AGENT,
-                        agent.name(),
-                        handler
-                    )
+                    await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
 
         # register tool handler
         for key, tool in self.tools.items():
@@ -181,7 +167,8 @@ class TaskEventRunner(TaskRunner):
                     session_id=Context.instance().session_id,
                     topic=TaskType.FINISHED
                 )
-                self.output_handler.handle(output_message)
+                async for _ in self.output_handler.handle(output_message):
+                    pass
                 break
 
             # consume message

@@ -3,7 +3,6 @@
 import json
 import traceback
 import uuid
-import asyncio
 
 import aworld.trace as trace
 
@@ -27,10 +26,8 @@ from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
 from aworld.sandbox import Sandbox
-from aworld.utils.common import sync_exec
-from string import Template
-from aworld.sandbox.base import Sandbox
 from aworld.utils.common import sync_exec, nest_dict_counter
+from string import Template
 from aworld.core.context.base import Context
 
 
@@ -648,13 +645,6 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         llm_response.id = resp.id
                         llm_response.model = resp.model
                         llm_response.usage = nest_dict_counter(llm_response.usage, resp.usage)
-                        # if event_bus and resp:
-                        #     await event_bus.publish(Message(
-                        #         category=Constants.OUTPUT,
-                        #         payload=resp,
-                        #         sender=self.name(),
-                        #         session_id=Context.instance().session_id
-                        #     ))
 
                 else:
                     llm_response = await acall_llm_model(

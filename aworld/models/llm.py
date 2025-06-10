@@ -440,33 +440,6 @@ async def acall_llm_model(
     Returns:
         Model response or response generator.
     """
-    # if stream:
-    #     # return llm_model.astream_completion(
-    #     #     messages=messages,
-    #     #     temperature=temperature,
-    #     #     max_tokens=max_tokens,
-    #     #     stop=stop,
-    #     #     **kwargs
-    #     # )
-    #     async for chunk in llm_model.astream_completion(
-    #         messages=messages,
-    #         temperature=temperature,
-    #         max_tokens=max_tokens,
-    #         stop=stop,
-    #         **kwargs
-    #     ):
-    #         yield chunk
-    #     # async def _stream_wrapper():
-    #     #     async for chunk in llm_model.astream_completion(
-    #     #             messages=messages,
-    #     #             temperature=temperature,
-    #     #             max_tokens=max_tokens,
-    #     #             stop=stop,
-    #     #             **kwargs
-    #     #     ):
-    #     #         yield chunk
-    #     # return _stream_wrapper()
-    # else:
     async with trace.span(llm_model.provider.model_name, run_type=trace.RunType.LLM) as llm_span:
         return await llm_model.acompletion(
             messages=messages,
