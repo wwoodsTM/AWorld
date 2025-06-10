@@ -9,9 +9,9 @@ from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from pydantic import BaseModel
 
-from aworldspace.agents.sub_agents.plan_agent import plan_agent
-from aworldspace.agents.sub_agents.reasoning_loop_agent import reasoning_loop_agent
-from aworldspace.agents.sub_agents.reporting_agent import reporting_agent
+from aworldspace.agents.sub_agents.plan_agent import create_plan_agent
+from aworldspace.agents.sub_agents.reasoning_loop_agent import create_reasoning_loop_agent
+from aworldspace.agents.sub_agents.reporting_agent import create_reporting_agent
 from aworldspace.base_agent import AworldBaseAgent
 
 
@@ -24,12 +24,16 @@ class Pipeline(AworldBaseAgent):
         logging.info("deepresearch_agent init success")
 
     async def build_swarm(self, body):
+        agent_config = body.get('agent_config', None)
+        plan_agent = create_plan_agent(agent_config)
+        reasoning_loop_agent = create_reasoning_loop_agent(agent_config)
+        reporting_agent = create_reporting_agent(agent_config)
         return Swarm(plan_agent, reasoning_loop_agent, reporting_agent,
                       sequence=True)
 
     async def build_task(self, agent: Optional[Agent],swarm: Optional[Swarm], task_id, user_input, user_message, body):
         task = Task(
-            id = task_id,
+            id=task_id,
             swarm=swarm,
             input=user_input,
             endless_threshold=5,
@@ -39,4 +43,4 @@ class Pipeline(AworldBaseAgent):
         return task
 
     def agent_name(self) -> str:
-        return "DeepSearchAgent"
+        return "DeepresearchAgent"
