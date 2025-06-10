@@ -3,6 +3,7 @@
 from typing import List, Dict
 
 from aworld.config import ConfigDict
+from aworld.core.agent.swarm import DETERMINACY
 from aworld.core.common import Config
 from aworld.core.runtime_engine import LOCAL
 
@@ -42,9 +43,9 @@ async def choose_runners(tasks: List[Task]) -> List[Runner]:
             if task.swarm:
                 task.swarm.event_driven = task.event_driven
                 task.swarm.reset(task.input)
-                topology = task.swarm.topology_type
+                topology = task.swarm.execute_type
             else:
-                topology = "sequence"
+                topology = DETERMINACY
 
             if task.event_driven:
                 runner = new_instance("aworld.runners.event_runner.TaskEventRunner", task)

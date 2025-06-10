@@ -59,6 +59,11 @@ def override_in_subclass(name: str, sub_cls: object, base_cls: object) -> bool:
     return this_method is not base_method
 
 
+def convert_to_subclass(obj, subclass):
+    obj.__class__ = subclass
+    return obj
+
+
 def _walk_to_root(path: str) -> Iterator[str]:
     """Yield directories starting from the given directory up to the root."""
     if not os.path.exists(path):
@@ -272,6 +277,7 @@ def get_local_ip():
         return local_ip
     except Exception:
         return "127.0.0.1"
+
 
 def replace_env_variables(
         config) -> Any:

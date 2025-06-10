@@ -38,7 +38,7 @@ class LoopableAgent(Agent):
     @property
     def finished(self) -> bool:
         """Loop agent termination state detection, achieved loop count or termination condition."""
-        if self.cur_run_times >= self.max_run_times or (self.stop_condition and self.stop_condition(self)):
+        if self.cur_run_times >= self.max_run_times or (self.stop_func and self.stop_func(self)):
             self._finished = True
             return True
 

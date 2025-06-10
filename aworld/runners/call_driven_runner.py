@@ -40,7 +40,7 @@ def action_result_transform(message: Message, sandbox: Sandbox) -> Tuple[Observa
                              action_result=action_results), 1.0, result.is_done, result.is_done, {}
 
 
-class SequenceRunner(TaskRunner):
+class DeterminacyRunner(TaskRunner):
     def __init__(self, task: Task, *args, **kwargs):
         super().__init__(task=task, *args, **kwargs)
 
@@ -264,6 +264,14 @@ class SequenceRunner(TaskRunner):
                     step += 1
                     if terminated and agent.finished:
                         logger.info("swarm finished")
+                        if idx == len(self.swarm.ordered_agents) - 1:
+                            return TaskResponse(
+                                answer=observations[-1].content,
+                                success=True,
+                                id=self.task.id,
+                                time_cost=(time.time() - start),
+                                usage=self.context.token_usage
+                            )
                         break
 
     async def _agent(self, agent: Agent, observation: Observation, policy: List[ActionModel], step: int):
@@ -378,7 +386,7 @@ class SequenceRunner(TaskRunner):
         return f"{self.task.id}_{step}_{cur_agent_name}_{exp_index}"
 
 
-class LoopSequenceRunner(SequenceRunner):
+class LoopDeterminacyRunner(DeterminacyRunner):
 
     async def _do_run(self, context: Context = None) -> TaskResponse:
         observation = self.observation
@@ -424,7 +432,7 @@ class LoopSequenceRunner(SequenceRunner):
                                 usage=self.context.token_usage)
 
 
-class SocialRunner(TaskRunner):
+class DynamicyRunner(TaskRunner):
     def __init__(self, task: Task, *args, **kwargs):
         super().__init__(task=task, *args, **kwargs)
 

@@ -9,7 +9,7 @@ from aworld.agents.llm_agent import Agent
 from aworld.core.common import ActionModel, Observation
 from aworld.core.context.base import Context
 from aworld.logs.util import logger
-from aworld.utils.common import new_instance
+from aworld.utils.common import new_instance, convert_to_subclass
 
 DETERMINACY = "Determinacy"
 DYNAMIC = "Dynamicy"
@@ -65,6 +65,10 @@ class Swarm(object):
             tools: Tool names that all agents in the swarm can use.
         """
         # can use the tools in the agents in the swarm as a global
+        if self.initialized:
+            logger.warning(f"swarm {self} already init")
+            return
+
         self.tools = tools
         self.task = content
 
@@ -112,7 +116,8 @@ class Swarm(object):
         if agent not in self.topology:
             raise RuntimeError(f"{agent.name()} not in swarm, agent instance {agent}.")
 
-        loop_agent: LoopableAgent = type(LoopableAgent)(agent)
+        loop_agent: LoopableAgent = convert_to_subclass(agent, LoopableAgent)
+        # loop_agent: LoopableAgent = type(LoopableAgent)(agent)
         loop_agent.max_run_times = max_run_times
         loop_agent.loop_point = loop_point
         loop_agent.loop_point_finder = loop_point_finder
@@ -140,7 +145,7 @@ class Swarm(object):
             if agent not in self.topology:
                 raise RuntimeError(f"{agent.name()} not in swarm, agent instance {agent}.")
 
-        parallel_agent: ParallelizableAgent = type(ParallelizableAgent)(agent)
+        parallel_agent: ParallelizableAgent = convert_to_subclass(agent, ParallelizableAgent)
         parallel_agent.agents = agents
         parallel_agent.aggregate_func = aggregate_func
 
