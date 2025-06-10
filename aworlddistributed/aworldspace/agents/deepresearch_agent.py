@@ -1,16 +1,14 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import logging
-import os
 from typing import Optional
 
-from anthropic import BaseModel
 from aworld.agents.llm_agent import Agent
-from aworld.config.conf import TaskConfig, ModelConfig
-
+from aworld.config.conf import TaskConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
-from aworld.runner import Runners
+from pydantic import BaseModel
+
 from aworldspace.agents.sub_agents.plan_agent import plan_agent
 from aworldspace.agents.sub_agents.reasoning_loop_agent import reasoning_loop_agent
 from aworldspace.agents.sub_agents.reporting_agent import reporting_agent
