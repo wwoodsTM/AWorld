@@ -13,20 +13,22 @@ from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.agent.agent_desc import get_agent_desc
 from aworld.core.agent.base import BaseAgent, AgentResult, is_agent_by_name, is_agent
 from aworld.core.common import Observation, ActionModel
+from aworld.core.event.event_bus import InMemoryEventbus
 from aworld.core.tool.tool_desc import get_tool_desc
 from aworld.core.event.base import Message, ToolMessage, Constants
 from aworld.logs.util import logger
 from aworld.mcp_client.utils import mcp_tool_desc_transform
 from aworld.core.memory import MemoryItem
 from aworld.memory.main import Memory
-from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model, acall_llm_model_stream
 from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
 from aworld.sandbox import Sandbox
-from aworld.utils.common import sync_exec
+from aworld.utils.common import sync_exec, nest_dict_counter
 from string import Template
+from aworld.core.context.base import Context
 
 
 class Agent(BaseAgent[Observation, List[ActionModel]]):
@@ -573,7 +575,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
         # Get current step information for trace recording
         step = kwargs.get("step", 0)
-        exp_id = kwargs.get("exp_id", None)
+        exp_id = kwargs.get("exp_id", "")
         source_span = trace.get_current_span()
 
         if hasattr(observation, 'context') and observation.context:
@@ -612,25 +614,65 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 source_span.set_attribute("messages", json.dumps(serializable_messages, ensure_ascii=False))
 
             try:
-                llm_response = await acall_llm_model(
-                    self.llm,
-                    messages=messages,
-                    model=self.model_name,
-                    temperature=self.conf.llm_config.llm_temperature,
-                    tools=self.tools if self.use_tools_in_prompt and self.tools else None,
-                    stream=kwargs.get("stream", False)
-                )
-                logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
-                if outputs and isinstance(outputs, Outputs):
-                    await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
+                stream_mode = kwargs.get("stream", False)
+                if stream_mode:
+                    llm_response = ModelResponse(id="", model="", content="", tool_calls=[])
+                    resp_stream = acall_llm_model_stream(
+                        self.llm,
+                        messages=messages,
+                        model=self.model_name,
+                        temperature=self.conf.llm_config.llm_temperature,
+                        tools=self.tools if self.use_tools_in_prompt and self.tools else None,
+                        stream=True
+                    )
 
+                    if InMemoryEventbus.instance() and resp_stream:
+                        await InMemoryEventbus.instance().publish(Message(
+                            category=Constants.OUTPUT,
+                            payload=resp_stream,
+                            sender=self.name(),
+                            session_id=Context.instance().session_id
+                        ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=resp_stream, json_parse=False))
+                    async for resp in resp_stream:
+                        if resp.content:
+                            llm_response.content += resp.content
+                        if resp.tool_calls:
+                            llm_response.tool_calls.extend(resp.tool_calls)
+                        if resp.error:
+                            llm_response.error = resp.error
+                        llm_response.id = resp.id
+                        llm_response.model = resp.model
+                        llm_response.usage = nest_dict_counter(llm_response.usage, resp.usage)
+
+                else:
+                    llm_response = await acall_llm_model(
+                        self.llm,
+                        messages=messages,
+                        model=self.model_name,
+                        temperature=self.conf.llm_config.llm_temperature,
+                        tools=self.tools if self.use_tools_in_prompt and self.tools else None,
+                        stream=kwargs.get("stream", False)
+                    )
+                    if InMemoryEventbus.instance() and llm_response:
+                        await InMemoryEventbus.instance().publish(Message(
+                            category=Constants.OUTPUT,
+                            payload=llm_response,
+                            sender=self.name(),
+                            session_id=Context.instance().session_id
+                        ))
+                    elif not self.event_driven and outputs and isinstance(outputs, Outputs):
+                        await outputs.add_output(MessageOutput(source=llm_response, json_parse=False))
+
+                logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
                 # Record LLM response
                 llm_span.set_attributes({
                     "llm_response": json.dumps(llm_response.to_dict(), ensure_ascii=False),
                     "tool_calls": json.dumps([tool_call.model_dump() for tool_call in
-                                              llm_response.tool_calls] if llm_response.tool_calls else [],
-                                             ensure_ascii=False),
-                    "error": llm_response.error if llm_response.error else ""
+                                                llm_response.tool_calls] if llm_response.tool_calls else [],
+                                                ensure_ascii=False),
+                    "error": llm_response.error or ""
                 })
 
             except Exception as e:
