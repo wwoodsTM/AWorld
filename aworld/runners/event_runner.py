@@ -72,7 +72,6 @@ class TaskEventRunner(TaskRunner):
                 await self.event_mng.register(Constants.TOOL, Constants.TOOL, tool.step)
 
         self._stopped = asyncio.Event()
-        self._nowait = asyncio.Event()
 
         # handler of process in framework
         handler_list = self.conf.get("handlers")
