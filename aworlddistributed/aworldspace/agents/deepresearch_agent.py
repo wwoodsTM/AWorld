@@ -38,7 +38,7 @@ class Pipeline(AworldBaseAgent):
             input=user_input,
             endless_threshold=5,
             conf=TaskConfig(exit_on_failure=True),
-            event_driven=False
+            event_driven=True
         )
         return task
 
