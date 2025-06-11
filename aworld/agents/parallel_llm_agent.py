@@ -3,8 +3,9 @@
 from typing import List, Dict, Any, Callable
 
 from aworld.agents.llm_agent import Agent
+from aworld.config import RunConfig
 from aworld.core.common import Observation, ActionModel
-from aworld.core.runtime_engine import RUNTIME
+from aworld.core.runtime_engine import RUNTIME, LocalRuntime
 
 
 class ParallelizableAgent(Agent):
@@ -22,7 +23,10 @@ class ParallelizableAgent(Agent):
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
         funcs = [agent.async_policy for agent in self.agents]
         runtime_engine = RUNTIME.get(self.context.engine)
-        res = await runtime_engine.execute(funcs, observation, info, **kwargs)
+        if not runtime_engine:
+            res = await LocalRuntime(RunConfig()).execute(funcs, observation, info, **kwargs)
+        else:
+            res = await runtime_engine.execute(funcs, observation, info, **kwargs)
 
         if self.aggregate_func:
             return self.aggregate_func(self, res)

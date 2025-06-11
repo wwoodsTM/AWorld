@@ -5,6 +5,7 @@ from typing import List, Dict
 from aworld.config import ConfigDict
 from aworld.core.agent.swarm import DETERMINACY
 from aworld.core.common import Config
+from aworld.core.context.base import Context
 from aworld.core.runtime_engine import LOCAL
 
 from aworld.core.task import Task, Runner, TaskResponse
@@ -69,6 +70,9 @@ async def execute_runner(runners: List[Runner], run_conf: Config) -> Dict[str, T
         run_conf = ConfigDict({"name": LOCAL})
 
     name = run_conf.name
+    context = Context()
+    context.engine = name
+
     if run_conf.get('cls'):
         runtime_backend = new_instance(run_conf.cls, run_conf)
     else:

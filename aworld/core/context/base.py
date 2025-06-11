@@ -10,6 +10,14 @@ from aworld.utils.common import nest_dict_counter
 
 
 class Context(InheritanceSingleton):
+    """Single instance, can use construction or `instance` static method to create or get `Context` instance.
+
+    Examples:
+        >>> context = Context()
+    or
+        >>> context = Context.instance()
+    """
+
     def __init__(self,
                  user: str = None,
                  *,
@@ -55,6 +63,10 @@ class Context(InheritanceSingleton):
     @property
     def engine(self):
         return self._engine
+
+    @engine.setter
+    def engine(self, engine: str):
+        self._engine = engine
 
     @property
     def user(self):
