@@ -16,6 +16,7 @@ from aworld.events.manager import EventManager
 from aworld.logs.util import logger
 from aworld.runners.handler.agent import DefaultAgentHandler, AgentHandler
 from aworld.runners.handler.base import DefaultHandler
+from aworld.runners.handler.output import DefaultOutputHandler
 from aworld.runners.handler.task import DefaultTaskHandler, TaskHandler
 from aworld.runners.handler.tool import DefaultToolHandler, ToolHandler
 
@@ -87,7 +88,7 @@ class TaskEventRunner(TaskRunner):
                 elif isinstance(hand, ToolHandler):
                     has_tool_handler = True
                 elif isinstance(hand, AgentHandler):
-                    has_agent_handler = ToolHandler
+                    has_agent_handler = True
 
             if not has_agent_handler:
                 self.handlers.append(DefaultAgentHandler(runner=self))
@@ -99,7 +100,8 @@ class TaskEventRunner(TaskRunner):
         else:
             self.handlers = [DefaultAgentHandler(runner=self),
                              DefaultToolHandler(runner=self),
-                             DefaultTaskHandler(runner=self)]
+                             DefaultTaskHandler(runner=self),
+                             DefaultOutputHandler(runner=self)]
 
     async def _common_process(self, message: Message) -> List[Message]:
         event_bus = self.event_mng.event_bus
@@ -198,7 +200,16 @@ class TaskEventRunner(TaskRunner):
                 # use registered handler to process message
                 await self._common_process(message)
         finally:
-            await self.task.outputs.mark_completed()
+            if await self.is_stopped():
+                await self.task.outputs.mark_completed()
+                # todo sandbox cleanup
+                if self.swarm and hasattr(self.swarm, 'agents') and self.swarm.agents:
+                    for agent_name, agent in self.swarm.agents.items():
+                        try:
+                            if hasattr(agent, 'sandbox') and agent.sandbox:
+                                await agent.sandbox.cleanup()
+                        except Exception as e:
+                            logger.warning(f"event_runner Failed to cleanup sandbox for agent {agent_name}: {e}")
 
     async def do_run(self, context: Context = None):
         if not self.swarm.initialized:
