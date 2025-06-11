@@ -12,6 +12,8 @@ tool_call_template = """
 {function_result}
 ```
 
+{images}
+
 
 """
 

@@ -183,7 +183,8 @@ class OpenAworldUI(AworldUI):
             tool_name = output.tool_name,
             function_name= output.origin_tool_call.function.name,
             function_arguments=await self.json_parse(output.origin_tool_call.function.arguments),
-            function_result=await self.parse_tool_output(output.data)
+            function_result=await self.parse_tool_output(output.data),
+            images=await self.parse_tool_images(output.metadata)
         )
 
         return tool_data
@@ -222,6 +223,14 @@ class OpenAworldUI(AworldUI):
 
     async def custom_output(self, output: Output):
         return output.data
+
+    async def parse_tool_images(self, metadata):
+        result = ""
+        if metadata and metadata.get('screenshots'):
+            if isinstance( metadata.get('screenshots'), list) and len(metadata.get('screenshots')) > 0:
+                for index,screenshot in enumerate(metadata.get('screenshots')):
+                    result += f"\n\n![screenshot{index}]({screenshot.get('ossPath')})\n\n"
+        return result
 
 
 
