@@ -1,5 +1,6 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
+import abc
 from typing import AsyncGenerator, Tuple
 
 from aworld.agents.loop_llm_agent import LoopableAgent
@@ -15,16 +16,21 @@ from aworld.runners.utils import endless_detect, TaskType
 from aworld.output.base import StepOutput, Output, ToolResultOutput
 
 
-class DefaultAgentHandler(DefaultHandler):
-    def __init__(self, swarm: Swarm, endless_threshold: int):
-        self.swarm = swarm
-        self.endless_threshold = endless_threshold
+class AgentHandler(DefaultHandler):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, runner: 'TaskEventRunner'):
+        self.swarm = runner.swarm
+        self.endless_threshold = runner.endless_threshold
+
         self.agent_calls = []
 
     @classmethod
     def name(cls):
         return "_agents_handler"
 
+
+class DefaultAgentHandler(AgentHandler):
     async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
         if message.category != Constants.AGENT:
             return
@@ -59,22 +65,27 @@ class DefaultAgentHandler(DefaultHandler):
             if agent and agent.finished and data.info.get('done'):
                 self.swarm.cur_step += 1
                 if agent.name() == self.swarm.communicate_agent.name():
-                    yield Message(
+                    msg = Message(
                         category=Constants.TASK,
                         payload=data.content,
                         sender=agent.name(),
                         session_id=Context.instance().session_id,
                         topic=TaskType.FINISHED
                     )
+                    logger.info(f"agent handler send finished message: {msg}")
+                    yield msg
                 else:
-                    yield Message(
+                    msg = Message(
                         category=Constants.AGENT,
                         payload=Observation(content=data.content),
                         sender=agent.name(),
                         session_id=Context.instance().session_id,
                         receiver=self.swarm.communicate_agent.name()
                     )
+                    logger.info(f"agent handler send agent message: {msg}")
+                    yield msg
             else:
+                logger.info(f"agent handler send message: {message}")
                 yield message
             return
 
@@ -90,13 +101,15 @@ class DefaultAgentHandler(DefaultHandler):
                     sender=self.name(),
                     session_id=Context.instance().session_id
                 )
-                yield Message(
+                msg = Message(
                     category=Constants.TASK,
                     payload=TaskItem(msg="action not a ActionModel.", data=data, stop=True),
                     sender=self.name(),
                     session_id=Context.instance().session_id,
                     topic=TaskType.ERROR
                 )
+                logger.info(f"agent handler send task message: {msg}")
+                yield msg
                 return
 
         tools = []
@@ -108,13 +121,15 @@ class DefaultAgentHandler(DefaultHandler):
                 tools.append(action)
 
         if tools:
-            yield Message(
+            msg = Message(
                 category=Constants.TOOL,
                 payload=tools,
                 sender=self.name(),
                 session_id=Context.instance().session_id,
                 receiver=DefaultToolHandler.name(),
             )
+            logger.info(f"agent handler send tool message: {msg}")
+            yield msg
         else:
             yield Message(
                 category=Constants.OUTPUT,
@@ -126,6 +141,7 @@ class DefaultAgentHandler(DefaultHandler):
 
         for agent in agents:
             async for event in self._agent(agent, message):
+                logger.info(f"agent handler send message: {event}")
                 yield event
 
     async def _agent(self, action: ActionModel, message: Message):

@@ -263,7 +263,15 @@ class SequenceRunner(TaskRunner):
                     )
                     step += 1
                     if terminated and agent.finished:
-                        logger.info("swarm finished")
+                        logger.info(f"{agent.name()} finished")
+                        if idx == len(self.swarm.ordered_agents) - 1:
+                            return TaskResponse(
+                                answer=observations[-1].content,
+                                success=True,
+                                id=self.task.id,
+                                time_cost=(time.time() - start),
+                                usage=self.context.token_usage
+                            )
                         break
 
     async def _agent(self, agent: Agent, observation: Observation, policy: List[ActionModel], step: int):
