@@ -40,7 +40,7 @@ class DefaultAgentHandler(AgentHandler):
             # error message, p2p
             yield Message(
                 category=Constants.OUTPUT,
-                payload=StepOutput.build_failed_output(name=f"Step-Agent {message.caller}",
+                payload=StepOutput.build_failed_output(name=f"{message.caller or self.name()}",
                                                        step_num=0,
                                                        data="no data to process."),
                 sender=self.name(),
@@ -95,7 +95,7 @@ class DefaultAgentHandler(AgentHandler):
                 # error message, p2p
                 yield Message(
                     category=Constants.OUTPUT,
-                    payload=StepOutput.build_failed_output(name=f"Step-Agent {message.caller}",
+                    payload=StepOutput.build_failed_output(name=f"{message.caller or self.name()}",
                                                            step_num=0,
                                                            data="action not a ActionModel."),
                     sender=self.name(),
@@ -133,7 +133,7 @@ class DefaultAgentHandler(AgentHandler):
         else:
             yield Message(
                 category=Constants.OUTPUT,
-                payload=StepOutput.build_finished_output(name=f"Step[agent]: {message.caller}",
+                payload=StepOutput.build_finished_output(name=f"{message.caller or self.name()}",
                                                          step_num=0),
                 sender=self.name(),
                 session_id=Context.instance().session_id

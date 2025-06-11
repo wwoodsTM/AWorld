@@ -178,32 +178,27 @@ class TaskEventRunner(TaskRunner):
         msg = None
         answer = None
 
-        while True:
-            if await self.is_stopped():
-                logger.info("stop task...")
-                if self._task_response is None:
-                    # send msg to output
-                    self._task_response = TaskResponse(msg=msg,
-                                                       answer=answer,
-                                                       success=True if not msg else False,
-                                                       id=self.task.id,
-                                                       time_cost=(time.time() - start),
-                                                       usage=self.context.token_usage)
-                output_message = Message(
-                    category=Constants.OUTPUT,
-                    payload=self._task_response,
-                    sender='runner',
-                    session_id=Context.instance().session_id,
-                    topic=TaskType.FINISHED
-                )
-                async for _ in self.output_handler.handle(output_message):
-                    pass
-                break
+        try:
+            while True:
+                if await self.is_stopped():
+                    logger.info("stop task...")
+                    if self._task_response is None:
+                        # send msg to output
+                        self._task_response = TaskResponse(msg=msg,
+                                                           answer=answer,
+                                                           success=True if not msg else False,
+                                                           id=self.task.id,
+                                                           time_cost=(time.time() - start),
+                                                           usage=self.context.token_usage)
 
-            # consume message
-            message: Message = await self.event_mng.consume()
-            # use registered handler to process message
-            await self._common_process(message)
+                    break
+
+                # consume message
+                message: Message = await self.event_mng.consume()
+                # use registered handler to process message
+                await self._common_process(message)
+        finally:
+            await self.task.outputs.mark_completed()
 
     async def do_run(self, context: Context = None):
         if not self.swarm.initialized:

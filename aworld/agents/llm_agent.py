@@ -53,7 +53,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                  black_tool_actions: List[str] = [],
                  need_reset: bool = True,
                  step_reset: bool = False,
-                 use_tools_in_prompt: bool = True,
+                 use_tools_in_prompt: bool = False,
                  event_driven: bool = True,
                  **kwargs):
         """A api class implementation of agent, using the `Observation` and `List[ActionModel]` protocols.
@@ -162,7 +162,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
     ):
         messages = []
         if sys_prompt:
-            messages.append({'role': 'system', 'content': sys_prompt if self.use_tools_in_prompt else sys_prompt.format(
+            messages.append({'role': 'system', 'content': sys_prompt if not self.use_tools_in_prompt else sys_prompt.format(
                 tool_list=self.tools)})
 
         content = observation.content
@@ -182,7 +182,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 cur_msg['tool_call_id'] = action_result.tool_id
 
         agent_info = self.context.context_info.get(self.name())
-        if (not self.use_tools_in_prompt and "is_use_tool_prompt" in agent_info and "tool_calls"
+        if (self.use_tools_in_prompt and "is_use_tool_prompt" in agent_info and "tool_calls"
                 in agent_info and agent_prompt):
             cur_msg['content'] = agent_prompt.format(action_list=agent_info["tool_calls"],
                                                      result=content)
@@ -231,33 +231,35 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 sys_prompt = Template(sys_prompt).safe_substitute(task=content)
                 # sys_prompt = sys_prompt.format(task=content)
 
-            messages.append({'role': 'system', 'content': sys_prompt if self.use_tools_in_prompt else sys_prompt.format(
+            messages.append({'role': 'system', 'content': sys_prompt if not self.use_tools_in_prompt else sys_prompt.format(
                 tool_list=self.tools)})
 
-        if agent_prompt and '{task}' in agent_prompt:
-            content = agent_prompt.format(task=content)
+        histories = self.memory.get_last_n(self.history_messages)
+        user_content = content
+        if not histories and  agent_prompt and '{task}' in agent_prompt:
+            user_content = agent_prompt.format(task=content)
 
-        cur_msg = {'role': 'user', 'content': content}
+        cur_msg = {'role': 'user', 'content': user_content}
         # query from memory,
         # histories = self.memory.get_last_n(self.history_messages, filter={"session_id": self.context.session_id})
-        histories = self.memory.get_last_n(self.history_messages)
+
         if histories:
             # default use the first tool call
             for history in histories:
-                if self.use_tools_in_prompt and "tool_calls" in history.metadata and history.metadata['tool_calls']:
+                if not self.use_tools_in_prompt and "tool_calls" in history.metadata and history.metadata['tool_calls']:
                     messages.append({'role': history.metadata['role'], 'content': history.content,
                                      'tool_calls': [history.metadata["tool_calls"][0]]})
                 else:
                     messages.append({'role': history.metadata['role'], 'content': history.content,
                                      "tool_call_id": history.metadata.get("tool_call_id")})
 
-            if self.use_tools_in_prompt and "tool_calls" in histories[-1].metadata and histories[-1].metadata[
+            if not self.use_tools_in_prompt and "tool_calls" in histories[-1].metadata and histories[-1].metadata[
                 'tool_calls']:
                 tool_id = histories[-1].metadata["tool_calls"][0].id
                 if tool_id:
                     cur_msg['role'] = 'tool'
                     cur_msg['tool_call_id'] = tool_id
-            if not self.use_tools_in_prompt and "is_use_tool_prompt" in histories[-1].metadata and "tool_calls" in \
+            if self.use_tools_in_prompt and "is_use_tool_prompt" in histories[-1].metadata and "tool_calls" in \
                     histories[-1].metadata and agent_prompt:
                 cur_msg['content'] = agent_prompt.format(action_list=histories[-1].metadata["tool_calls"],
                                                          result=content)
@@ -520,7 +522,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     messages=messages,
                     model=self.model_name,
                     temperature=self.conf.llm_config.llm_temperature,
-                    tools=self.tools if self.use_tools_in_prompt and self.tools else None
+                    tools=self.tools if not self.use_tools_in_prompt and self.tools else None
                 )
 
                 logger.info(f"Execute response: {json.dumps(llm_response.to_dict(), ensure_ascii=False)}")
@@ -537,8 +539,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         info = {
                             "role": "assistant",
                             "agent_name": self.name(),
-                            "tool_calls": llm_response.tool_calls if self.use_tools_in_prompt else use_tools,
-                            "is_use_tool_prompt": is_use_tool_prompt if self.use_tools_in_prompt else False
+                            "tool_calls": llm_response.tool_calls if not self.use_tools_in_prompt else use_tools,
+                            "is_use_tool_prompt": is_use_tool_prompt if not self.use_tools_in_prompt else False
                         }
                         self.memory.add(MemoryItem(
                             content=llm_response.content,
@@ -622,7 +624,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         messages=messages,
                         model=self.model_name,
                         temperature=self.conf.llm_config.llm_temperature,
-                        tools=self.tools if self.use_tools_in_prompt and self.tools else None,
+                        tools=self.tools if not self.use_tools_in_prompt and self.tools else None,
                         stream=True
                     )
 
@@ -652,7 +654,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                         messages=messages,
                         model=self.model_name,
                         temperature=self.conf.llm_config.llm_temperature,
-                        tools=self.tools if self.use_tools_in_prompt and self.tools else None,
+                        tools=self.tools if not self.use_tools_in_prompt and self.tools else None,
                         stream=kwargs.get("stream", False)
                     )
                     if InMemoryEventbus.instance() and llm_response:
@@ -691,8 +693,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                             metadata={
                                 "role": "assistant",
                                 "agent_name": self.name(),
-                                "tool_calls": llm_response.tool_calls if self.use_tools_in_prompt else use_tools,
-                                "is_use_tool_prompt": is_use_tool_prompt if self.use_tools_in_prompt else False
+                                "tool_calls": llm_response.tool_calls if not self.use_tools_in_prompt else use_tools,
+                                "is_use_tool_prompt": is_use_tool_prompt if not self.use_tools_in_prompt else False
                             }
                         ))
                 else:

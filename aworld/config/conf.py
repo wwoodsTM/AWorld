@@ -143,7 +143,7 @@ class AgentConfig(BaseConfig):
     agent_prompt: Optional[str] = None
     working_dir: Optional[str] = None
     enable_recording: bool = False
-    use_tools_in_prompt: bool = True
+    use_tools_in_prompt: bool = False
     exit_on_failure: bool = False
     ext: dict = {}
 

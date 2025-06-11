@@ -136,7 +136,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         if InMemoryEventbus.instance():
             await InMemoryEventbus.instance().publish(Message(
             category=Constants.OUTPUT,
-            payload=StepOutput.build_start_output(name=f"Step-Agent {self.name()}",
+            payload=StepOutput.build_start_output(name=f"{self.name()}",
                                                    step_num=0),
             sender=self.name(),
             session_id=Context.instance().session_id

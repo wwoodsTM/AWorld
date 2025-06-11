@@ -256,7 +256,7 @@ class AsyncTool(AsyncBaseTool[Observation, List[ActionModel]]):
         if event_bus:
             await event_bus.publish(Message(
                 category=Constants.OUTPUT,
-                payload=StepOutput.build_finished_output(name=f"Step[tool]:{action[0].agent_name if action else ''}",
+                payload=StepOutput.build_finished_output(name=f"{action[0].agent_name if action else ''}",
                                                          step_num=0),
                 sender=self.name(),
                 session_id=Context.instance().session_id
