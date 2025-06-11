@@ -33,6 +33,7 @@ class TaskEventRunner(TaskRunner):
         self._task_response = None
         self.event_mng = EventManager()
         self.hooks = {}
+        self.background_tasks = set()
 
     async def pre_run(self):
         await super().pre_run()
@@ -71,6 +72,7 @@ class TaskEventRunner(TaskRunner):
                 await self.event_mng.register(Constants.TOOL, Constants.TOOL, tool.step)
 
         self._stopped = asyncio.Event()
+        self._nowait = asyncio.Event()
 
         # handler of process in framework
         handler_list = self.conf.get("handlers")
@@ -125,12 +127,17 @@ class TaskEventRunner(TaskRunner):
                     continue
 
                 for handler in handler_list:
-                    asyncio.create_task(self._handle_task(message, handler))
+                    t = asyncio.create_task(self._handle_task(message, handler))
+                    self.background_tasks.add(t)
+                    t.add_done_callback(self.background_tasks.discard)
         else:
             # not handler, return raw message
             results.append(message)
 
-            asyncio.create_task(self._raw_task(results))
+            t = asyncio.create_task(self._raw_task(results))
+            self.background_tasks.add(t)
+            t.add_done_callback(self.background_tasks.discard)
+            await t
         return results
 
     async def _handle_task(self, message: Message, handler: Callable[..., Any]):
