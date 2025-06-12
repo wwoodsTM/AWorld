@@ -38,7 +38,7 @@ async def get_workspace_file_content(workspace_id: str, artifact_id: str):
     }
 
     
-def load_workspace(workspace_id: str):
+async def load_workspace(workspace_id: str):
     
     """
     This function is used to get the workspace by its id.

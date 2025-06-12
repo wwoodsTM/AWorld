@@ -113,7 +113,21 @@ async def get_status():
 
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
-async def chat_completion(form_data: OpenAIChatCompletionForm):
+async def chat_completion(
+    form_data: OpenAIChatCompletionForm,
+    request: Request
+):
+    # Extract headers into a dict
+    headers = request.headers
+    metadata = {
+        "user_id": headers.get("X-OpenWebUI-User-Id"),
+        "chat_id": headers.get("X-OpenWebUI-Chat-Id"),
+        "message_id": headers.get("X-OpenWebUI-Message-Id")
+    }
+    
+    # Add metadata to form_data
+    form_data.metadata = metadata
+    
     return await generate_openai_chat_completion(form_data)
 
 @app.get("/health")

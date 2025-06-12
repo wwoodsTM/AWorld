@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from aworld.output import MessageOutput, WorkSpace, AworldUI, get_observer, Artifact, Output
+from aworld.output import MessageOutput, WorkSpace, AworldUI, get_observer, Artifact, Output, ArtifactType
 from aworld.output.base import StepOutput, ToolResultOutput
 from aworld.output.storage.artifact_repository import CommonEncoder
 from aworld.output.utils import consume_content
@@ -230,7 +230,7 @@ class OpenAworldUI(AworldUI):
         if metadata and metadata.get('screenshots'):
             if isinstance( metadata.get('screenshots'), list) and len(metadata.get('screenshots')) > 0:
                 for index,screenshot in enumerate(metadata.get('screenshots')):
-                    result += f"\n\n![screenshot{index}]({screenshot.get('ossPath')})\n\n"
+                    await self.workspace.add_artifact(Artifact(artifact_type=ArtifactType.IMAGE, content=screenshot.get('ossPath')))
         return result
 
 

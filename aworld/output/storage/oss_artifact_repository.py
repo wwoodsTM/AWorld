@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os.path
 import time
 import uuid
 from typing import Dict, Any, Optional, List, Literal
@@ -15,7 +16,7 @@ class OSSArtifactRepository(ArtifactRepository):
                  access_key_secret: str,
                  endpoint: str,
                  bucket_name: str,
-                 prefix: str = "aworld/workspaces/"):
+                 storage_path: str = "aworld/workspaces/"):
         """
         Initialize OSS artifact repository
         
@@ -24,13 +25,13 @@ class OSSArtifactRepository(ArtifactRepository):
             access_key_secret: OSS access key secret
             endpoint: OSS service endpoint
             bucket_name: OSS bucket name
-            prefix: Storage prefix, defaults to "artifacts/"
+            storage_path: Storage path, defaults to "aworld/workspaces/"
         """
         super().__init__()
         self.auth = oss2.Auth(access_key_id, access_key_secret)
         self.bucket = oss2.Bucket(self.auth, endpoint, bucket_name)
-        self.prefix = prefix
-        self.index_key = f"{prefix}index.json"
+        self.storage_path = storage_path
+        self.index_key = os.path.join(storage_path, "index.json")
         self.index = self._load_index()
 
     def _load_index(self) -> Dict[str, Any]:
@@ -101,7 +102,7 @@ class OSSArtifactRepository(ArtifactRepository):
             }
 
             # Store content to OSS
-            content_key = f"{self.prefix}{type}_{content_hash}.json"
+            content_key = os.path.join(self.storage_path, type, f"{content_hash}.json")
             
             # Check if content already exists
             try:
@@ -159,8 +160,7 @@ class OSSArtifactRepository(ArtifactRepository):
             for version in self.index["versions"]:
                 if version.get('version_id') == version_id:
                     content_hash = version["hash"]
-                    content_key = f"{self.prefix}workspace_{content_hash}.json"
-                    
+                    content_key = os.path.join(self.storage_path, "workspace",f"{content_hash}.json")
                     try:
                         result = self.bucket.get_object(content_key)
                         content = result.read().decode('utf-8')
@@ -190,8 +190,8 @@ class OSSArtifactRepository(ArtifactRepository):
             for artifact in self.index["artifacts"]:
                 if artifact['artifact_id'] == artifact_id:
                     content_hash = artifact["version"]["hash"]
-                    content_key = f"{self.prefix}artifact_{content_hash}.json"
-                    
+                    content_key = os.path.join(self.storage_path, "artifact", f"{content_hash}.json")
+
                     try:
                         result = self.bucket.get_object(content_key)
                         content = result.read().decode('utf-8')
@@ -246,7 +246,7 @@ class OSSArtifactRepository(ArtifactRepository):
             for i, artifact in enumerate(self.index["artifacts"]):
                 if artifact['artifact_id'] == artifact_id:
                     content_hash = artifact["version"]["hash"]
-                    content_key = f"{self.prefix}artifact_{content_hash}.json"
+                    content_key = os.path.join(self.storage_path, "artifact",f"artifact_{content_hash}.json")
                     
                     # Delete content file from OSS
                     try:

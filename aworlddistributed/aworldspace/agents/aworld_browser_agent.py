@@ -2,11 +2,10 @@ import logging
 import os
 
 from aworld.config import ModelConfig
-from aworld.config.conf import AgentConfig, ClientType
+from aworld.config.conf import AgentConfig
 from pydantic import BaseModel
 
 from aworldspace.base_agent import AworldBaseAgent
-from aworldspace.utils.mcp_utils import load_all_mcp_config
 
 SYSTEM_PROMPT = f"""You are an helpful AI assistant, aimed at solving any task presented by the user. 1"""
 
@@ -69,7 +68,7 @@ class Pipeline(AworldBaseAgent):
                         "OSS_ENDPOINT": "${OSS_ENDPOINT}",
                         "OSS_ACCESS_KEY_ID": "${OSS_ACCESS_KEY_ID}",
                         "OSS_ACCESS_KEY_SECRET": "${OSS_ACCESS_KEY_SECRET}",
-                        "OSS_BUCKET": "${OSS_BUCKET}",
+                        "OSS_BUCKET": "${OSS_BUCKET_NAME}",
                         "PLAYWRIGHT_TIMEOUT": "120000",
                         "SESSION_REQUEST_CONNECT_TIMEOUT": "120"
                     }

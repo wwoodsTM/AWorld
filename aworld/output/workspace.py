@@ -275,11 +275,11 @@ class WorkSpace(BaseModel):
             access_key_secret=oss_config["access_key_secret"],
             endpoint=oss_config["endpoint"],
             bucket_name=oss_config["bucket_name"],
+            storage_path = storage_path
         )
         workspace = cls(
             workspace_id=workspace_id,
             name=name,
-            storage_path=storage_path,
             observers=observers,
             use_default_observer=use_default_observer,
             repository=repository
