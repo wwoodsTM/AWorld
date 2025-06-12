@@ -111,6 +111,7 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.state = AgentStatus.START
         self._finished = True
         # todo: remove sandbox instance in agent, use sandbox name/id; `mcp_config` need remove
+        self.hooks: Dict[str, List[str]] = {}
         self.sandbox = sandbox or Sandbox(
             mcp_servers=self.mcp_servers, mcp_config=self.mcp_config)
 

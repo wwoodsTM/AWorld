@@ -263,7 +263,7 @@ class DeterminacyRunner(TaskRunner):
                     )
                     step += 1
                     if terminated and agent.finished:
-                        logger.info("swarm finished")
+                        logger.info(f"{agent.name()} finished")
                         if idx == len(self.swarm.ordered_agents) - 1:
                             return TaskResponse(
                                 answer=observations[-1].content,
