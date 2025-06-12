@@ -15,7 +15,7 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y wget unzip openssh-client procps nodejs npm
 
 ARG PIP_OPTIONS='-i https://mirrors.aliyun.com/pypi/simple/'
-ARG AWORLD_BRANCH=main
+ARG ENABLE_OSS_MOUNT=""
 
 RUN pip install -U pip pysocks ${PIP_OPTIONS}
 
@@ -29,6 +29,16 @@ RUN cd /app/ && \
 ENV CHROME_DRIVER_PATH=/app/chromedriver-linux64/chromedriver
 
 
+RUN if [ "$ENABLE_OSS_MOUNT" = "true" ]; then \
+        apt-get update && \
+        apt-get install -y gdebi-core mime-support && \
+        cd /tmp && \
+        wget https://gosspublic.alicdn.com/ossfs/ossfs_1.91.6_ubuntu22.04_amd64.deb && \
+        gdebi ossfs_1.91.6_ubuntu22.04_amd64.deb -n && \
+        rm ossfs_1.91.6_ubuntu22.04_amd64.deb && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
 
 FROM base as runner
 
@@ -43,7 +53,7 @@ RUN uv pip install --system -r requirements.txt --no-cache-dir ${PIP_OPTIONS}
 RUN echo "start install aworld"
 RUN mkdir -p /app/lib
 RUN cd /app/lib && git clone https://github.com/inclusionAI/AWorld.git
-RUN cd /app/lib/AWorld && git checkout ${AWORLD_BRANCH} && pip install -r aworld/requirements.txt ${PIP_OPTIONS} && python setup.py install
+RUN cd /app/lib/AWorld && git checkout framework_upgrade_aworldserver_gaia && pip install -r aworld/requirements.txt ${PIP_OPTIONS} && python setup.py install
 
 RUN npx playwright install chrome --with-deps --no-shell
 
