@@ -68,9 +68,11 @@ def create_reasoning_loop_agent(agent_config: dict):
         system_prompt=custom_sys_prompt or reasoning_loop_sys_prompt,
         step_reset=False,
         event_driven=False,
-        mcp_servers=custom_mcp_servers or [
+        mcp_servers=[
             # "ms-playwright", "google-search",
-            "tavily"
+            "tavily",
+            #"amap-amap-sse",
+            #"tongyi-wanxiang"
         ],
         mcp_config={
             "mcpServers": {
@@ -81,7 +83,17 @@ def create_reasoning_loop_agent(agent_config: dict):
                         "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"],
                         "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
                     }
-                }
+                },
+                # "tongyi-wanxiang": {
+                #     "command": "npx",
+                #     "args": [
+                #         "-y",
+                #         "tongyi-wanx-mcp-server@latest"
+                #     ],
+                #     "env": {
+                #         "DASHSCOPE_API_KEY": os.environ["TONGYI_WANGXIANG_API_KEY"]
+                #     }
+                # }
             }
         }
     )

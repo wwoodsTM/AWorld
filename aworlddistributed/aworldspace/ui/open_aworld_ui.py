@@ -213,13 +213,14 @@ class OpenAworldUI(AworldUI):
         emptyLine = "\n\n----\n\n"
         if output.status == "START":
             # await self.emit_message(step_loading_template.format(data = output.name))
-            return f"{output.name} 🛫START \n\n"
+            return f"\n\n🤖 {output.name}: \n\n"
         elif output.status == "FINISHED":
-            return f"{output.name} 🛬FINISHED {emptyLine}"
+            # return ""
+            return f"{emptyLine}"
         elif output.status == "FAILED":
-            return f"{output.name} 💥FAILED: reason is {output.data} {emptyLine}"
+            return f"\n\n{output.name} 💥FAILED: reason is {output.data} {emptyLine}"
         else:
-            return f"{output.name} ❓❓❓UNKNOWN#{output.status} {emptyLine}"
+            return f"\n\n{output.name} ❓❓❓UNKNOWN#{output.status} {emptyLine}"
 
     async def custom_output(self, output: Output):
         return output.data

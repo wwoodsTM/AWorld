@@ -6,6 +6,7 @@ from aworld.core.task import Task
 from aworld.config import ModelConfig, TaskConfig
 from aworldspace.prompt.deepresearch_prompt import *
 from aworld.runner import Runners
+from datetime import datetime
 
 def create_reporting_agent(agent_config: dict):
     def _current_agent_name():
@@ -36,7 +37,39 @@ def create_reporting_agent(agent_config: dict):
         name=_current_agent_name(),
         desc="reporting_agent",
         conf=agent_config,
-        system_prompt=custom_sys_prompt or reporting_sys_prompt,
+        system_prompt=custom_sys_prompt or reporting_sys_prompt.format(system_cur_date =datetime.now().strftime("%Y年%m月%d日")),
         step_reset=False,
-        event_driven=False
+        event_driven=False,
+        # mcp_servers=[
+        #     # "ms-playwright", "google-search",
+        #     #"amap-amap-sse",
+        #     "tongyi-wanxiang"
+        # ],
+        # mcp_config={
+        #     "mcpServers": {
+        #         "tavily": {
+        #             "command": "npx",
+        #             "args": ["-y", "tavily-mcp@0.2.2"],
+        #             "env": {
+        #                 "TAVILY_API_KEY": os.environ["TAVILY_API_KEY"],
+        #                 "SESSION_REQUEST_CONNECT_TIMEOUT": "60"
+        #             }
+        #         },
+        #         "tongyi-wanxiang": {
+        #             "command": "npx",
+        #             "args": [
+        #                 "-y",
+        #                 "tongyi-wanx-mcp-server@latest"
+        #             ],
+        #             "env": {
+        #                 "DASHSCOPE_API_KEY": os.environ["TONGYI_WANGXIANG_API_KEY"]
+        #             }
+        #         },
+        #         "amap-amap-sse": {
+        #             "url": "https://mcp.amap.com/sse?key=" + os.environ["AMAP_API_KEY"],
+        #             "timeout": 5.0,
+        #             "sse_read_timeout": 300.0
+        #         }
+        #     }
+        # }
     )
