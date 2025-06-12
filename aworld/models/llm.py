@@ -6,7 +6,6 @@ from typing import (
     AsyncGenerator,
 )
 import json
-from langchain_openai import ChatOpenAI
 from aworld.config import ConfigDict
 from aworld.config.conf import AgentConfig, ClientType
 from aworld.logs.util import logger
