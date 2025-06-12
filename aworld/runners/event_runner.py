@@ -136,6 +136,7 @@ class TaskEventRunner(TaskRunner):
             t = asyncio.create_task(self._raw_task(results))
             self.background_tasks.add(t)
             t.add_done_callback(self.background_tasks.discard)
+            # wait until it is complete
             await t
         return results
 
