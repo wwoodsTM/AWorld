@@ -7,7 +7,6 @@ from weakref import WeakSet
 from dataclasses import dataclass, field
 from aworld.logs.util import trace_logger
 from pydantic import BaseModel
-from opentelemetry.sdk.trace import Span, SpanContext
 from aworld.trace.constants import ATTRIBUTES_MESSAGE_RUN_TYPE_KEY, RunType
 
 
@@ -431,52 +430,3 @@ def log_trace_error():
 class SpanStatus(BaseModel):
     code: str = "UNSET"
     description: Optional[str] = None
-
-
-class SpanModel(BaseModel):
-    trace_id: str
-    span_id: str
-    name: str
-    start_time: str
-    end_time: str
-    duration_ms: float
-    attributes: Dict[str, Any]
-    status: SpanStatus
-    parent_id: Optional[str]
-    children: list['SpanModel'] = []
-    run_type: Optional[str] = RunType.OTHER.value
-
-    @staticmethod
-    def from_span(span):
-        start_timestamp = span.start_time / 1e9
-        end_timestamp = span.end_time / 1e9
-        start_ms = int((span.start_time % 1e9) / 1e6)
-        end_ms = int((span.end_time % 1e9) / 1e6)
-
-        return SpanModel(
-            trace_id=f"{span.get_span_context().trace_id:032x}",
-            span_id=SpanModel.get_span_id(span),
-            name=span.name,
-            start_time=time.strftime(
-                '%Y-%m-%d %H:%M:%S', time.localtime(start_timestamp)) + f'.{start_ms:03d}',
-            end_time=time.strftime(
-                '%Y-%m-%d %H:%M:%S', time.localtime(end_timestamp)) + f'.{end_ms:03d}',
-            duration_ms=(span.end_time - span.start_time)/1e6,
-            attributes={k: v for k, v in span.attributes.items()},
-            status=SpanStatus(
-                code=str(
-                    span.status.status_code) if span.status.status_code else "UNSET",
-                description=span.status.description or None
-            ),
-            parent_id=SpanModel.get_span_id(
-                span.parent) if span.parent else None,
-            run_type=span.attributes.get(
-                ATTRIBUTES_MESSAGE_RUN_TYPE_KEY, RunType.OTHER.value)
-        )
-
-    @staticmethod
-    def get_span_id(span: Union[Span, SpanContext]):
-        if isinstance(span, SpanContext):
-            return f"{span.span_id:016x}"
-        return f"{span.get_span_context().span_id:016x}"
-

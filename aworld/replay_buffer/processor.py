@@ -19,7 +19,7 @@ from aworld.replay_buffer.base import (
     ExpMeta,
     Experience
 )
-from aworld.trace.base import Span, SpanModel
+from aworld.trace.opentelemetry.memory_storage import Span, SpanModel
 from aworld.trace.span_cosumer import SpanConsumer, register_span_consumer
 from aworld.replay_buffer import global_replay_buffer
 from aworld.replay_buffer.converter import RLDatasetConverter
