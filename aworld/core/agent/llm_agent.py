@@ -20,7 +20,7 @@ from aworld.logs.util import logger
 from aworld.mcp_client.utils import mcp_tool_desc_transform
 from aworld.core.memory import MemoryItem
 from aworld.memory.main import Memory
-from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
+from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model, acall_llm_model_stream
 from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
@@ -236,7 +236,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
         histories = self.memory.get_last_n(self.history_messages)
         user_content = content
-        if not histories and  agent_prompt and '{task}' in agent_prompt:
+        if not histories and agent_prompt and '{task}' in agent_prompt:
             user_content = agent_prompt.format(task=content)
 
         cur_msg = {'role': 'user', 'content': user_content}
