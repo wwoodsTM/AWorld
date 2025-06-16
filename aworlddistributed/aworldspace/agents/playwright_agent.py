@@ -63,7 +63,7 @@ wait() #Sleep for 5s and take a screenshot to check for any changes.
 finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
 ## Note
 - only one action per step.
-- Use Chinese in `Thought` part.
+- Use English in `Thought` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
 ## User Instruction
 """
@@ -403,14 +403,75 @@ Action History:
 
 class PlayWrightAgent(Agent):
 
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], eval_mode=False, **kwargs):
         self.screen_capture = True
         self.step_images = []
         self.step_thoughts = []
         self.step_actions = []
         self.step_results = []
         self.success = False
+        self.eval = eval_mode
         super().__init__(conf, **kwargs)
+
+    def m2w_eval(self):
+        task = self.task.split("Please first navigate to the target")[0]
+        key_points_messages = identify_key_points(task)
+
+        # eval_model_name = "shangshu.gpt-4o"
+        eval_model_name = self.model_name
+        tmp_llm_response = acall_llm_model(
+            self.llm,
+            messages=key_points_messages,
+            model=eval_model_name,
+            temperature=0
+        )
+
+        key_points = tmp_llm_response.content
+        key_points = key_points.replace("\n\n", "\n")
+
+        try:
+            key_points = key_points.split("**Key Points**:")[1]
+            key_points = "\n".join(line.lstrip() for line in key_points.splitlines())
+        except:
+            key_points = key_points.split("Key Points:")[-1]
+            key_points = "\n".join(line.lstrip() for line in key_points.splitlines())
+
+        logger.info(f"key_points: {key_points}")
+
+        tasks_messages = [judge_image(task, image_path, key_points) for image_path in self.step_images]
+
+        #  这里暂时使用串行执行的写法
+        image_responses = []
+        for task_messages in tasks_messages:
+            logger.info(task_messages)
+            image_response = acall_llm_model(
+                self.llm,  # 假设这是你传给函数的第一个参数
+                messages=task_messages,  # 每个请求的消息内容
+                model=eval_model_name,  # 模型名称
+                temperature=0  # 温度参数
+            )
+            image_responses.append(image_response)
+
+        image_responses = [i.content for i in image_responses]
+
+        logger.info(f"image_responses: {image_responses}")
+
+        eval_messages, text, system_msg, record = WebJudge_Online_Mind2Web_eval(
+            self.task, self.step_actions, self.step_images, image_responses, key_points, 3)
+        response = acall_llm_model(
+            self.llm,
+            messages=eval_messages,
+            model=eval_model_name,
+            temperature=0
+        )
+        eval_response = response.content
+
+        logger.info(f"eval_response: {eval_response}")
+
+        if "success" in eval_response.lower().split('status:')[1]:
+            self.success = True
+
+        return task, eval_response
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> Union[
         List[ActionModel], None]:
@@ -474,7 +535,6 @@ class PlayWrightAgent(Agent):
             ))
 
 
-
         llm_response = None
         span_name = f"llm_call_{exp_id}"
         with trace.span(span_name) as llm_span:
@@ -492,7 +552,7 @@ class PlayWrightAgent(Agent):
                     messages=messages,
                     model=self.model_name,
                     # temperature=self.conf.llm_config.llm_temperature,
-                    temperature=0.0,
+                    temperature=1.0,
                     tools=self.tools if self.use_tools_in_prompt and self.tools else None,
                     stream=kwargs.get("stream", False)
                 )
@@ -571,65 +631,9 @@ class PlayWrightAgent(Agent):
         # now is eval code:
         logger.info(f"step:{step}")
 
-        if self.finished or step >= 20:  # 暂时写死，这里应该是max_step
-            task = self.task.split("Please first navigate to the target")[0]
-            key_points_messages = identify_key_points(task)
+        if self.eval and (self.finished or step >= 30):  # 暂时写死，这里应该是max_step
 
-            # eval_model_name = "shangshu.gpt-4o"
-            eval_model_name = self.model_name
-            tmp_llm_response = await acall_llm_model(
-                self.llm,
-                messages=key_points_messages,
-                model=eval_model_name,
-                temperature=0
-            )
-
-            key_points = tmp_llm_response.content
-            key_points = key_points.replace("\n\n", "\n")
-
-            try:
-                key_points = key_points.split("**Key Points**:")[1]
-                key_points = "\n".join(line.lstrip() for line in key_points.splitlines())
-            except:
-                key_points = key_points.split("Key Points:")[-1]
-                key_points = "\n".join(line.lstrip() for line in key_points.splitlines())
-
-            logger.info(f"key_points: {key_points}")
-
-            tasks_messages = [judge_image(task, image_path, key_points) for image_path in self.step_images]
-
-            #  这里暂时使用串行执行的写法
-            image_responses = []
-            for task_messages in tasks_messages:
-                logger.info(task_messages)
-                image_response = await acall_llm_model(
-                    self.llm,  # 假设这是你传给函数的第一个参数
-                    messages=task_messages,  # 每个请求的消息内容
-                    model=eval_model_name,  # 模型名称
-                    temperature=0  # 温度参数
-                )
-                image_responses.append(image_response)
-
-            image_responses = [i.content for i in image_responses]
-
-            logger.info(f"image_responses: {image_responses}")
-
-            eval_messages, text, system_msg, record = WebJudge_Online_Mind2Web_eval(
-                self.task, self.step_actions, self.step_images, image_responses, key_points, 3)
-            response = await acall_llm_model(
-                self.llm,
-                messages=eval_messages,
-                model=eval_model_name,
-                temperature=0
-            )
-            eval_response = response.content
-
-            logger.info(f"eval_response: {eval_response}")
-
-            if "success" in eval_response.lower().split('status:')[1]:
-                self.success = True
-
-            # now is saving code:
+            task, eval_response = self.m2w_eval()
 
             result_dict = {
                 'task': task,
@@ -681,8 +685,18 @@ class Pipeline(AworldBaseAgent):
         file_path = os.path.join(self.m2w_files, "Online_Mind2Web.json")
 
         with open(file_path, 'r') as file:
-            self.full_dataset = json.load(file)
-            logging.info("playwright_agent init success")
+            self.m2w_full_dataset = json.load(file)
+            logging.info("online-mind2web init success")
+
+        self.gaia_files = os.path.abspath(os.path.join(os.path.curdir, "aworldspace", "datasets", "gaia_web"))
+
+        logging.info(f"gaia_files path {self.gaia_files}")
+        file_path = os.path.join(self.gaia_files, "gaia_web.jsonl")
+
+        with open(file_path, 'r') as file:
+            self.gaia_full_dataset = [json.loads(line) for line in file if line.strip()]
+            logging.info("gaia-web init success")
+
 
     # 重写build_agent
     async def build_agent(self, body: dict):
@@ -695,12 +709,19 @@ class Pipeline(AworldBaseAgent):
             system_prompt=agent_config.system_prompt,
             mcp_servers=mcp_servers,
             mcp_config=await self.load_mcp_config(),
-            history_messages=await self.get_history_messages(body)
+            history_messages=await self.get_history_messages(body),
+            eval_mode=True,
         )
         return agent
 
     async def get_custom_input(self, user_message: str, model_id: str, messages: List[dict], body: dict) -> Any:
-        task = await self.get_m2w_task(int(user_message))
+
+        dataset = user_message.split(':')[0]
+        task_id = user_message.split(':')[1]
+        if dataset == "Gaia":
+            task = await self.get_gaia_task(int(task_id))
+        else:
+            task = await self.get_gaia_task(int(task_id))
         return task['Task']
 
     async def get_agent_config(self, body):
@@ -738,7 +759,7 @@ class Pipeline(AworldBaseAgent):
 
     async def get_m2w_task(self, index) -> dict:
         logging.info(f"Start to process: m2w_task_{index}")
-        m2w_task = self.full_dataset[index]
+        m2w_task = self.m2w_full_dataset[index]
         logging.info(f"Detail: {m2w_task}")
         logging.info(f"Task: {m2w_task['confirmed_task']}")
         logging.info(f"Level: {m2w_task['level']}")
@@ -746,15 +767,40 @@ class Pipeline(AworldBaseAgent):
 
         return self.add_file_path(m2w_task)
 
+    async def get_gaia_task(self, index) -> dict:
+        logging.info(f"Start to process: gaia_task_{index}")
+        gaia_task = self.gaia_full_dataset[index]
+        logging.info(f"Detail: {gaia_task}")
+        logging.info(f"Task: {gaia_task['ques']}")
+        logging.info(f"Level: {gaia_task['Level']}")
+        logging.info(f"Website: {gaia_task['web']}")
+
+        gaia_task["Task"] = "Task: " + gaia_task['ques'] + '\n' + "Please first navigate to the target " + "Website: " + \
+                       gaia_task['web']
+
+        return gaia_task
+
     async def custom_output_before_task(self, outputs: Outputs, chat_id: str, task: Task) -> None:
         task_config: TaskConfig = task.conf
-        m2w_task = await self.get_m2w_task(int(task_config.ext['origin_message']))
+        dataset = task_config.ext['origin_message'].split(':')[0]
+        task_id = task_config.ext['origin_message'].split(':')[1]
+        if dataset == "Gaia":
+            gaia_task = await self.get_gaia_task(int(task_id))
 
-        result = f"\n\n`Web TASK#{task_config.ext['origin_message']}`\n\n---\n\n"
-        result += f"**Task**: {m2w_task['Task']}\n"
-        result += f"**Level**: {m2w_task['level']}\n"
-        result += f"**Website**: \n {m2w_task['website']}\n"
-        result += f"\n\n-----\n\n"
+            result = f"\n\n`Gaia TASK#{task_id}`\n\n---\n\n"
+            result += f"**Task**: {gaia_task['ques']}\n"
+            result += f"**Level**: {gaia_task['Level']}\n"
+            result += f"**Website**: \n {gaia_task['web']}\n"
+            result += f"\n\n-----\n\n"
+
+        else:  # m2w task
+            m2w_task = await self.get_m2w_task(int(task_id))
+
+            result = f"\n\n`M2W TASK#{task_id}`\n\n---\n\n"
+            result += f"**Task**: {m2w_task['Task']}\n"
+            result += f"**Level**: {m2w_task['level']}\n"
+            result += f"**Website**: \n {m2w_task['website']}\n"
+            result += f"\n\n-----\n\n"
         await outputs.add_output(Output(data=result))
 
     async def custom_output_after_task(self, outputs: Outputs, chat_id: str, task: Task):
@@ -803,7 +849,9 @@ class Pipeline(AworldBaseAgent):
                         "--vision",
                         "--no-sandbox",
                         "--headless",
-                        "--isolated"
+                        "--isolated",
+                        "--viewport-size",
+                        "1280, 720"
                     ],
                     "env": {
                         "PLAYWRIGHT_TIMEOUT": "120000",
