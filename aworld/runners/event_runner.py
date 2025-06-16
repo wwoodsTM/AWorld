@@ -53,6 +53,7 @@ class TaskEventRunner(TaskRunner):
 
         # register agent handler
         for _, agent in self.swarm.agents.items():
+            agent.set_tools_instances(self.tools, self.tools_conf)
             if agent.handler:
                 await self.event_mng.register(Constants.AGENT, agent.name(), agent.handler)
             else:

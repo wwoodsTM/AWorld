@@ -136,6 +136,7 @@ class DefaultAgentHandler(AgentHandler):
                 payload=StepOutput.build_finished_output(name=f"{message.caller or self.name()}",
                                                          step_num=0),
                 sender=self.name(),
+                receiver=agents[0].tool_name,
                 session_id=Context.instance().session_id
             )
 
