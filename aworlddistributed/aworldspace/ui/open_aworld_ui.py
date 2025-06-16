@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,7 +10,7 @@ from aworld.output.storage.artifact_repository import CommonEncoder
 from aworld.output.utils import consume_content
 from socketio import AsyncServer
 
-from aworldspace.ui.ui_template import tool_call_template
+from aworldspace.ui.ui_template import tool_call_template, tool_card_template
 
 
 class OpenWebuiUIBase(AworldUI):
@@ -178,13 +179,33 @@ class OpenAworldUI(AworldUI):
         """
             tool_result
         """
-        tool_data = tool_call_template.format(
-            tool_type = output.tool_type,
-            tool_name = output.tool_name,
-            function_name= output.origin_tool_call.function.name,
-            function_arguments=await self.json_parse(output.origin_tool_call.function.arguments),
-            function_result=await self.parse_tool_output(output.data),
-            images=await self.parse_tool_images(output.metadata)
+        # tool_data = tool_call_template.format(
+        #     tool_type = output.tool_type,
+        #     tool_name = output.tool_name,
+        #     function_name= output.origin_tool_call.function.name,
+        #     function_arguments=await self.json_parse(output.origin_tool_call.function.arguments),
+        #     function_result=await self.parse_tool_output(output.data),
+        #     images=await self.parse_tool_images(output.metadata)
+        # )
+        custom_output = f"{output.tool_name}#{output.origin_tool_call.function.name}"
+
+        if output.tool_name == "aworld-playwright"  and output.origin_tool_call.function.name == "browser_navigate":
+            custom_output = f"search `{json.loads(output.origin_tool_call.function.arguments)['url']}`"
+            artifact_ids = await self.parse_tool_artifacts(output.metadata)
+
+            tool_card_content = {
+                "type": "mcp",
+                "custom_output": custom_output,
+                "artifact_types": "IMAGE",
+                "artifact_ids": artifact_ids
+            }
+        else:
+            tool_card_content = {
+                "type": "mcp",
+                "custom_output": custom_output
+            }
+        tool_data = tool_card_template.format(
+            tool_card_content = json.dumps(tool_card_content, indent=2)
         )
 
         return tool_data
@@ -233,6 +254,15 @@ class OpenAworldUI(AworldUI):
                     await self.workspace.add_artifact(Artifact(artifact_type=ArtifactType.IMAGE, content=screenshot.get('ossPath')))
         return result
 
+    async def parse_tool_artifacts(self, metadata):
+        result = []
+        if metadata and metadata.get('screenshots'):
+            if isinstance(metadata.get('screenshots'), list) and len(metadata.get('screenshots')) > 0:
+                for index,screenshot in enumerate(metadata.get('screenshots')):
+                    image_artifact = Artifact(artifact_id = str(uuid.uuid4()),  artifact_type=ArtifactType.IMAGE, content=screenshot.get('ossPath'))
+                    await self.workspace.add_artifact(image_artifact)
+                    result.append(image_artifact.artifact_id)
+        return result
 
 
 

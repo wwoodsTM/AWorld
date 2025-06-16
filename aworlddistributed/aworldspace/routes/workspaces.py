@@ -1,9 +1,9 @@
 import logging
 import os
+from typing import List
+from fastapi import APIRouter, HTTPException, status, Query
 
 from aworld.output import WorkSpace, ArtifactType
-from fastapi import APIRouter, HTTPException, status
-
 from config import WORKSPACE_PATH, WORKSPACE_TYPE
 
 router = APIRouter()
@@ -15,17 +15,34 @@ async def get_workspace_tree(workspace_id: str):
     return workspace.generate_tree_data()
 
 
-@router.get("/{workspace_id}/artifacts")
-async def get_workspace_artifacts(workspace_id: str, artifact_type: str):
-    if artifact_type not in ArtifactType.__members__:
-        logging.error(f"Invalid artifact_type: {artifact_type}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid artifact type")
+@router.post("/{workspace_id}/artifacts")
+async def get_workspace_artifacts(workspace_id: str, artifact_types: List[str] = Query(None)):
+    """
+    Get artifacts by workspace id and filter by a list of artifact types.
+    Args:
+        workspace_id: Workspace ID
+        artifact_types: List of artifact type names (optional)
+    Returns:
+        Dict with filtered artifacts
+    """
+    if artifact_types:
+        # Validate all types
+        invalid_types = [t for t in artifact_types if t not in ArtifactType.__members__]
+        if invalid_types:
+            logging.error(f"Invalid artifact_types: {invalid_types}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid artifact types: {invalid_types}")
+        logging.info(f"Fetching artifacts of types: {artifact_types}")
+    else:
+        logging.info(f"Fetching all artifacts (no type filter)")
 
-    logging.info(f"Fetching artifacts of type: {artifact_type}")
     workspace = await load_workspace(workspace_id)
-
+    all_artifacts = workspace.list_artifacts()
+    if artifact_types:
+        filtered_artifacts = [a for a in all_artifacts if a.artifact_type.name in artifact_types]
+    else:
+        filtered_artifacts = all_artifacts
     return {
-        "data": workspace.list_artifacts(ArtifactType[artifact_type])
+        "data": filtered_artifacts
     }
 
 
