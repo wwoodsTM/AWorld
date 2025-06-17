@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+from langchain_core.messages.tool import tool_call
 from openpyxl.styles.builtins import output
 from pydantic_core.core_schema import arguments_schema
 
@@ -53,12 +54,11 @@ Action: ...
 ## Action Space
 navigate(website='xxx') #Open the target website, usually the first action to open browser.
 click(start_box='[x1, y1, x2, y2]')
-left_double(start_box='[x1, y1, x2, y2]')
+move(start_box='[x1, y1, x2, y2]')
 right_single(start_box='[x1, y1, x2, y2]')
-drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')
 hotkey(key='')
-type(content='') #If you want to submit your input, use "\n" at the end of `content`.
-scroll(direction='down or up or right or left')
+type(start_box='[x1, y1, x2, y2]', content='') #If you want to submit your input, use "\n" at the end of `content`.
+scroll(direction='down or up')
 wait() #Sleep for 5s and take a screenshot to check for any changes.
 finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
 ## Note
@@ -68,10 +68,14 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 ## User Instruction
 """
 
+# left_double(start_box='[x1, y1, x2, y2]')
+# drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')
+# scroll(direction='down or up or right or left')
+
 import json
 import re
 
-MAX_IMAGE = 50
+MAX_IMAGE = 20
 
 
 def parse_action_output(output_text):
@@ -204,6 +208,18 @@ def parse_tool_call(line):
     elif action == 'type':
         func_name = 'mcp__ms-playwright__browser_screen_type'
         content = {'text': result['content']}
+
+        if result["start_box"] is not None:
+            type_function = Function(name=func_name, arguments=json.dumps(content)),
+
+            func_name = 'mcp__ms-playwright__browser_screen_click'
+            x = int((result["start_box"][0] + result["start_box"][2]) / 2)
+            y = int((result["start_box"][1] + result["start_box"][3]) / 2)
+            content = {'element': '', 'x': x, 'y': y}
+            click_function = Function(name=func_name, arguments=json.dumps(content)),
+
+            return [click_function, type_function], thought, action_text, result
+
     elif action == 'scroll':
         # 暂时使用presskey代替scroll
         func_name = 'mcp__ms-playwright__browser_press_key'
@@ -222,6 +238,11 @@ def parse_tool_call(line):
     elif action == 'finished':
         func_name = "finished"
         content = result['content']
+    elif action == 'move':
+        func_name = 'mcp__ms-playwright__browser_screen_move_mouse'
+        x = int((result["start_box"][0] + result["start_box"][2]) / 2)
+        y = int((result["start_box"][1] + result["start_box"][3]) / 2)
+        content = {'element': '', 'x': x, 'y': y}
     else:
         return ""
 
@@ -413,18 +434,22 @@ class PlayWrightAgent(Agent):
         self.eval = eval_mode
         super().__init__(conf, **kwargs)
 
-    def m2w_eval(self):
+    async def m2w_eval(self):
         task = self.task.split("Please first navigate to the target")[0]
         key_points_messages = identify_key_points(task)
+        logger.info(f"{self.llm}")
+        logger.info(f"{key_points_messages}")
+        logger.info(f"{self.model_name}")
 
         # eval_model_name = "shangshu.gpt-4o"
         eval_model_name = self.model_name
-        tmp_llm_response = acall_llm_model(
+        tmp_llm_response = await acall_llm_model(
             self.llm,
             messages=key_points_messages,
             model=eval_model_name,
             temperature=0
         )
+        logger.info("excute flag 1")
 
         key_points = tmp_llm_response.content
         key_points = key_points.replace("\n\n", "\n")
@@ -444,7 +469,7 @@ class PlayWrightAgent(Agent):
         image_responses = []
         for task_messages in tasks_messages:
             logger.info(task_messages)
-            image_response = acall_llm_model(
+            image_response = await acall_llm_model(
                 self.llm,  # 假设这是你传给函数的第一个参数
                 messages=task_messages,  # 每个请求的消息内容
                 model=eval_model_name,  # 模型名称
@@ -458,7 +483,7 @@ class PlayWrightAgent(Agent):
 
         eval_messages, text, system_msg, record = WebJudge_Online_Mind2Web_eval(
             self.task, self.step_actions, self.step_images, image_responses, key_points, 3)
-        response = acall_llm_model(
+        response = await acall_llm_model(
             self.llm,
             messages=eval_messages,
             model=eval_model_name,
@@ -593,18 +618,23 @@ class PlayWrightAgent(Agent):
                         self.step_actions.append(origin_action)
                         self.step_results.append(origin_result)
 
-                        if function.name == "finished":
+                        if not isinstance(function, list) and function.name == "finished":
                             self._finished = True
                             llm_response.content = "<answer>" + llm_response.content + "</answer>"
                             llm_response.tool_calls = None
                         else:
                             llm_response.content = None
 
-                            tool_call = ToolCall(
-                                id="tooluse_mock",
+                            if isinstance(function, list):
+                                tool_call_list = [ToolCall(id="tooluse_mock",
                                 type="function",
-                                function=function,
-                            )
+                                function=func) for func in function]
+                            else:
+                                tool_call_list = [ToolCall(
+                                    id="tooluse_mock",
+                                    type="function",
+                                    function=function,
+                                )]
                             screen_capture = ToolCall(
                                 id="screen_capture",
                                 type="function",
@@ -613,7 +643,8 @@ class PlayWrightAgent(Agent):
                                     arguments="{}"
                                 )
                             )
-                            llm_response.tool_calls = [tool_call, screen_capture]
+                            # llm_response.tool_calls = [tool_call, screen_capture]
+                            llm_response.tool_calls = tool_call_list.append(screen_capture)
                 else:
                     logger.error(f"{self.name()} failed to get LLM response")
                     raise RuntimeError(f"{self.name()} failed to get LLM response")
@@ -633,7 +664,7 @@ class PlayWrightAgent(Agent):
 
         if self.eval and (self.finished or step >= 30):  # 暂时写死，这里应该是max_step
 
-            task, eval_response = self.m2w_eval()
+            task, eval_response = await self.m2w_eval()
 
             result_dict = {
                 'task': task,
@@ -716,9 +747,15 @@ class Pipeline(AworldBaseAgent):
 
     async def get_custom_input(self, user_message: str, model_id: str, messages: List[dict], body: dict) -> Any:
 
-        dataset = user_message.split(':')[0]
-        task_id = user_message.split(':')[1]
-        if dataset == "Gaia":
+        dataset = user_message.split(':', 1)[0]
+        task_id = user_message.split(':', 1)[1]
+        if dataset == "Task":
+            print(task_id)
+            task = json.loads(task_id)
+            task['Task'] = "Task: " + task['task'] + '\n' + "Please first navigate to the target " + "Website: " + \
+                       task['web']
+
+        elif dataset == "Gaia":
             task = await self.get_gaia_task(int(task_id))
         else:
             task = await self.get_gaia_task(int(task_id))
@@ -784,7 +821,11 @@ class Pipeline(AworldBaseAgent):
         task_config: TaskConfig = task.conf
         dataset = task_config.ext['origin_message'].split(':')[0]
         task_id = task_config.ext['origin_message'].split(':')[1]
-        if dataset == "Gaia":
+        if dataset == 'Task':
+            result = f"\n\n`Single TASK#{task_id}`\n\n---\n\n"
+            result += f"\n\n-----\n\n"
+
+        elif dataset == "Gaia":
             gaia_task = await self.get_gaia_task(int(task_id))
 
             result = f"\n\n`Gaia TASK#{task_id}`\n\n---\n\n"
@@ -814,10 +855,10 @@ class Pipeline(AworldBaseAgent):
         Returns:
 
         """
-        task_config: TaskConfig = task.conf
-        web_task_id = int(task_config['ext']['origin_message'])
-        web_task = await self.get_m2w_task(web_task_id)
-        agent_result = ""
+        # task_config: TaskConfig = task.conf
+        # web_task_id = int(task_config['ext']['origin_message'])
+        # web_task = await self.get_m2w_task(web_task_id)
+        # agent_result = ""
         if isinstance(outputs, StreamingOutputs):
             agent_result = await outputs._visited_outputs[-2].get_finished_response()  # read llm result
         # match = re.search(r"<answer>(.*?)</answer>", agent_result)
@@ -825,12 +866,12 @@ class Pipeline(AworldBaseAgent):
         # if match:
         #     answer = match.group(1)
         logging.info(f"Agent answer: {agent_result}")
-
-        metadata = await outputs.get_metadata()
-        if not metadata:
-            await outputs.set_metadata({})
-            metadata = await outputs.get_metadata()
-        metadata['web_task'] = web_task
+        #
+        # metadata = await outputs.get_metadata()
+        # if not metadata:
+        #     await outputs.set_metadata({})
+        #     metadata = await outputs.get_metadata()
+        # metadata['web_task'] = web_task
         return result
 
     def add_file_path(self, task: Dict[str, Any]
