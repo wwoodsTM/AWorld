@@ -25,11 +25,7 @@ class TaskHandler(DefaultHandler):
         self.hooks = {}
         if runner.task.hooks:
             for k, vals in runner.task.hooks.items():
-                self.hooks[k] = []
-                for v in vals:
-                    cls = HookFactory.get_class(v)
-                    if cls:
-                        self.hooks[k].append(cls)
+                self.hooks[k] = HookFactory.hooks_instance(vals)
 
     @classmethod
     def name(cls):
@@ -105,7 +101,7 @@ class DefaultTaskHandler(TaskHandler):
         hooks = self.hooks.get(hook_point, [])
         for hook in hooks:
             try:
-                msg = hook(message)
+                msg = hook.exec(message)
                 if msg:
                     yield msg
             except:

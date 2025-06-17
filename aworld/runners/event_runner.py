@@ -31,6 +31,7 @@ class TaskEventRunner(TaskRunner):
         super().__init__(task, *args, **kwargs)
         self._task_response = None
         self.event_mng = EventManager()
+        self.context.event_manager = self.event_mng
         self.hooks = {}
         self.background_tasks = set()
 
@@ -78,28 +79,12 @@ class TaskEventRunner(TaskRunner):
             for hand in handler_list:
                 handlers.append(new_instance(hand, self))
 
-            has_task_handler = False
-            has_tool_handler = False
-            has_agent_handler = False
-            for hand in handlers:
-                if isinstance(hand, TaskHandler):
-                    has_task_handler = True
-                elif isinstance(hand, ToolHandler):
-                    has_tool_handler = True
-                elif isinstance(hand, AgentHandler):
-                    has_agent_handler = True
-
-            if not has_agent_handler:
-                self.handlers.append(DefaultAgentHandler(runner=self))
-            if not has_tool_handler:
-                self.handlers.append(DefaultToolHandler(runner=self))
-            if not has_task_handler:
-                self.handlers.append(DefaultTaskHandler(runner=self))
             self.handlers = handlers
         else:
-            self.handlers = [DefaultAgentHandler(runner=self),
-                             DefaultToolHandler(runner=self),
-                             DefaultTaskHandler(runner=self)]
+            self.handlers = []
+        self.handlers.extend([DefaultAgentHandler(runner=self),
+                              DefaultToolHandler(runner=self),
+                              DefaultTaskHandler(runner=self)])
 
     async def _common_process(self, message: Message) -> List[Message]:
         event_bus = self.event_mng.event_bus

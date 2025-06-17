@@ -1,13 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import abc
-import json
-import socket
-import struct
-import threading
-import time
-import uuid
-from asyncio import iscoroutinefunction, Queue
+from asyncio import Queue, PriorityQueue
 from inspect import isfunction
 from typing import Callable, Any, Dict, List
 
@@ -33,7 +27,7 @@ class Eventbus(Messageable, InheritanceSingleton):
         return await self.publish(message, **kwargs)
 
     async def receive(self, message: Message, **kwargs):
-        return await self.consume()
+        return await self.consume(message)
 
     async def publish(self, messages: Message, **kwargs):
         """Publish a message, equals `send`."""
@@ -95,7 +89,7 @@ class InMemoryEventbus(Eventbus):
     async def publish(self, message: Message, **kwargs):
         queue = self._message_queue.get(message.session_id)
         if not queue:
-            queue = Queue()
+            queue = PriorityQueue()
             self._message_queue[message.session_id] = queue
         await queue.put(message)
 
@@ -103,7 +97,7 @@ class InMemoryEventbus(Eventbus):
         return await self._message_queue.get(message.session_id, Queue()).get()
 
     async def consume_nowait(self, message: Message):
-        return await self._message_queue.get(message.session_id, Queue()).get_nowait()
+        return self._message_queue.get(message.session_id, Queue()).get_nowait()
 
     async def done(self, id: str):
         while not self._message_queue.get(id, Queue()).empty():

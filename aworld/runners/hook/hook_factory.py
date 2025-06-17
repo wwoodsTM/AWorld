@@ -27,6 +27,17 @@ class HookManager(Factory):
             act = None
         return act
 
+    def hooks_instance(self, names: List[str] = None) -> List[Hook]:
+        hooks = []
+        if not names:
+            return hooks
+
+        for name in names:
+            cls = self._cls.get(name)
+            if cls:
+                hooks.append(cls())
+        return hooks
+
     def hooks(self, name: str = None) -> Dict[str, List[Hook]]:
         vals = list(filter(lambda s: not s.startswith('__'), dir(HookPoint)))
         results = {val.lower(): [] for val in vals}
@@ -34,7 +45,7 @@ class HookManager(Factory):
         for k, v in self._cls.items():
             hook = v()
             if name and hook.point() != name:
-               continue
+                continue
 
             results.get(hook.point(), []).append(hook)
 

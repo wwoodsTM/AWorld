@@ -42,6 +42,8 @@ class Context(InheritanceSingleton):
             "total_tokens": 0
         }
 
+        self._event_manager = None
+
     def add_token(self, usage: Dict[str, int]):
         self._token_usage = nest_dict_counter(self._token_usage, usage)
 
@@ -100,6 +102,14 @@ class Context(InheritanceSingleton):
     @session.setter
     def session(self, session: Session):
         self._session = session
+
+    @property
+    def event_manager(self):
+        return self._event_manager
+
+    @event_manager.setter
+    def event_manager(self, event_manager: 'EventManager'):
+        self._event_manager = event_manager
 
     @property
     def record_path(self):
