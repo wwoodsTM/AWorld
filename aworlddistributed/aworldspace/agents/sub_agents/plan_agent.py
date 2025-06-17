@@ -1,11 +1,11 @@
 import os
-import uuid
-from aworld.config.conf import AgentConfig
+from datetime import datetime
+
 from aworld.agents.llm_agent import Agent
-from aworld.core.task import Task
-from aworld.config import ModelConfig, TaskConfig
+from aworld.config import ModelConfig
+from aworld.config.conf import AgentConfig
+
 from aworldspace.prompt.deepresearch_prompt import *
-from aworld.runner import Runners
 
 
 def create_plan_agent(agent_config: dict):
@@ -37,7 +37,7 @@ def create_plan_agent(agent_config: dict):
         name=_current_agent_name(),
         desc="plan_agent",
         conf=agent_config,
-        system_prompt=custom_sys_prompt or plan_sys_prompt,
+        system_prompt=custom_sys_prompt or plan_sys_prompt.format(system_cur_date =datetime.now().strftime("%Y年%m月%d日")),
         step_reset=False,
         event_driven=False
     )

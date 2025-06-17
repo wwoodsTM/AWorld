@@ -1,4 +1,10 @@
 
+tool_card_template = """
+```tool_card
+{tool_card_content}
+```
+"""
+
 tool_call_template = """
 
 
@@ -11,6 +17,8 @@ tool_call_template = """
 ```tool_call_result
 {function_result}
 ```
+
+{images}
 
 
 """

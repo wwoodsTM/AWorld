@@ -1,20 +1,19 @@
 import json
 import logging
-import os
 import traceback
 import uuid
 from abc import abstractmethod
 from typing import List, AsyncGenerator, Any, Optional
 
-from aworld.config import AgentConfig, TaskConfig
 from aworld.agents.llm_agent import Agent
+from aworld.config import AgentConfig, TaskConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
-from aworld.output import WorkSpace, AworldUI, Outputs
+from aworld.output import AworldUI, Outputs
 from aworld.runner import Runners
 
 from aworldspace.ui.open_aworld_ui import OpenAworldUI
-
+from aworldspace.utils.workspace_utils import load_workspace
 from client.aworld_client import AworldTask
 
 
@@ -48,6 +47,13 @@ class AworldBaseAgent:
             else:
                 task_id = str(uuid.uuid4())
 
+            user_id = None
+            session_id = task_id
+            if body.get('metadata'):
+                # user_id = body.get('metadata').get('user_id')
+                session_id = body.get('metadata').get('chat_id', task_id)
+                task_id = body.get('metadata').get('message_id', task_id)
+
             user_input = await self.get_custom_input(user_message, model_id, messages, body)
             if task and task.llm_custom_input:
                 user_input = task.llm_custom_input
@@ -65,7 +71,7 @@ class AworldBaseAgent:
             logging.info(f"🤖{self.agent_name()} build task finished, task_id is {task_id}")
 
             # render output
-            async_generator = await self.parse_task_output(task_id, task)
+            async_generator = await self.parse_task_output(user_id=user_id, session_id=session_id, task=task)
 
             return async_generator()
 
@@ -151,7 +157,7 @@ class AworldBaseAgent:
 
 
 
-    async def parse_task_output(self, chat_id, task: Task):
+    async def parse_task_output(self, user_id:str, session_id:str, task: Task):
         _SENTINEL = object()
 
         async def async_generator():
@@ -161,18 +167,15 @@ class AworldBaseAgent:
 
             async def consume_all():
                 openwebui_ui = OpenAworldUI(
-                    chat_id=chat_id,
-                    workspace=WorkSpace.from_local_storages(
-                        workspace_id=chat_id,
-                        storage_path=os.path.join(os.curdir, "workspaces", chat_id)
-                    )
+                    chat_id=session_id,
+                    workspace=await load_workspace(user_id, session_id)
                 )
 
                 # get outputs
                 outputs = Runners.streamed_run_task(task)
 
                 # output hooks
-                await self.custom_output_before_task(outputs, chat_id, task)
+                await self.custom_output_before_task(outputs, session_id, task)
 
                 # render output
                 try:
@@ -184,7 +187,7 @@ class AworldBaseAgent:
                                     await queue.put(item)
                             else:
                                 await queue.put(res)
-                    custom_output = await self.custom_output_after_task(outputs, chat_id, task)
+                    custom_output = await self.custom_output_after_task(outputs, session_id, task)
                     if custom_output:
                         await queue.put(custom_output)
                     await queue.put(task)

@@ -1,5 +1,6 @@
 # aworld/runners/handler/output.py
 import json
+from typing import AsyncGenerator
 from aworld.core.task import TaskResponse
 from aworld.models.model_response import ModelResponse
 from aworld.runners.handler.base import DefaultHandler
@@ -30,20 +31,17 @@ class DefaultOutputHandler(DefaultHandler):
             return
         # 2. build Output
         payload = message.payload
+        mark_complete = False
+        output = None
         try:
             if isinstance(payload, Output):
-                await outputs.add_output(payload)
+                output = payload
             elif isinstance(payload, TaskResponse):
-                await outputs.add_output(
-                    Output(
-                        data=f"usage: {json.dumps(payload.usage)}"
-                    )
-                )
+                logger.info(f"output get task_response with usage: {json.dumps(payload.usage)}")
                 if message.topic == TaskType.FINISHED or message.topic == TaskType.ERROR:
-                    await outputs.mark_completed()
-            else:
+                    mark_complete = True
+            elif isinstance(payload, ModelResponse) or isinstance(payload, AsyncGenerator):
                 output = MessageOutput(source=payload)
-                await outputs.add_output(output)
         except Exception as e:
             logger.warning(f"Failed to parse output: {e}")
             yield Message(
@@ -53,5 +51,14 @@ class DefaultOutputHandler(DefaultHandler):
                 session_id=Context.instance().session_id,
                 topic=TaskType.ERROR
             )
+        finally:
+            if output:
+                if not output.metadata:
+                    output.metadata = {}
+                output.metadata['sender'] = message.sender
+                output.metadata['receiver'] = message.receiver
+                await outputs.add_output(output)
+            if mark_complete:
+                await outputs.mark_completed()
 
         return

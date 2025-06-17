@@ -11,7 +11,7 @@ from aworld.utils.common import get_local_ip
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from aworldspace.routes import tasks
+from aworldspace.routes import tasks, workspaces
 from aworldspace.utils.loader import load_modules_from_directory, PIPELINE_MODULES, PIPELINES, \
     get_all_pipelines
 from aworldspace.utils.job import generate_openai_chat_completion
@@ -94,6 +94,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
+app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["workspace"])
 
 
 @app.middleware("http")
@@ -112,7 +113,21 @@ async def get_status():
 
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
-async def chat_completion(form_data: OpenAIChatCompletionForm):
+async def chat_completion(
+    form_data: OpenAIChatCompletionForm,
+    request: Request
+):
+    # Extract headers into a dict
+    headers = request.headers
+    metadata = {
+        "user_id": headers.get("X-OpenWebUI-User-Id"),
+        "chat_id": headers.get("X-OpenWebUI-Chat-Id"),
+        "message_id": headers.get("X-OpenWebUI-Message-Id")
+    }
+    
+    # Add metadata to form_data
+    form_data.metadata = metadata
+    
     return await generate_openai_chat_completion(form_data)
 
 @app.get("/health")
