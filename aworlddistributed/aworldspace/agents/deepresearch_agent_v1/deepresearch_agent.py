@@ -25,12 +25,22 @@ def main():
 
     plan_agent = PlanAgent(
         name="plan_agent",
-        conf=agent_config
+        conf=agent_config,
     )
 
     web_search_agent = WebSearchAgent(
         name="web_search_agent",
-        conf=agent_config
+        conf=agent_config,
+        mcp_config="aworldsearch-server",
+        mcp_servers={
+            "aworldsearch-server": {
+                "command": "python",
+                "args": [
+                    "-m",
+                    "mcp_servers.aworldsearch_server"
+                ]
+            }
+        }
     )
 
     reasoning_loop_agent = ReasoningLoopAgent(

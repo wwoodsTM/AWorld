@@ -31,7 +31,7 @@ Output Format:
    - "follow_up_queries": Write a specific question to address this gap
 
 Example:
-```json
+```
 {{
     "is_sufficient": true, // or false
     "knowledge_gap": "The summary lacks information about performance metrics and benchmarks", // "" if is_sufficient is true
