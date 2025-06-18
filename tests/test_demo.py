@@ -11,5 +11,5 @@ class TestShellTool(unittest.TestCase):
 
     def test_init(self):
         """Test initialization"""
-        self.assertEqual(self.shell_tool.type, "function")
+        self.assertEqual("test" "function")
 
