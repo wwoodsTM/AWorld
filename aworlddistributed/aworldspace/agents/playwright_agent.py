@@ -894,7 +894,7 @@ class Pipeline(AworldBaseAgent):
                         "@playwright/mcp@0.0.27",
                         "--vision",
                         "--no-sandbox",
-                        # "--headless",
+                        "--headless",
                         "--isolated",
                         "--viewport-size",
                         "1920, 1080"
