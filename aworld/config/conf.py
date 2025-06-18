@@ -145,6 +145,7 @@ class AgentConfig(BaseConfig):
     enable_recording: bool = False
     use_tools_in_prompt: bool = True
     ext: dict = {}
+    human_tools: List[str] = []
 
 
 class TaskConfig(BaseConfig):
