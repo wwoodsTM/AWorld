@@ -27,7 +27,7 @@ Instructions:
 - Queries should be diverse, if the topic is broad, generate more than 1 query.
 - Don't generate multiple similar queries, 1 is enough.
 - Query should ensure that the most current information is gathered. The current date is {current_date}.
-
+- 输出中文结果
 Format: 
 - Format your response as a JSON object with ALL three of these exact keys:
    - "rationale": Brief explanation of why these queries are relevant
@@ -45,15 +45,12 @@ Topic: What revenue grew more last year apple stock or the number of people buyi
 
 Context: {research_topic}"""
 
-
-@AgentFactory.register(name='plan_agent', desc="plan_agent")
 class PlanAgent(Agent):
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
         # 1.构造 message
-        # TODO: 多轮对话要适配
         messages = [{
-            "role": "user",  # 可以是 "system", "user", "assistant", "tool"
+            "role": "user",
             "content": prompt.format(
                 current_date=datetime.datetime.now().strftime("%Y-%m-%d"),
                 research_topic=observation.content,
@@ -69,7 +66,6 @@ class PlanAgent(Agent):
             temperature=self.conf.llm_config.llm_temperature,
             tools=self.tools if self.use_tools_in_prompt and self.tools else None
         )
-
 
         # 3. 解析LLM响应，提取query列表
         content = llm_response.get_message()['content']

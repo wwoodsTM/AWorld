@@ -12,6 +12,7 @@ from aworld.core.common import Observation, ActionModel
 from aworld.core.memory import MemoryItem
 from aworld.models.llm import acall_llm_model
 
+from aworldspace.agents.deepresearch_agent_v1.tools_and_schemas import parse_json_to_model, parse_json_to_model_list, AworldSearch
 
 prompt = """Conduct targeted aworld_search tools to gather the most recent, credible information on "{research_topic}" and synthesize it into a verifiable text artifact.
 
@@ -21,12 +22,12 @@ Instructions:
 - Consolidate key findings while meticulously tracking the source(s) for each specific piece of information.
 - The output should be a well-written summary or report based on your search findings. 
 - Only include the information found in the search results, don't make up any information.
-
+- 输出中文结果
 Research Topic:
 {research_topic}
 """
 
-@AgentFactory.register(name='web_search_agent', desc="web_search_agent")
+# @AgentFactory.register(name='web_search_agent', desc="web_search_agent")
 class WebSearchAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super().__init__(conf, **kwargs)
@@ -111,23 +112,22 @@ class WebSearchAgent(Agent):
         return messages
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
-        print("receive from plan_agent:", observation.content)
-        print("mcp config", self.mcp_config)
+        # 来源可能是 plan 也 可能是 reasoning
+        print("[web_search_agent]receive from", observation.from_agent_name)
+        print("receive content", observation.content)
         search_result = []
-
+        await self.async_desc_transform()
         # TODO: 并行提交任务处理, 先用for循环
         for research_topic in observation.content:
-
             if hasattr(observation, 'context') and observation.context:
                 self.task_histories = observation.context
             self._finished = False
-            await self.async_desc_transform()
             images = observation.images if self.conf.use_vision else None
             if self.conf.use_vision and not images and observation.image:
                 images = [observation.image]
 
             messages = [{
-                "role": "user",  # 可以是 "system", "user", "assistant", "tool"
+                "role": "user",
                 "content": prompt.format(
                     current_date=datetime.datetime.now().strftime("%Y-%m-%d"),
                     research_topic=research_topic
@@ -144,16 +144,25 @@ class WebSearchAgent(Agent):
                 }
             ))
 
-            self.context.context_info['web_search_nums'] += 1
 
             # 2.call llm and tools
             llm_response = await self.llm_and_tool_execution(
                 observation=observation,
-                messages=messages
+                messages=messages,
+                tools=self.tools if not self.use_tools_in_prompt and self.tools else None,
             )
 
-            print("llm_response", llm_response)
+            self.context.context_info['web_search_nums'] += 1
+            print("web_search_nums", self.context.context_info['web_search_nums'])
 
+            if isinstance(llm_response[0], ActionModel):
+                aworld_search_list = parse_json_to_model_list(llm_response[0].policy_info, AworldSearch)
+                #print("llm_response", aworld_search_list[0].doc) 太大了，先不打印了
+                #添加到搜索结果里面去
+                if len(aworld_search_list) > 0:
+                    search_result.append(aworld_search_list[0].doc)
+                else:
+                    print("[web_search_agent] llm_response is null")
 
         # 收集和汇总结果然后给 reasoning_loop_agent
         return [ActionModel(
@@ -161,6 +170,6 @@ class WebSearchAgent(Agent):
             tool_name="reasoning_loop_agent",
             policy_info={
                 "search_result": search_result,
-                "search_summary": None,
+                "search_summary": search_result,
                 "search_topics": observation.content
             })]

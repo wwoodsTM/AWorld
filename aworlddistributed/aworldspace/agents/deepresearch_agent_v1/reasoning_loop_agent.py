@@ -20,7 +20,7 @@ Instructions:
 - If provided summaries are sufficient to answer the user's question, don't generate a follow-up query.
 - If there is a knowledge gap, generate a follow-up query that would help expand your understanding.
 - Focus on technical details, implementation specifics, or emerging trends that weren't fully covered.
-
+- 输出中文结果
 Requirements:
 - Ensure the follow-up query is self-contained and includes necessary context for web search.
 
@@ -46,7 +46,7 @@ Summaries:
 """
 
 
-@AgentFactory.register(name='reasoning_loop_agent', desc="reasoning_loop_agent")
+# @AgentFactory.register(name='reasoning_loop_agent', desc="reasoning_loop_agent")
 class ReasoningLoopAgent(Agent):
 
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
@@ -56,7 +56,7 @@ class ReasoningLoopAgent(Agent):
         self.context.context_info['max_reasoning_loop'] = 2
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
-        print("receive from web_search_agent:", observation.content)
+        print("[reasoning_loop_agent]receive from web_search_agent")
         self.context.context_info['reasoning_loop_count'] += 1
         max_reasoning_loop = self.context.context_info['max_reasoning_loop']
 
@@ -89,9 +89,9 @@ class ReasoningLoopAgent(Agent):
         # 3. 解析结果，判断是否ok，如果ok 就给reporting，如果不ok 就再转给web_search
         reflection = parse_json_to_model(content, Reflection)
 
-        if (reasoning_loop_count > max_reasoning_loop) or reflection.is_sufficient:
-            print("reasoning_loop_count:", reasoning_loop_count)
-            print("is_sufficient:", reflection.is_sufficient)
+        print("reasoning_loop_count:", reasoning_loop_count)
+        print("is_sufficient:", reflection.is_sufficient)
+        if (reasoning_loop_count >= max_reasoning_loop) or reflection.is_sufficient:
             return [ActionModel(
                 agent_name=self.name(),
                 tool_name="reporting_agent",

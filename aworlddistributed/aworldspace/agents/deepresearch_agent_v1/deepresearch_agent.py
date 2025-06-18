@@ -25,31 +25,46 @@ def main():
 
     plan_agent = PlanAgent(
         name="plan_agent",
+        desc="plan_agent",
         conf=agent_config,
     )
 
     web_search_agent = WebSearchAgent(
         name="web_search_agent",
+        desc="web_search_agent",
         conf=agent_config,
-        mcp_config="aworldsearch-server",
-        mcp_servers={
-            "aworldsearch-server": {
-                "command": "python",
-                "args": [
-                    "-m",
-                    "mcp_servers.aworldsearch_server"
-                ]
+        mcp_servers=["aworldsearch_server"],
+        mcp_config={
+            "mcpServers": {
+                "aworldsearch_server": {
+                    "command": "python",
+                    "args": [
+                        "-m",
+                        "mcp_servers.aworldsearch_server"
+                    ],
+                    "env": {
+                        "AWORLD_SEARCH_URL": "https://antragflowInside.alipay.com/v1/rpc/ragLlmSearch",
+                        "AWORLD_SEARCH_TOTAL_NUM": "10",
+                        "AWORLD_SEARCH_SLICE_NUM": "3",
+                        "AWORLD_SEARCH_DOMAIN": "google",
+                        "AWORLD_SEARCH_SEARCHMODE": "RAG_LLM",
+                        "AWORLD_SEARCH_SOURCE": "lingxi_agent",
+                        "AWORLD_SEARCH_UID": "2088802724428205"
+                    }
+                }
             }
         }
     )
 
     reasoning_loop_agent = ReasoningLoopAgent(
         name="reasoning_loop_agent",
+        desc="reasoning_loop_agent",
         conf=agent_config
     )
 
     reporting_agent = ReportingAgent(
         name="reporting_agent",
+        desc="reporting_agent",
         conf=agent_config
     )
 

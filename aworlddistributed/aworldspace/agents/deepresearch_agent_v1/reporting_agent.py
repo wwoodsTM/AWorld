@@ -23,18 +23,18 @@ Instructions:
 - You have access to the user's question.
 - Generate a high-quality answer to the user's question based on the provided summaries and the user's question.
 - you MUST include all the citations from the summaries in the answer correctly.
-
+- 输出中文结果
 User Context:
 - {research_topic}
 
 Summaries:
 {summaries}"""
 
-@AgentFactory.register(name='reporting_agent', desc="reporting_agent")
+# @AgentFactory.register(name='reporting_agent', desc="reporting_agent")
 class ReportingAgent(Agent):
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
-        print("receive from reasoning_loop_agent:", observation.content)
+        print("[reporting_agent]receive from reasoning_loop_agent:", observation.content)
 
         # 1.构造 message
         messages = [{
