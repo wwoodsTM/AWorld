@@ -13,17 +13,21 @@ from aworld.logs.util import logger
 
 mcp = FastMCP("gen-pic-server")
 
+
 @mcp.tool(description="Generate picture from text content")
-def gen_picture(prompt: str = Field(description="The text prompt to generate an image")) -> Any:
+def gen_picture(prompt: str = Field(description="The text prompt to generate an image"),
+                num: int = Field(0,
+                                 description="Number of images to generate, 0 means use environment variable")) -> Any:
     """Generate picture from text prompt"""
     api_key = os.getenv('DASHSCOPE_API_KEY')
     submit_url = os.getenv('DASHSCOPE_SUBMIT_URL', '')
     query_base_url = os.getenv('DASHSCOPE_QUERY_BASE_URL', '')
-    
+
     if not api_key or not submit_url or not query_base_url:
-        logger.warning("Query failed: DASHSCOPE_API_KEY,DASHSCOPE_SUBMIT_URL,DASHSCOPE_QUERY_BASE_URL environment variable is not set")
+        logger.warning(
+            "Query failed: DASHSCOPE_API_KEY,DASHSCOPE_SUBMIT_URL,DASHSCOPE_QUERY_BASE_URL environment variable is not set")
         return None
-    
+
     headers = {
         'X-DashScope-Async': 'enable',
         'Authorization': f'Bearer {api_key}',
@@ -33,8 +37,10 @@ def gen_picture(prompt: str = Field(description="The text prompt to generate an 
     # Get parameters from environment variables or use defaults
     model = os.getenv('DASHSCOPE_MODEL', 'wanx2.1-t2i-turbo')
     size = os.getenv('DASHSCOPE_SIZE', '1024*1024')
-    n = int(os.getenv('DASHSCOPE_N', '1'))
-    
+
+    # Use num parameter if provided (>0), otherwise use environment variable
+    n = num if num > 0 else int(os.getenv('DASHSCOPE_N', '1'))
+
     task_data = {
         "model": model,
         "input": {
@@ -49,9 +55,9 @@ def gen_picture(prompt: str = Field(description="The text prompt to generate an 
     try:
         # Step 1: Submit task to generate image
         logger.info("Submitting task to generate image...")
-        
+
         response = requests.post(submit_url, headers=headers, json=task_data)
-        
+
         if response.status_code != 200:
             logger.warning(f"Task submission failed with status code {response.status_code}")
             return None
@@ -92,15 +98,24 @@ def gen_picture(prompt: str = Field(description="The text prompt to generate an 
 
             # Check task status
             task_status = query_result.get("output", {}).get("task_status")
-            
+
             if task_status == "SUCCEEDED":
-                # Extract image URL
+                # Extract image URLs
                 results = query_result.get("output", {}).get("results", [])
-                if results and len(results) > 0 and "url" in results[0]:
-                    image_url = results[0]["url"]
-                    return json.dumps({"image_url": image_url})
+                if results:
+                    # Create a simple array of objects with image_url
+                    image_urls = []
+                    for result in results:
+                        if "url" in result:
+                            image_urls.append({"image_url": result["url"]})
+
+                    if image_urls:
+                        return json.dumps(image_urls)
+                    else:
+                        logger.info("No valid image URLs found in the response")
+                        return None
                 else:
-                    logger.info("Image URL not found in the response")
+                    logger.info("No results found in the response")
                     return None
             elif task_status in ["PENDING", "RUNNING"]:
                 # If still running, continue to next polling attempt
@@ -146,6 +161,6 @@ sys.modules[__name__].__call__ = __call__
 if __name__ == "__main__":
     main()
     # For testing without MCP
-    # result = gen_picture("sunflower")
+    # result = gen_picture("sunflower", 2)
     # print("\nFinal Result:")
     # print(result)
