@@ -118,11 +118,12 @@ def parse_action_output(output_text):
 
         # gpt-4o兼容
         if 'start_box' in params_text:
-            params_text = params_text.replace(", ", " ").replace(",", " ")
+            params_text = params_text.replace(", ", " ").replace(",", " ").replace(" content", ", content")
         if 'end_box' in params_text:
             params_text = params_text.replace(" end_box", ", end_box")
 
         # 处理键值对参数
+        logger.info(f"{params_text=}")
         for param in params_text.split(','):
             param = param.strip()
 
@@ -149,6 +150,7 @@ def parse_action_output(output_text):
                                 result["start_box"] = [coords[0], coords[1], coords[0], coords[1]]
                             elif key == 'end_box':
                                 result["end_box"] = [coords[0], coords[1], coords[0], coords[1]]
+                # 其他参数另外提取
                 elif key == 'key':
                     result["key"] = value.replace("pagedown", "PageDown").replace("pageup", "PageUp").replace("enter","Enter")
                 elif key == 'content':
@@ -210,13 +212,13 @@ def parse_tool_call(line):
         content = {'text': result['content']}
 
         if result["start_box"] is not None:
-            type_function = Function(name=func_name, arguments=json.dumps(content)),
+            type_function = Function(name=func_name, arguments=json.dumps(content))
 
             func_name = 'mcp__ms-playwright__browser_screen_click'
             x = int((result["start_box"][0] + result["start_box"][2]) / 2)
             y = int((result["start_box"][1] + result["start_box"][3]) / 2)
             content = {'element': '', 'x': x, 'y': y}
-            click_function = Function(name=func_name, arguments=json.dumps(content)),
+            click_function = Function(name=func_name, arguments=json.dumps(content))
 
             return [click_function, type_function], thought, action_text, result
 
@@ -449,7 +451,6 @@ class PlayWrightAgent(Agent):
             model=eval_model_name,
             temperature=0
         )
-        logger.info("excute flag 1")
 
         key_points = tmp_llm_response.content
         key_points = key_points.replace("\n\n", "\n")
@@ -617,7 +618,7 @@ class PlayWrightAgent(Agent):
                         self.step_thoughts.append(origin_thought)
                         self.step_actions.append(origin_action)
                         self.step_results.append(origin_result)
-
+                        logger.info(f"function:{function}")
                         if not isinstance(function, list) and function.name == "finished":
                             self._finished = True
                             llm_response.content = "<answer>" + llm_response.content + "</answer>"
@@ -635,16 +636,20 @@ class PlayWrightAgent(Agent):
                                     type="function",
                                     function=function,
                                 )]
+
                             screen_capture = ToolCall(
-                                id="screen_capture",
-                                type="function",
-                                function=Function(
-                                    name="mcp__ms-playwright__browser_screen_capture",
-                                    arguments="{}"
+                                    id="screen_capture",
+                                    type="function",
+                                    function=Function(
+                                        name="mcp__ms-playwright__browser_screen_capture",
+                                        arguments="{}"
+                                    )
                                 )
-                            )
-                            # llm_response.tool_calls = [tool_call, screen_capture]
-                            llm_response.tool_calls = tool_call_list.append(screen_capture)
+
+                            tool_call_list.append(screen_capture)
+                            llm_response.tool_calls = tool_call_list
+
+
                 else:
                     logger.error(f"{self.name()} failed to get LLM response")
                     raise RuntimeError(f"{self.name()} failed to get LLM response")
@@ -889,10 +894,10 @@ class Pipeline(AworldBaseAgent):
                         "@playwright/mcp@0.0.27",
                         "--vision",
                         "--no-sandbox",
-                        "--headless",
+                        # "--headless",
                         "--isolated",
                         "--viewport-size",
-                        "1280, 720"
+                        "1920, 1080"
                     ],
                     "env": {
                         "PLAYWRIGHT_TIMEOUT": "120000",

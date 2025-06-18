@@ -3,11 +3,10 @@ import asyncio
 import random
 import uuid
 
-from base import AworldTask
-from client.aworld_client import AworldTaskClient
+from client.aworld_client import AworldTask, AworldTaskClient
 
 AWORLD_TASK_CLIENT = AworldTaskClient(
-    know_hosts=["localhost:9999"]
+    know_hosts=["localhost:5555"],
 )
 
 
@@ -27,16 +26,18 @@ async def _run_web_task(web_question_id: str) -> None:
             agent_id="playwright_agent",
             agent_input=web_question_id,
             session_id="session_id",
-            user_id="SYSTEM"
+            user_id="SYSTEM",
+            max_steps=50,
         )
     )
+
 
     # Get and print task result
     task_result = await AWORLD_TASK_CLIENT.get_task_state(task_id=task_id)
     print(task_result)
 
 
-async def _batch_run_web_task(start_i: int, end_i: int) -> None:
+async def _batch_run_web_task(start_i: int, end_i: int, dataset: str) -> None:
     """Run multiple Web tasks in parallel.
 
     Args:
@@ -44,12 +45,34 @@ async def _batch_run_web_task(start_i: int, end_i: int) -> None:
         end_i: Ending question ID
     """
     tasks = [
-        _run_web_task(str(i))
+        _run_web_task(dataset + ':' + str(i))
         for i in range(start_i, end_i + 1)
     ]
     await asyncio.gather(*tasks)
 
 
+async def _batch_run_web_task_with_data(data_list) -> None:
+    """Run multiple Web tasks in parallel.
+
+    Args:
+        [{task: "", web: ""}] ...
+    """
+    import json
+    tasks = [
+        _run_web_task('Task:' + json.dumps(data))
+        for data in data_list
+    ]
+    await asyncio.gather(*tasks)
+
+
 if __name__ == '__main__':
-    # Run batch processing for questions 1-5
-    asyncio.run(_batch_run_web_task(25, 25))
+
+    # input example
+    data_list = [
+        {
+            "task": "Find the latest news about Netflix stock",
+            "web": "google"
+        }
+    ]
+    for i in range(1):
+        asyncio.run(_batch_run_web_task_with_data(data_list))
