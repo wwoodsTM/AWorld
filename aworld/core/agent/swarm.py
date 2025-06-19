@@ -248,20 +248,30 @@ class Swarm(object):
         self._finished = finished
 
 
-class Builder:
-    """Multi-agent execution flow base builder."""
+class _Graph:
+    def save(self, filepath: str):
+        pass
+
+    def load(self, filepath: str):
+        pass
+
+
+class TopologyBuilder:
+    """Multi-agent topology base builder."""
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, swarm: Swarm):
         self.swarm = swarm
+        self.nodes = []
+        self.edges: Dict[str, List[str]] = {}
 
     @abc.abstractmethod
     def build(self):
         """Build the agents' execution graph."""
 
 
-class DeterminacyBuilder(Builder):
-    """Workflow mechanism.
+class WorkflowBuilder(TopologyBuilder):
+    """Workflow mechanism, workflow is a deterministic process orchestration where each node must execute.
 
     Only handle agent pairs based on the workflow mechanism, examples:
     >>> agent1 = Agent(name='agent1'); agent2 = Agent(name='agent2'); agent3 = Agent(name='agent3')
@@ -299,7 +309,7 @@ class DeterminacyBuilder(Builder):
                 AgentFactory._desc[agent.name()] = agent.desc()
 
 
-class DynamicyBuilder(Builder):
+class GraphBuilder(TopologyBuilder):
     """Handoffs mechanism.
 
     Only handle agent pairs based on the handoffs mechanism, examples:
