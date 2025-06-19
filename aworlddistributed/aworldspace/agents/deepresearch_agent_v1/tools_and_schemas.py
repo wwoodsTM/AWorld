@@ -126,11 +126,6 @@ def parse_json_to_model_list(json_data: str, model_class: Type[T]) -> List[T]:
         >>> results = parse_json_to_model_list(json_str, AworldSearch)
     """
     try:
-        # 检查输入是否为空
-        if not json_data or not json_data.strip():
-            print(f"[WARNING] 输入的 JSON 数据为空")
-            return []
-            
         # 清理可能的代码块标记
         cleaned_json = json_data.strip()
 
@@ -152,40 +147,20 @@ def parse_json_to_model_list(json_data: str, model_class: Type[T]) -> List[T]:
 
         # 确保解析结果是列表
         if not isinstance(parsed_data, list):
-            print(f"[WARNING] 期望 JSON 数组，但得到 {type(parsed_data)}")
-            return []
-
-        # 如果列表为空，直接返回空列表
-        if len(parsed_data) == 0:
-            print(f"[WARNING] JSON 数组为空")
-            return []
+            raise ValueError(f"Expected JSON array, got {type(parsed_data)}")
 
         # 将列表中的每个字典转换为模型实例
         model_instances = []
-        failed_count = 0
-        
         for i, item in enumerate(parsed_data):
             if not isinstance(item, dict):
-                print(f"[WARNING] 列表项 {i} 不是字典，跳过: {type(item)}")
-                failed_count += 1
-                continue
-            
-            try:
-                model_instance = model_class(**item)
-                model_instances.append(model_instance)
-            except Exception as e:
-                print(f"[WARNING] 创建模型实例 {i} 失败，跳过: {e}")
-                failed_count += 1
-                continue
+                raise ValueError(f"List item {i} is not a dictionary: {type(item)}")
+            model_instances.append(model_class(**item))
 
-        if failed_count > 0:
-            print(f"[INFO] 成功创建 {len(model_instances)} 个模型实例，失败 {failed_count} 个")
-        
         return model_instances
 
     except json.JSONDecodeError as e:
-        print(f"[ERROR] JSON 解析错误: {e}")
-        return []  # 返回空列表而不是抛出异常
+        raise json.JSONDecodeError(f"Invalid JSON format: {e.msg}", e.doc, e.pos)
+    except ValidationError as e:
+        raise ValidationError(f"Data validation failed for {model_class.__name__}: {e}")
     except Exception as e:
-        print(f"[ERROR] 解析过程中发生未知错误: {e}")
-        return []  # 返回空列表而不是抛出异常
+        raise Exception(f"Unexpected error while parsing JSON list to {model_class.__name__}: {str(e)}")

@@ -92,12 +92,14 @@ class ReasoningLoopAgent(Agent):
         print("reasoning_loop_count:", reasoning_loop_count)
         print("is_sufficient:", reflection.is_sufficient)
         if (reasoning_loop_count >= max_reasoning_loop) or reflection.is_sufficient:
+            web_search_topics = self.context.context_info.get('web_search_topics')
+            web_search_summaries = self.context.context_info.get('web_search_summaries')
             return [ActionModel(
                 agent_name=self.name(),
                 tool_name="reporting_agent",
                 policy_info={
-                    "research_topic": search_topics,
-                    "summaries": search_summary
+                    "research_topic": web_search_topics,
+                    "summaries": web_search_summaries
                 })]
         else:
             return [ActionModel(

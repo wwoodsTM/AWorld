@@ -41,8 +41,8 @@ class ReportingAgent(Agent):
             "role": "user",
             "content": prompt.format(
                 current_date=datetime.datetime.now().strftime("%Y-%m-%d"),
-                research_topic=observation.content,
-                summaries=3,
+                research_topic=observation.content['research_topic'],
+                summaries=observation.content['summaries'],
             )
         }]
 

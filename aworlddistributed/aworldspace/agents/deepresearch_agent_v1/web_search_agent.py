@@ -1,5 +1,6 @@
 import uuid
 import datetime
+import asyncio
 from dataclasses import Field
 from typing import Union, Dict, Any, List
 
@@ -23,6 +24,7 @@ Instructions:
 - The output should be a well-written summary or report based on your search findings. 
 - Only include the information found in the search results, don't make up any information.
 - 输出中文结果
+- 搜索工具的入参数量为1，结果数也为1
 Research Topic:
 {research_topic}
 """
@@ -31,140 +33,117 @@ Research Topic:
 class WebSearchAgent(Agent):
     def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
         super().__init__(conf, **kwargs)
-        # 初始化一个 web_search_nums 变量来存储 search 的次数
+        # 初始化一个 web_search_nums 变量用来记录 search 的次数
         self.context.context_info['web_search_nums'] = 0
+        # 添加异步锁来保护计数器
+        self._counter_lock = asyncio.Lock()
 
-    def _messages_transform(self,
-                           content: str,
-                           image_urls: List[str] = None,
-                           sys_prompt: str = None,
-                           agent_prompt: str = None,
-                           **kwargs):
-        """Transform the original content to LLM messages of native format.
-
-        Args:
-            content: User content.
-            image_urls: List of images encoded using base64.
-            sys_prompt: Agent system prompt.
-            max_step: The maximum list length obtained from memory.
-        Returns:
-            Message list for LLM.
-        """
-        # def _safe_template_substitute(template_str: str, **kwargs) -> str:
-        #     """
-        #     使用 string.Template 进行安全的模板替换
-        #     """
-        #     try:
-        #         # 将 {variable} 格式转换为 $variable 格式
-        #         template_str = template_str.replace('{task}', '$task')
-        #         template = Template(template_str)
-        #         return template.safe_substitute(**kwargs)
-        #     except Exception as e:
-        #         print(f"模板替换失败: {e}")
-        #         return template_str
-
-        messages = []
-        if sys_prompt:
-            if '$task' in sys_prompt:
-                sys_prompt = Template(sys_prompt).safe_substitute(task=content)
-                # sys_prompt = sys_prompt.format(task=content)
-
-            messages.append({'role': 'system', 'content': sys_prompt if not self.use_tools_in_prompt else sys_prompt.format(
-                tool_list=self.tools)})
-
-        histories = self.memory.get_last_n(self.history_messages)
-        user_content = content
-        if not histories and  agent_prompt and '{task}' in agent_prompt:
-            user_content = agent_prompt.format(task=content)
-
-        cur_msg = {'role': 'user', 'content': user_content}
-        # query from memory,
-        # histories = self.memory.get_last_n(self.history_messages, filter={"session_id": self.context.session_id})
-
-        if histories:
-            # default use the first tool call
-            for history in histories:
-                if not self.use_tools_in_prompt and "tool_calls" in history.metadata and history.metadata['tool_calls']:
-                    messages.append({'role': history.metadata['role'], 'content': history.content,
-                                     'tool_calls': [history.metadata["tool_calls"][0]]})
-                else:
-                    messages.append({'role': history.metadata['role'], 'content': history.content,
-                                     "tool_call_id": history.metadata.get("tool_call_id")})
-
-            if not self.use_tools_in_prompt and "tool_calls" in histories[-1].metadata and histories[-1].metadata[
-                'tool_calls']:
-                tool_id = histories[-1].metadata["tool_calls"][0].id
-                if tool_id:
-                    cur_msg['role'] = 'tool'
-                    cur_msg['tool_call_id'] = tool_id
-            if self.use_tools_in_prompt and "is_use_tool_prompt" in histories[-1].metadata and "tool_calls" in \
-                    histories[-1].metadata and agent_prompt:
-                cur_msg['content'] = agent_prompt.format(action_list=histories[-1].metadata["tool_calls"],
-                                                         result=content)
-
-        if image_urls:
-            urls = [{'type': 'text', 'text': content}]
-            for image_url in image_urls:
-                urls.append({'type': 'image_url', 'image_url': {"url": image_url}})
-
-            cur_msg['content'] = urls
-        messages.append(cur_msg)
-        return messages
+        # 汇总所有的搜索topic
+        self.context.context_info['web_search_topics'] = []
+        # 汇总所有的搜索结果
+        self.context.context_info['web_search_summaries'] = []
 
     async def async_policy(self, observation: Observation, info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
-        # 来源可能是 plan 也 可能是 reasoning
+        # 来源可能是 plan_agent 也 可能是 reasoning_loop_agent
         print("[web_search_agent]receive from", observation.from_agent_name)
-        print("receive content", observation.content)
+        print("[web_search_agent]receive content", observation.content)
+
+        # 记录搜索结果
         search_result = []
+
+        # 处理工具初始化
         await self.async_desc_transform()
-        # TODO: 并行提交任务处理, 先用for循环
-        for research_topic in observation.content:
-            if hasattr(observation, 'context') and observation.context:
-                self.task_histories = observation.context
-            self._finished = False
-            images = observation.images if self.conf.use_vision else None
-            if self.conf.use_vision and not images and observation.image:
-                images = [observation.image]
+        
+        # 创建异步任务处理函数，并行执行搜索
+        async def process_research_topic(research_topic):
+            try:
+                if hasattr(observation, 'context') and observation.context:
+                    self.task_histories = observation.context
+                self._finished = False
+                images = observation.images if self.conf.use_vision else None
+                if self.conf.use_vision and not images and observation.image:
+                    images = [observation.image]
 
-            messages = [{
-                "role": "user",
-                "content": prompt.format(
-                    current_date=datetime.datetime.now().strftime("%Y-%m-%d"),
-                    research_topic=research_topic
+                # 1. 构造message
+                messages = [{
+                    "role": "user",
+                    "content": prompt.format(
+                        current_date=datetime.datetime.now().strftime("%Y-%m-%d"),
+                        research_topic=research_topic
+                    )
+                }]
+
+                self._log_messages(messages)
+                self.memory.add(MemoryItem(
+                    content=messages[-1]['content'],
+                    metadata={
+                        "role": messages[-1]['role'],
+                        "agent_name": self.name(),
+                        "tool_call_id": messages[-1].get("tool_call_id")
+                    }
+                ))
+
+                # 2.call llm and tools
+                llm_response = await self.llm_and_tool_execution(
+                    observation=observation,
+                    messages=messages,
+                    tools=self.tools if not self.use_tools_in_prompt and self.tools else None,
                 )
-            }]
 
-            self._log_messages(messages)
-            self.memory.add(MemoryItem(
-                content=messages[-1]['content'],
-                metadata={
-                    "role": messages[-1]['role'],
-                    "agent_name": self.name(),
-                    "tool_call_id": messages[-1].get("tool_call_id")
-                }
-            ))
+                # 使用锁来安全地更新计数器
+                async with self._counter_lock:
+                    self.context.context_info['web_search_nums'] += 1
+                    print("web_search_nums", self.context.context_info['web_search_nums'])
 
+                if isinstance(llm_response[0], ActionModel):
+                    aworld_search_list = parse_json_to_model_list(llm_response[0].policy_info, AworldSearch)
+                    if len(aworld_search_list) > 0:
+                        return aworld_search_list[0].doc
+                    else:
+                        print("[web_search_agent] llm_response is null")
+                        return None
+                return None
+            except Exception as e:
+                print(f"[web_search_agent] Error processing research_topic '{research_topic}': {e}")
+                return None
 
-            # 2.call llm and tools
-            llm_response = await self.llm_and_tool_execution(
-                observation=observation,
-                messages=messages,
-                tools=self.tools if not self.use_tools_in_prompt and self.tools else None,
-            )
-
-            self.context.context_info['web_search_nums'] += 1
-            print("web_search_nums", self.context.context_info['web_search_nums'])
-
-            if isinstance(llm_response[0], ActionModel):
-                aworld_search_list = parse_json_to_model_list(llm_response[0].policy_info, AworldSearch)
-                #print("llm_response", aworld_search_list[0].doc) 太大了，先不打印了
-                #添加到搜索结果里面去
-                if len(aworld_search_list) > 0:
-                    search_result.append(aworld_search_list[0].doc)
-                else:
-                    print("[web_search_agent] llm_response is null")
+        # 创建任务列表并执行
+        tasks = []
+        for research_topic in observation.content:
+            task = asyncio.create_task(process_research_topic(research_topic))
+            tasks.append(task)
+        
+        # 使用gather执行，并添加异常处理
+        try:
+            # 使用return_exceptions=True来避免单个任务异常影响其他任务
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 处理结果，过滤掉异常和None值
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    print(f"[web_search_agent] Task {i} failed with exception: {result}")
+                elif result is not None:
+                    search_result.append(result)
+                    
+        except Exception as e:
+            print(f"[web_search_agent] Unexpected error in gather: {e}")
+            # 尝试取消所有未完成的任务
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            
+            # 等待所有任务完成或取消
+            try:
+                await asyncio.gather(*tasks, return_exceptions=True)
+            except Exception:
+                pass  # 忽略取消时的异常
 
         # 收集和汇总结果然后给 reasoning_loop_agent
+        web_search_topics = self.context.context_info.get('web_search_topics')
+        web_search_topics.extend(observation.content)
+        web_search_summaries = self.context.context_info.get('web_search_summaries')
+        web_search_summaries.extend(search_result)
+
         return [ActionModel(
             agent_name=self.name(),
             tool_name="reasoning_loop_agent",
