@@ -17,6 +17,7 @@ class Constants:
     AGENT = "agent"
     TOOL = "tool"
     TASK = "task"
+    OUTPUT = "output"
 
 
 DataType = TypeVar('DataType')

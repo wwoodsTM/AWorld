@@ -13,6 +13,7 @@ from aworld.logs.util import logger
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.tool import DefaultToolHandler
 from aworld.runners.utils import endless_detect, TaskType
+from aworld.output.base import StepOutput, Output, ToolResultOutput
 
 
 class AgentHandler(DefaultHandler):
@@ -37,6 +38,14 @@ class DefaultAgentHandler(AgentHandler):
         data = message.payload
         if not data:
             # error message, p2p
+            yield Message(
+                category=Constants.OUTPUT,
+                payload=StepOutput.build_failed_output(name=f"{message.caller or self.name()}",
+                                                       step_num=0,
+                                                       data="no data to process."),
+                sender=self.name(),
+                session_id=Context.instance().session_id
+            )
             yield Message(
                 category=Constants.TASK,
                 payload=TaskItem(msg="no data to process.", data=data, stop=True),
@@ -84,6 +93,14 @@ class DefaultAgentHandler(AgentHandler):
         for action in data:
             if not isinstance(action, ActionModel):
                 # error message, p2p
+                yield Message(
+                    category=Constants.OUTPUT,
+                    payload=StepOutput.build_failed_output(name=f"{message.caller or self.name()}",
+                                                           step_num=0,
+                                                           data="action not a ActionModel."),
+                    sender=self.name(),
+                    session_id=Context.instance().session_id
+                )
                 msg = Message(
                     category=Constants.TASK,
                     payload=TaskItem(msg="action not a ActionModel.", data=data, stop=True),
@@ -113,6 +130,15 @@ class DefaultAgentHandler(AgentHandler):
             )
             logger.info(f"agent handler send tool message: {msg}")
             yield msg
+        else:
+            yield Message(
+                category=Constants.OUTPUT,
+                payload=StepOutput.build_finished_output(name=f"{message.caller or self.name()}",
+                                                         step_num=0),
+                sender=self.name(),
+                receiver=agents[0].tool_name,
+                session_id=Context.instance().session_id
+            )
 
         for agent in agents:
             async for event in self._agent(agent, message):

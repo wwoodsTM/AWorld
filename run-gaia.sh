@@ -14,6 +14,6 @@ if [ ! -d "examples/gaia/GAIA" ]; then
 fi
 
 # Build docker image
-docker compose -f docker-compose-gaia.yml build && \
+docker compose -f docker-compose-gaia.yml pull && \
   docker compose -f docker-compose-gaia.yml up -d && \
   docker compose -f docker-compose-gaia.yml logs -f

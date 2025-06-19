@@ -116,7 +116,32 @@ class ModelConfig(BaseConfig):
     llm_sync_enabled: bool = True
     llm_async_enabled: bool = True
     max_retries: int = 3
+    max_model_len: int = 128000  # Maximum model context length
+    model_type: str = 'qwen' # Model type determines tokenizer and maximum length
 
+class LlmCompressionConfig(BaseConfig):
+    enabled: bool = False
+    compression_type: str = "llm_based"  # rule_based, statistical, llm_based, tfidf_based
+    max_history_length: int = 10000  # Trigger compression when exceeding this length
+    summary_model: ModelConfig = None
+
+class OptimizationConfig(BaseConfig):
+    enabled: bool = False
+    # max_processing_time: float = 2.0  # Maximum processing time (seconds) or rounds, not limited in context, agreed by business agent
+    max_token_budget_ratio: float = 0.5  # Maximum context length ratio
+    token_allocation_message_history: float = 0.4  # Message history budget allocation
+    token_allocation_tool_results: float = 0.5  # Tool results budget allocation
+    token_allocation_system_prompts: float = 0.1  # System prompts budget allocation
+    # token_allocation_other: float = 0.1  # Other budget allocation
+
+class ContextRuleConfig(BaseConfig):
+    """Context interference rule configuration"""
+
+    # ===== Performance optimization configuration =====
+    optimization_config: OptimizationConfig = OptimizationConfig()
+
+    # ===== LLM conversation compression configuration =====
+    llm_compression_config: LlmCompressionConfig = LlmCompressionConfig()
 
 class AgentConfig(BaseConfig):
     name: str = None
@@ -143,9 +168,13 @@ class AgentConfig(BaseConfig):
     agent_prompt: Optional[str] = None
     working_dir: Optional[str] = None
     enable_recording: bool = False
-    use_tools_in_prompt: bool = True
+    use_tools_in_prompt: bool = False
+    exit_on_failure: bool = False
     ext: dict = {}
+    human_tools: List[str] = []
 
+    # context rule
+    context_rule: ContextRuleConfig = ContextRuleConfig()
 
 class TaskConfig(BaseConfig):
     task_id: str = str(uuid.uuid4())
@@ -153,6 +182,7 @@ class TaskConfig(BaseConfig):
     max_steps: int = 100
     max_actions_per_step: int = 10
     stream: bool = False
+    exit_on_failure: bool = False
     ext: dict = {}
 
 
@@ -165,6 +195,7 @@ class ToolConfig(BaseConfig):
     llm_config: ModelConfig = None
     reuse: bool = False
     use_async: bool = False
+    exit_on_failure: bool = False
     ext: dict = {}
 
 
