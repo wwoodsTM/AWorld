@@ -269,6 +269,19 @@ class TopologyBuilder:
     def build(self):
         """Build the agents' execution graph."""
 
+    @staticmethod
+    def register_agent(agent: Agent):
+        if agent.name() not in AgentFactory:
+            AgentFactory._cls[agent.name()] = agent.__class__
+            AgentFactory._desc[agent.name()] = agent.desc()
+            AgentFactory._agent_conf[agent.name()] = agent.conf
+            AgentFactory._agent_instance[agent.name()] = agent
+        else:
+            if agent.name() not in AgentFactory._agent_instance:
+                AgentFactory._agent_instance[agent.name()] = agent
+            if agent.desc():
+                AgentFactory._desc[agent.name()] = agent.desc()
+
 
 class WorkflowBuilder(TopologyBuilder):
     """Workflow mechanism, workflow is a deterministic process orchestration where each node must execute.
@@ -300,13 +313,8 @@ class WorkflowBuilder(TopologyBuilder):
 
             if agent.name() not in self.swarm.agents:
                 self.swarm.agents[agent.name()] = agent
-            if agent.name() not in AgentFactory:
-                AgentFactory._cls[agent.name()] = agent.__class__
-                AgentFactory._desc[agent.name()] = agent.desc()
-                AgentFactory._agent_conf[agent.name()] = agent.conf
-                AgentFactory._agent_instance[agent.name()] = agent
-            elif agent.desc():
-                AgentFactory._desc[agent.name()] = agent.desc()
+
+            TopologyBuilder.register_agent(agent)
 
 
 class GraphBuilder(TopologyBuilder):
@@ -349,13 +357,8 @@ class GraphBuilder(TopologyBuilder):
 
             if pair[0].name() not in self.swarm.agents:
                 self.swarm.agents[pair[0].name()] = pair[0]
-            if pair[0].name() not in AgentFactory:
-                AgentFactory._cls[pair[0].name()] = pair[0].__class__
-                AgentFactory._desc[pair[0].name()] = pair[0].desc()
-                AgentFactory._agent_conf[pair[0].name()] = pair[0].conf
-                AgentFactory._agent_instance[pair[0].name()] = pair[0]
-            elif pair[0].desc():
-                AgentFactory._desc[pair[0].name()] = pair[0].desc()
+
+            TopologyBuilder.register_agent(pair[0])
 
             # only one agent
             if len(pair) == 1:
@@ -363,13 +366,8 @@ class GraphBuilder(TopologyBuilder):
 
             if pair[1].name() not in self.swarm.agents:
                 self.swarm.agents[pair[1].name()] = pair[1]
-                if pair[1].name() not in AgentFactory:
-                    AgentFactory._cls[pair[1].name()] = pair[1].__class__
-                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
-                    AgentFactory._agent_conf[pair[1].name()] = pair[1].conf
-                    AgentFactory._agent_instance[pair[1].name()] = pair[1]
-                elif pair[1].desc():
-                    AgentFactory._desc[pair[1].name()] = pair[1].desc()
+
+                TopologyBuilder.register_agent(pair[1])
 
             # need to explicitly set handoffs in the agent
             pair[0].handoffs.append(pair[1].name())
