@@ -44,6 +44,7 @@ import re
 import json
 import aworld.trace as trace
 import asyncio
+import time
 
 BROWSER_SYSTEM_PROMPT = """You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
 ## Output Format
@@ -57,7 +58,7 @@ click(start_box='[x1, y1, x2, y2]')
 move(start_box='[x1, y1, x2, y2]')
 right_single(start_box='[x1, y1, x2, y2]')
 hotkey(key='')
-type(start_box='[x1, y1, x2, y2]', content='') #If you want to submit your input, use "\n" at the end of `content`.
+type(content='') #If you want to submit your input, use "\n" at the end of `content`.
 scroll(direction='down or up')
 wait() #Sleep for 5s and take a screenshot to check for any changes.
 finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
@@ -67,6 +68,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
 ## User Instruction
 """
+# type(start_box='[x1, y1, x2, y2]', content='') #If you want to submit your input, use "\n" at the end of `content`.
 
 # left_double(start_box='[x1, y1, x2, y2]')
 # drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')
@@ -434,6 +436,12 @@ class PlayWrightAgent(Agent):
         self.step_results = []
         self.success = False
         self.eval = eval_mode
+
+        # 记录时间相关变量
+        self.episode_start_time = time.time()  # 总任务开始时间
+        self.total_policy_time = 0.0  # 总 Policy 耗时
+        self.total_interaction_time = 0.0  # 总环境交互耗时
+        self.last_policy_end_time = None  # 上一次 Policy 结束时间
         super().__init__(conf, **kwargs)
 
     async def m2w_eval(self):
@@ -518,6 +526,13 @@ class PlayWrightAgent(Agent):
         step = kwargs.get("step", 0)
         exp_id = kwargs.get("exp_id", None)
         source_span = trace.get_current_span()
+
+        # 记录上一次 Policy 结束到这一次 Policy 开始的时间（环境交互时间）
+        if self.last_policy_end_time is not None:
+            interaction_time = time.time() - self.last_policy_end_time
+            self.total_interaction_time += interaction_time  # 累加到总环境交互时间
+        step_start_time = time.time()  # 当前步骤开始时间
+        # time record end
 
         if hasattr(observation, 'context') and observation.context:
             self.task_histories = observation.context
@@ -664,12 +679,32 @@ class PlayWrightAgent(Agent):
         logger.info(self.step_thoughts)
         logger.info(self.step_actions)
 
+        # now is time record:
+        step_end_time = time.time()  # 当前步骤结束时间
+        step_duration = step_end_time - step_start_time  # 当前步骤耗时
+        self.total_policy_time += step_duration  # 累加到总 Policy 耗时
+
+        self.last_policy_end_time = step_end_time  # 更新上一次 Policy 结束时间
+
         # now is eval code:
         logger.info(f"step:{step}")
 
         if self.eval and (self.finished or step >= 30):  # 暂时写死，这里应该是max_step
 
+            # 计算总耗时
+            total_time = time.time() - self.episode_start_time
+
+            # 计算平均每步的环境耗时和 Policy 耗时
+            num_steps = len(self.step_actions)
+            avg_interaction_time_per_step = self.total_interaction_time / num_steps if num_steps > 0 else 0.0
+            avg_policy_time_per_step = self.total_policy_time / num_steps if num_steps > 0 else 0.0
+
+            eval_start_time = time.time()  # 记录 m2w_eval 开始时间
             task, eval_response = await self.m2w_eval()
+            eval_end_time = time.time()  # 记录 m2w_eval 结束时间
+            eval_time = eval_end_time - eval_start_time  # 计算 m2w_eval 耗时
+
+            total_time += eval_time
 
             result_dict = {
                 'task': task,
@@ -682,6 +717,12 @@ class PlayWrightAgent(Agent):
                 'eval_response': eval_response,
                 'is_done': self.finished,
                 'done_step': step,
+                'total_time': total_time,  # 总耗时
+                'total_interaction_time': self.total_interaction_time,  # 总环境交互耗时
+                'total_policy_time': self.total_policy_time,  # 总 Policy 耗时
+                'avg_interaction_time_per_step': avg_interaction_time_per_step,  # 平均每步的环境耗时
+                'avg_policy_time_per_step': avg_policy_time_per_step,  # 平均每步的 Policy 耗时
+                'eval_time': eval_time  # eval耗时
             }
             result_dict = json.dumps(result_dict, ensure_ascii=False)
 
@@ -739,14 +780,17 @@ class Pipeline(AworldBaseAgent):
         agent_config = await self.get_agent_config(body)
         mcp_servers = await self.get_mcp_servers(body)
 
+        task = await self.get_task_from_body(body)
+
         agent = PlayWrightAgent(
             conf=agent_config,
             name=agent_config.name,
-            system_prompt=agent_config.system_prompt,
+            system_prompt=task.task_system_prompt if task and task.task_system_prompt else agent_config.system_prompt,
+            # system_prompt=agent_config.system_prompt,
             mcp_servers=mcp_servers,
             mcp_config=await self.load_mcp_config(),
             history_messages=await self.get_history_messages(body),
-            eval_mode=True,
+            eval_mode=task.eval_mode if task and task.eval_mode else True,
         )
         return agent
 
