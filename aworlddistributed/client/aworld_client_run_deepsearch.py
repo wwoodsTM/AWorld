@@ -76,7 +76,7 @@ if __name__ == '__main__':
         gaia_tasks.append(
             AworldTask(
                 task_id=task_id,
-                agent_id="test_agent",
+                agent_id="deepresearch_agent",
                 agent_input=gaia_task_id,
                 session_id="session_id",
                 user_id=os.getenv("USER", "SYSTEM"),

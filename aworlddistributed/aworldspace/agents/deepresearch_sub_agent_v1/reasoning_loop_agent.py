@@ -11,7 +11,7 @@ from aworld.core.agent.base import AgentFactory
 from aworld.core.common import Observation, ActionModel
 from aworld.models.llm import acall_llm_model
 
-from aworldspace.agents.deepresearch_agent_v1.tools_and_schemas import parse_json_to_model, Reflection
+from aworldspace.agents.deepresearch_sub_agent_v1.tools_and_schemas import parse_json_to_model, Reflection
 
 prompt = """You are an expert research assistant analyzing summaries about "{research_topic}".
 

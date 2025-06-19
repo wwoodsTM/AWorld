@@ -1,10 +1,11 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import logging
+import os
 from typing import Optional
 
 from aworld.agents.llm_agent import Agent
-from aworld.config.conf import TaskConfig
+from aworld.config.conf import TaskConfig, AgentConfig, ModelConfig
 from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ class Pipeline(AworldBaseAgent):
 
     def __init__(self):
         self.valves = self.Valves()
-        logging.info("deepresearch_agent init success")
+        logging.info("test_agent init success")
 
     async def build_swarm(self, body):
         agent_config = body.get('agent_config', None)
@@ -29,7 +30,7 @@ class Pipeline(AworldBaseAgent):
         reasoning_loop_agent = create_reasoning_loop_agent(agent_config)
         reporting_agent = create_reporting_agent(agent_config)
         return Swarm(plan_agent, reasoning_loop_agent, reporting_agent,
-                      sequence=True)
+                     sequence=True)
 
     async def build_task(self, agent: Optional[Agent],swarm: Optional[Swarm], task_id, user_input, user_message, body):
         task = Task(
@@ -43,4 +44,4 @@ class Pipeline(AworldBaseAgent):
         return task
 
     def agent_name(self) -> str:
-        return "DeepresearchAgent"
+        return "test_agent"

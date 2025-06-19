@@ -12,7 +12,7 @@ from aworld.core.common import Observation, ActionModel
 from aworld.core.task import Task
 from aworld.config import ModelConfig, TaskConfig
 
-from aworldspace.agents.deepresearch_agent_v1.tools_and_schemas import parse_json_to_model, SearchQueryList
+from aworldspace.agents.deepresearch_sub_agent_v1.tools_and_schemas import parse_json_to_model, SearchQueryList
 from aworldspace.prompt.deepresearch_prompt import *
 from aworld.runner import Runners
 

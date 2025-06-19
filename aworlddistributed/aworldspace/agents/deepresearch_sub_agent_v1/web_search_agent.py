@@ -13,7 +13,7 @@ from aworld.core.common import Observation, ActionModel
 from aworld.core.memory import MemoryItem
 from aworld.models.llm import acall_llm_model
 
-from aworldspace.agents.deepresearch_agent_v1.tools_and_schemas import parse_json_to_model, parse_json_to_model_list, AworldSearch
+from aworldspace.agents.deepresearch_sub_agent_v1.tools_and_schemas import parse_json_to_model, parse_json_to_model_list, AworldSearch
 
 prompt = """Conduct targeted aworld_search tools to gather the most recent, credible information on "{research_topic}" and synthesize it into a verifiable text artifact.
 
