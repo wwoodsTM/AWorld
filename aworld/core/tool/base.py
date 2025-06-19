@@ -76,7 +76,7 @@ class BaseTool(Generic[AgentInput, ToolInput]):
                 tool_id_mapping[tool_id] = tool_name
         self.pre_step(action, **kwargs)
         res = self.do_step(action, **kwargs)
-        final_res = self.post_step(step_res=res, action=action, tool_id_mapping=tool_id_mapping, **kwargs)
+        final_res = self.post_step(res, action, tool_id_mapping=tool_id_mapping, **kwargs)
         return final_res
 
     @abc.abstractmethod
@@ -159,7 +159,7 @@ class AsyncBaseTool(Generic[AgentInput, ToolInput]):
                 tool_id_mapping[tool_id] = tool_name
         await self.pre_step(action, **kwargs)
         res = await self.do_step(action, **kwargs)
-        final_res = await self.post_step(step_res=res, action=action, tool_id_mapping=tool_id_mapping, **kwargs)
+        final_res = await self.post_step(res, action, tool_id_mapping=tool_id_mapping, **kwargs)
         return final_res
 
     @abc.abstractmethod
@@ -223,7 +223,6 @@ class Tool(BaseTool[Observation, List[ActionModel]]):
                     session_id=Context.instance().session_id
                 )
                 event_bus.publish(tool_output_message)
-
         return AgentMessage(payload=step_res,
                             caller=action[0].agent_name,
                             sender=self.name(),
@@ -243,7 +242,6 @@ class AsyncTool(AsyncBaseTool[Observation, List[ActionModel]]):
         step_res[0].from_agent_name = action[0].agent_name
         for idx, act in enumerate(action):
             step_res[0].action_result[idx].tool_id = act.tool_id
-
             # send tool results output
             if event_bus:
                 tool_output = ToolResultOutput(

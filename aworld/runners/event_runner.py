@@ -9,7 +9,7 @@ from typing import List, Callable, Any
 from aworld.core.common import TaskItem
 from aworld.core.context.base import Context
 
-from aworld.agents.llm_agent import Agent
+from aworld.core.agent.llm_agent import Agent
 from aworld.core.event.base import Message, Constants
 from aworld.core.task import Task, TaskResponse
 from aworld.events.manager import EventManager
@@ -61,7 +61,6 @@ class TaskEventRunner(TaskRunner):
                     await self.event_mng.register(Constants.AGENT, agent.name(), agent.async_run)
                 else:
                     await self.event_mng.register(Constants.AGENT, agent.name(), agent.run)
-
         # register tool handler
         for key, tool in self.tools.items():
             if tool.handler:
@@ -201,13 +200,15 @@ class TaskEventRunner(TaskRunner):
                                                            id=self.task.id,
                                                            time_cost=(time.time() - start),
                                                            usage=self.context.token_usage)
-
                     break
 
                 # consume message
                 message: Message = await self.event_mng.consume()
+
                 # use registered handler to process message
                 await self._common_process(message)
+        except Exception as e:
+            logger.error(f"consume message fail. {traceback.format_exc()}")
         finally:
             if await self.is_stopped():
                 await self.task.outputs.mark_completed()
@@ -220,9 +221,11 @@ class TaskEventRunner(TaskRunner):
                         except Exception as e:
                             logger.warning(f"event_runner Failed to cleanup sandbox for agent {agent_name}: {e}")
 
+
     async def do_run(self, context: Context = None):
         if not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
+
         await self.event_mng.emit_message(self.init_message)
         await self._do_run()
         return self._task_response
