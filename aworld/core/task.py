@@ -20,6 +20,7 @@ from aworld.output.outputs import Outputs, DefaultOutputs
 class Task:
     id: str = uuid.uuid1().hex
     name: str = uuid.uuid1().hex
+    user_id: str = None
     session_id: str = None
     input: Any = None
     # task config

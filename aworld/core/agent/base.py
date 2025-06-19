@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from aworld.config.conf import AgentConfig, load_config, ConfigDict
 from aworld.core.common import Observation, ActionModel
 from aworld.core.context.base import Context
-from aworld.core.event.base import Message, Constants, ToolMessage
+from aworld.core.event.base import Message, Constants
 from aworld.core.event.event_bus import InMemoryEventbus
 from aworld.core.factory import Factory
 from aworld.logs.util import logger
@@ -71,14 +71,9 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
     def __init__(self,
                  conf: Union[Dict[str, Any],
                              ConfigDict, AgentConfig],
-                 *,
-                 name: str = None,
-                 desc: str = None,
-                 tool_names: List[str] = [],
-                 agent_names: List[str] = [],
+                 sandbox: Sandbox = None,
                  mcp_servers: List[str] = [],
                  mcp_config: Dict[str, Any] = {},
-                 sandbox: Sandbox = None,
                  **kwargs
                  ):
         self.conf = conf
@@ -92,17 +87,20 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         else:
             logger.warning(f"Unknown conf type: {type(conf)}")
 
-        self._name = name if name else self.conf.get("name", convert_to_snake(self.__class__.__name__))
-        self._desc = desc if desc else self.conf.get('desc', '')
-        if not self._desc:
-            self._desc = self._name
+        self._name = kwargs.pop("name", self.conf.get(
+            "name", convert_to_snake(self.__class__.__name__)))
+        self._desc = kwargs.pop("desc") if kwargs.get(
+            "desc") else self.conf.get('desc', '')
         # Unique flag based agent name
         self.id = f"{self.name()}_{uuid.uuid1().hex[0:6]}"
         self.task = None
         # An agent can use the tool list
-        self.tool_names: List[str] = tool_names
+        self.tool_names: List[str] = kwargs.pop("tool_names", [])
+        human_tools = self.conf.get("human_tools", [])
+        for tool in human_tools:
+            self.tool_names.append(tool)
         # An agent can delegate tasks to other agent
-        self.handoffs: List[str] = agent_names
+        self.handoffs: List[str] = kwargs.pop("agent_names", [])
         # Supported MCP server
         self.mcp_servers: List[str] = mcp_servers
         self.mcp_config: Dict[str, Any] = replace_env_variables(mcp_config)
@@ -112,7 +110,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.context = Context.instance()
         self.state = AgentStatus.START
         self._finished = True
-        # todo: remove sandbox instance in agent, use sandbox name/id; `mcp_config` need remove
         self.hooks: Dict[str, List[str]] = {}
         self.sandbox = sandbox or Sandbox(
             mcp_servers=self.mcp_servers, mcp_config=self.mcp_config)
@@ -142,7 +139,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             sender=self.name(),
             session_id=Context.instance().session_id
         ))
-
         with trace.span(self._name, run_type=trace.RunType.AGNET) as agent_span:
             await self.async_pre_run()
             result = await self.async_policy(observation, info, **kwargs)

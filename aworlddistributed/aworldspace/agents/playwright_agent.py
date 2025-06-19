@@ -4,10 +4,16 @@ import traceback
 from typing import Dict, Any, List, Union
 from typing import Optional
 
+from aworld.core.tool.tool_desc import get_tool_desc
+from aworld.mcp_client.utils import mcp_tool_desc_transform
+from aworldspace.base_agent import AworldBaseAgent
+from aworldspace.utils.utils import question_scorer
+from pydantic import BaseModel, Field
+
 import aworld.trace as trace
-from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.config.conf import TaskConfig
+from aworld.core.agent.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel
 from aworld.core.memory import MemoryItem
 from aworld.core.task import Task
@@ -18,9 +24,6 @@ from aworld.output import Output, StreamingOutputs
 from aworld.output import Outputs
 from aworld.output.base import MessageOutput
 from aworld.utils.common import sync_exec
-from pydantic import BaseModel, Field
-
-from aworldspace.base_agent import AworldBaseAgent
 
 BROWSER_SYSTEM_PROMPT = """You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
 ## Output Format

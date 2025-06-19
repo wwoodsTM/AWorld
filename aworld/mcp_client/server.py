@@ -268,7 +268,7 @@ class MCPServerSseParams(TypedDict):
     """The headers to send to the server."""
 
     timeout: NotRequired[float]
-    """The timeout for the HTTP request. Defaults to 5 seconds."""
+    """The timeout for the HTTP request. Defaults to 60 seconds."""
 
     sse_read_timeout: NotRequired[float]
     """The timeout for the SSE connection, in seconds. Defaults to 5 minutes."""
