@@ -20,7 +20,7 @@ The Context Management system implements intelligent context processing with mul
 ## Core Components
 
 - `AgentContext`: Unified management container for Agent state and configuration
-- `ContextProcessor`: Intelligent context processor supporting content compression and truncate
+- `PromptProcessor`: Intelligent context processor supporting content compression and truncate
 - `Hook System`: Extensible hook system supporting full-process LLM call intervention
 
 ## Context Object
@@ -252,29 +252,5 @@ agent.update_context_rule(origin_rule)
 3. **Model Compatibility**: Different models have different context length limitations. The system automatically adapts to model capabilities.
 4. **Default Configuration**: The system provides reasonable default configuration. Manual configuration is unnecessary for most scenarios.
 5. **State Management**: AgentContext supports state sharing between multiple Agents and ensures state consistency. State persistence functionality is currently under development.
-
-## Running Tests
-
-To run all context management related tests, execute:
-
-```bash
-cd /path/to/AWorld
-python -m pytest tests/test_context_management.py -v
-```
-
-Or run specific test methods:
-
-```bash
-# Run all tests
-python tests/test_context_management.py
-
-# Or run individual test
-python -c "
-from tests.test_context_management import TestContextManagement
-test = TestContextManagement()
-test.test_default_context_configuration()
-print('✅ Default configuration test passed')
-"
-```
 
 Through proper configuration of AgentContext and context processors, you can significantly improve Agent performance in long conversations and complex tasks while optimizing token usage efficiency.
