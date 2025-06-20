@@ -48,7 +48,10 @@ def orm_to_pydantic_task(orm_obj: AworldTaskModel) -> AworldTask:
 
 
 def pydantic_to_orm_task(pydantic_obj: AworldTask) -> AworldTaskModel:
-    return AworldTaskModel(**pydantic_obj.model_dump(exclude_none=True))
+    orm_data = pydantic_obj.model_dump(exclude_none=True)
+    orm_data.pop('created_at', None)
+    orm_data.pop('updated_at', None)
+    return AworldTaskModel(**orm_data)
 
 
 def orm_to_pydantic_result(orm_obj: AworldTaskResultModel) -> AworldTaskResult:

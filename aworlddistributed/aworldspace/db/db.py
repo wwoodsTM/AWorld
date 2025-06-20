@@ -85,9 +85,11 @@ class SqliteTaskDB(AworldTaskDB):
         with self.Session() as session:
             orm_task = session.query(AworldTaskModel).filter_by(task_id=task.task_id).first()
             if orm_task:
-                for k, v in task.model_dump().items():
+                update_data = task.model_dump(exclude_unset=True)
+                update_data.pop('created_at', None)
+                update_data.pop('updated_at', None)
+                for k, v in update_data.items():
                     setattr(orm_task, k, v)
-                orm_task.updated_at = datetime.now(timezone.utc)
                 session.commit()
 
     async def save_task_result(self, result: AworldTaskResult):
@@ -168,9 +170,11 @@ class PostgresTaskDB(AworldTaskDB):
         with self.Session() as session:
             orm_task = session.query(AworldTaskModel).filter_by(task_id=task.task_id).first()
             if orm_task:
-                for k, v in task.model_dump().items():
+                update_data = task.model_dump(exclude_unset=True)
+                update_data.pop('created_at', None)
+                update_data.pop('updated_at', None)
+                for k, v in update_data.items():
                     setattr(orm_task, k, v)
-                orm_task.updated_at = datetime.now(timezone.utc)
                 session.commit()
 
     async def save_task_result(self, result: AworldTaskResult):
