@@ -85,26 +85,26 @@ class AworldTaskExecutor(BaseModel):
         logging.info(f"✅[task executor] execute task#{task.task_id} success, use time {time.time() - start_time:.2f}s")
 
     async def load_task(self):
-        interval = os.environ.get("AWORLD_TASK_LOAD_INTERVAL", 10)
-        # calculate the number of tasks to load
-        need_load = self._semaphore._value
-        if need_load <= 0:
-            logging.info(f"🔍[task executor] runner is busy, wait {interval}s and retry")
-            await asyncio.sleep(interval)
-            return await self.load_task()
-        tasks = await self._task_db.query_tasks_by_status(status="INIT", nums=need_load)
-        logging.info(f"🔍[task executor] load {len(tasks)} tasks from db (need {need_load})")
+        interval = int(os.environ.get("AWORLD_TASK_LOAD_INTERVAL", 10))
+        while True:
+            # calculate the number of tasks to load
+            need_load = self._semaphore._value
+            if need_load <= 0:
+                logging.info(f"🔍[task executor] runner is busy, wait {interval}s and retry")
+                await asyncio.sleep(interval)
+                continue
+            tasks = await self._task_db.query_tasks_by_status(status="INIT", nums=need_load)
+            logging.info(f"🔍[task executor] load {len(tasks)} tasks from db (need {need_load})")
 
-
-        if not tasks or len(tasks) == 0:
-            logging.info(f"🔍[task executor] no task to load, wait {interval}s and retry")
-            await asyncio.sleep(interval)
-            return await self.load_task()
-        for task in tasks:
-            task.mark_running()
-            await self._task_db.update_task(task)
-            await self._tasks.put(task)
-        return True
+            if not tasks or len(tasks) == 0:
+                logging.info(f"🔍[task executor] no task to load, wait {interval}s and retry")
+                await asyncio.sleep(interval)
+                continue
+            for task in tasks:
+                task.mark_running()
+                await self._task_db.update_task(task)
+                await self._tasks.put(task)
+            return True
 
     async def execute_task(self, task: AworldTask):
         """
