@@ -50,7 +50,6 @@ class PromptProcessor:
         # Calculate based on historical message length to determine if threshold is reached, this is a rough statistic
         current_usage = self.agent_context.context_usage
         real_used = current_usage.used_context_length
-        print("real_used:", real_used, " current_usage:", current_usage, " last:", self._count_tokens_from_message(messages[-1]))
         if not is_last_message_in_memory:
             real_used += self._count_tokens_from_message(messages[-1])
         return real_used > self.get_max_tokens()
@@ -444,29 +443,37 @@ class PromptProcessor:
         # Process messages from back to front, keep the latest conversations
         token_cnt = 0
         new_messages = []
+        user_message_count = 0
         for i in range(len(messages) - 1, -1, -1):
             if messages[i].get("role") == "system":
                 continue
             
             cur_token_cnt = self._count_tokens_from_message(messages[i])
             if cur_token_cnt <= available_token:
+                if messages[i].get("role") == "user":
+                    user_message_count += 1
                 new_messages = [messages[i]] + new_messages
                 available_token -= cur_token_cnt
             else:
                 # Try to truncate message
                 if (messages[i].get("role") == "user") and (i != len(messages) - 1):
                     # Truncate user message (not the last one)
+                    logger.debug(f"to truncate message {messages[i]}")
                     _msg = _truncate_message(messages[i], max_tokens=available_token)
-                    logger.info(f"truncate user message: {messages[i]}, {_msg}")
+                    logger.debug(f"truncated message {messages[i]}, {_msg}")
                     if _msg:
                         new_messages = [_msg] + new_messages
                     break
-                elif messages[i].get("role") == "function":
+                elif messages[i].get("role") == "function" or messages[i].get("role") == "assistant" or messages[i].get("role") == "system":
                     # Truncate function message, keep both ends
+                    logger.debug(f"to truncate message {messages[i]}")
                     _msg = _truncate_message(messages[i], max_tokens=available_token, keep_both_sides=True)
-                    logger.info(f"truncate user message: {messages[i]}, {_msg}")
+                    logger.debug(f"truncated message {messages[i]}, {_msg}")
                     if _msg:
                         new_messages = [_msg] + new_messages
+                    # 边界条件：如果最后一条消息是特别长的tool消息，可能会最终仅留下来一条system+一条tool，没有user message的情况下大模型调用将报错
+                    elif user_message_count == 0:
+                        continue
                     else:
                         break
                 else:
@@ -527,6 +534,7 @@ class PromptProcessor:
                    f"\nTruncation processing time={truncated_result.processing_time:.3f}s"
                    f"\nTotal processing time={total_time:.3f}s"
                    f"\nMethod used={truncated_result.method_used}"
+                   f"\norigin_messages={messages}"
                    f"\ntruncated_messages={truncated_messages}",
                    color=Color.pink,)
 
