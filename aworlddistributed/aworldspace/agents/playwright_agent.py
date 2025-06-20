@@ -790,7 +790,7 @@ class Pipeline(AworldBaseAgent):
             mcp_servers=mcp_servers,
             mcp_config=await self.load_mcp_config(),
             history_messages=await self.get_history_messages(body),
-            eval_mode=task.eval_mode if task and task.eval_mode else True,
+            eval_mode=False,
         )
         return agent
 
