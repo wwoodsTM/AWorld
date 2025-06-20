@@ -74,6 +74,6 @@ class PlanAgent(Agent):
 
         # 4. 转交给 web_search_agent 处理
         return [ActionModel(
-            agent_name=self.name(),
+            agent_name=self.id(),
             tool_name="web_search_agent",
             policy_info=query_list.query)]

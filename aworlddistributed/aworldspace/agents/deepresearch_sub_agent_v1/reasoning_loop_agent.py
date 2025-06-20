@@ -95,7 +95,7 @@ class ReasoningLoopAgent(Agent):
             web_search_topics = self.context.context_info.get('web_search_topics')
             web_search_summaries = self.context.context_info.get('web_search_summaries')
             return [ActionModel(
-                agent_name=self.name(),
+                agent_name=self.id(),
                 tool_name="reporting_agent",
                 policy_info={
                     "research_topic": web_search_topics,
@@ -103,6 +103,6 @@ class ReasoningLoopAgent(Agent):
                 })]
         else:
             return [ActionModel(
-                agent_name=self.name(),
+                agent_name=self.id(),
                 tool_name="web_search_agent",
                 policy_info=reflection.follow_up_queries)]

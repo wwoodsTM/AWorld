@@ -145,7 +145,7 @@ class WebSearchAgent(Agent):
         web_search_summaries.extend(search_result)
 
         return [ActionModel(
-            agent_name=self.name(),
+            agent_name=self.id(),
             tool_name="reasoning_loop_agent",
             policy_info={
                 "search_result": search_result,

@@ -58,5 +58,5 @@ class ReportingAgent(Agent):
 
 
         return [ActionModel(
-            agent_name=self.name(),
+            agent_name=self.id(),
             policy_info=content)]
