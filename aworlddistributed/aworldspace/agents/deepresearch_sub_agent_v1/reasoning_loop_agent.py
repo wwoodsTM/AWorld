@@ -104,5 +104,4 @@ class ReasoningLoopAgent(Agent):
         else:
             return [ActionModel(
                 agent_name=self.id(),
-                tool_name="web_search_agent",
                 policy_info=reflection.follow_up_queries)]
