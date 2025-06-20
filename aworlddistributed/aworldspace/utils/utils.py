@@ -4,10 +4,6 @@ import string
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from loguru import logger
-from tabulate import tabulate
-
-
 def normalize_str(input_str, remove_punct=True) -> str:
     no_spaces = re.sub(r"\s", "", input_str)
     if remove_punct:
