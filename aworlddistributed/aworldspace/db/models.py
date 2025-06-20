@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, JSON, create_engine
+from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
 from sqlalchemy.orm import declarative_base
-from datetime import datetime
-from typing import Optional
+from sqlalchemy.sql import func
+
 from base import AworldTask, AworldTaskResult
 
 Base = declarative_base()
@@ -29,8 +29,8 @@ class AworldTaskModel(Base):
     max_steps = Column(Integer, default=100)
     max_retries = Column(Integer, default=5)
     ext_info = Column(JSON, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class AworldTaskResultModel(Base):
@@ -40,7 +40,7 @@ class AworldTaskResultModel(Base):
     task_id = Column(String)
     server_host = Column(String)
     data = Column(JSON)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 def orm_to_pydantic_task(orm_obj: AworldTaskModel) -> AworldTask:

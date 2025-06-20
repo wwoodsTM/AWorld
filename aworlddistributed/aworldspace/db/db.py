@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import create_engine
@@ -87,7 +87,7 @@ class SqliteTaskDB(AworldTaskDB):
             if orm_task:
                 for k, v in task.model_dump().items():
                     setattr(orm_task, k, v)
-                orm_task.updated_at = datetime.utcnow()
+                orm_task.updated_at = datetime.now(timezone.utc)
                 session.commit()
 
     async def save_task_result(self, result: AworldTaskResult):
@@ -170,7 +170,7 @@ class PostgresTaskDB(AworldTaskDB):
             if orm_task:
                 for k, v in task.model_dump().items():
                     setattr(orm_task, k, v)
-                orm_task.updated_at = datetime.utcnow()
+                orm_task.updated_at = datetime.now(timezone.utc)
                 session.commit()
 
     async def save_task_result(self, result: AworldTaskResult):
