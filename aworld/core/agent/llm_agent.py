@@ -52,9 +52,6 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         super(Agent, self).__init__(conf, **kwargs)
         conf = self.conf
         self.model_name = conf.llm_config.llm_model_name if conf.llm_config.llm_model_name else conf.llm_model_name
-        self.model_url = conf.llm_config.llm_base_url if conf.llm_config.llm_base_url else conf.llm_base_url
-        self.model_api_key = conf.llm_config.llm_api_key if conf.llm_config.llm_api_key else conf.llm_api_key
-        self.llm_provider = conf.llm_config.llm_provider if conf.llm_config.llm_provider else conf.llm_provider
         self._llm = None
         self.memory = MemoryFactory.from_config(MemoryConfig(provider="inmemory"))
         self.system_prompt: str = kwargs.pop("system_prompt") if kwargs.get("system_prompt") else conf.system_prompt
@@ -75,7 +72,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         # init agent context
         context_rule = kwargs.get("context_rule") if kwargs.get("context_rule") else conf.context_rule
         # update agent context by llm_agent
-        self.init_agent_context(conf.llm_config, context_rule)
+        self.init_agent_context(conf, context_rule)
         self.tools_instances = {}
         self.tools_conf = {}
 
@@ -948,7 +945,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
             ))
         return [ActionModel(agent_name=self.id(), policy_info=observation.content)]
 
-    def init_agent_context(self, llm_config: ModelConfig, context_rule: ContextRuleConfig):
+    def init_agent_context(self, conf: AgentConfig, context_rule: ContextRuleConfig):
         # Generate default configuration when context_rule is empty
         if context_rule is None:
             context_rule = ContextRuleConfig(
@@ -962,11 +959,16 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
             )
         
         try:
+            llm_config = conf.llm_config
+            model_name = llm_config.llm_model_name if llm_config.llm_model_name else conf.llm_model_name
+            model_url = llm_config.llm_base_url if llm_config.llm_base_url else conf.llm_base_url
+            model_api_key = llm_config.llm_api_key if llm_config.llm_api_key else conf.llm_api_key
+            llm_provider = llm_config.llm_provider if llm_config.llm_provider else conf.llm_provider
             # model_config
             if llm_config is None or llm_config.llm_model_name is None:
-                llm_config = ModelConfig(llm_provider=self.llm_provider, llm_model_name=self.model_name, llm_api_key=self.model_api_key) \
-                        if self.model_url is None\
-                        else ModelConfig(llm_base_url=self.model_url, llm_model_name=self.model_name, llm_api_key=self.model_api_key)
+                llm_config = ModelConfig(llm_provider=llm_provider, llm_model_name=model_name, llm_api_key=model_api_key) \
+                        if model_url is None\
+                        else ModelConfig(llm_base_url=model_url, llm_model_name=model_name, llm_api_key=model_api_key)
                 self.agent_context.set_model_config(llm_config)
         except Exception as e:
             logger.warn(f"Failed to initialize agent context model config: {e}")

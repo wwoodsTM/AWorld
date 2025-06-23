@@ -163,6 +163,8 @@ class AgentConfig(BaseConfig):
     llm_client_type: ClientType = ClientType.SDK
     llm_sync_enabled: bool = True
     llm_async_enabled: bool = True
+    max_model_len: Optional[int] = None  # Maximum model context length
+    model_type: Optional[str] = 'qwen' # Model type determines tokenizer and maximum length
 
     # default reset init in first
     need_reset: bool = True
