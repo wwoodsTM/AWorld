@@ -7,6 +7,7 @@ from typing import Callable, Any
 
 from pydantic import BaseModel
 
+import aworld.tools
 from aworld.config import ConfigDict
 from aworld.config.conf import ToolConfig
 from aworld.core.agent.swarm import Swarm
@@ -93,6 +94,7 @@ class TaskRunner(Runner):
         self.context.task_id = self.name
         self.context.trace_id = trace_id
         self.context.session = session
+        self.context.swarm = self.swarm
 
         # init tool state by reset(), and ignore them observation
         observation = None
