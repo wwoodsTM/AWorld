@@ -8,6 +8,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from tests.base_test import BaseTest
+
 from aworld.config.conf import AgentConfig, ModelConfig, ContextRuleConfig, OptimizationConfig, LlmCompressionConfig
 from aworld.core.context.processor import CompressionResult, CompressionType
 from aworld.core.context.processor.prompt_compressor import PromptCompressor, LLMCompressor
@@ -15,10 +17,10 @@ from aworld.core.context.processor.prompt_processor import PromptProcessor
 from aworld.core.context.base import AgentContext, ContextUsage
 
 
-class TestPromptCompressor(unittest.TestCase):
+class TestPromptCompressor(BaseTest):
     """Test cases for PromptCompressor.compress_batch function"""
 
-    def setUp(self):
+    def __init__(self):
         """Set up test fixtures"""
         self.mock_model_name = "qwen/qwen3-8b"
         self.mock_base_url = "http://localhost:1234/v1"
@@ -122,7 +124,11 @@ class TestPromptCompressor(unittest.TestCase):
         self.assertLess(len(user_message["content"]), len(original_content))
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    testPromptCompressor = TestPromptCompressor()
+    testPromptCompressor.test_compress_batch_basic()
+    testPromptCompressor = TestPromptCompressor()
+    testPromptCompressor.test_compress_messages()
+
 
 
 
