@@ -6,7 +6,7 @@ from aworld.trace.instrumentation.openai.inout_parse import should_trace_prompts
 from aworld.logs.util import logger
 
 
-def parser_request_params(kwargs, instance: 'LLMModel'):
+def parser_request_params(kwargs, instance: 'aworld.models.llm.LLMModel'):
     attributes = {
         "llm.system": instance.provider_name,
         "llm.model": instance.provider.model_name,
