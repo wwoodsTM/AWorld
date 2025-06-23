@@ -4,7 +4,6 @@ from aworld.trace.instrumentation import Instrumentor
 from aworld.trace.base import Tracer, get_tracer_provider_silent, TraceContext
 from aworld.trace.propagator import get_global_trace_propagator, get_global_trace_context
 from aworld.trace.propagator.carrier import DictCarrier
-from aworld.events.manager import EventManager
 from aworld.core.event.base import Message
 from aworld.logs.util import logger
 
@@ -99,7 +98,7 @@ class EventBusInstrumentor(Instrumentor):
         )
 
 
-def wrap_event_manager(manager: EventManager):
+def wrap_event_manager(manager: 'aworld.events.manager.EventManager'):
     tracer_provider = get_tracer_provider_silent()
     if not tracer_provider:
         return manager
