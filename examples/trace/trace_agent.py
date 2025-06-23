@@ -12,12 +12,11 @@ from examples.tools.common import Tools
 from aworld.core.agent.swarm import Swarm
 from aworld.runner import Runners
 from aworld.trace.server import get_trace_server
-from aworld.trace.instrumentation.uni_llmmodel import LLMModelInstrumentor
 from aworld.runners.state_manager import RuntimeStateManager, RunNode
 import aworld.trace as trace
 
+
 trace.configure()
-LLMModelInstrumentor().instrument()
 
 
 class TraceAgent(Agent):
