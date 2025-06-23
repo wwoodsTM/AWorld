@@ -4,12 +4,12 @@ from aworld.trace.instrumentation import Instrumentor
 from aworld.trace.base import Tracer, get_tracer_provider_silent, TraceContext
 from aworld.trace.propagator import get_global_trace_propagator, get_global_trace_context
 from aworld.trace.propagator.carrier import DictCarrier
-from aworld.core.event.base import Message
 from aworld.logs.util import logger
 
 
 def _emit_message_class_wrapper(tracer: Tracer):
     async def awrapper(wrapped, instance, args, kwargs):
+        from aworld.core.event.base import Message
         try:
             event = args[0] if len(args) > 0 else kwargs.get("event")
             propagator = get_global_trace_propagator()
@@ -44,6 +44,7 @@ def _emit_message_instance_wrapper(tracer: Tracer):
 
 def _consume_class_wrapper(tracer: Tracer):
     async def awrapper(wrapped, instance, args, kwargs):
+        from aworld.core.event.base import Message
         event = await wrapped(*args, **kwargs)
         try:
             propagator = get_global_trace_propagator()

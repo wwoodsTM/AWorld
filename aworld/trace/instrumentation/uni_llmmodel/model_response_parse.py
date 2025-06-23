@@ -39,7 +39,7 @@ async def handle_request(span: Span, kwargs, instance):
                     attributes.update({
                         f"{prefix}.tool_call_id": msg.get("tool_call_id")})
                 tool_calls = msg.get("tool_calls")
-                logger.info(f"input tool_calls={tool_calls}")
+                # logger.info(f"input tool_calls={tool_calls}")
                 if tool_calls:
                     for i, tool_call in enumerate(tool_calls):
                         if isinstance(tool_call, dict):
