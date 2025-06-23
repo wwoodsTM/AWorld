@@ -427,7 +427,7 @@ class PromptProcessor:
                     logger.debug(f"truncated message {messages[i]}, {_msg}")
                     if _msg:
                         new_messages = [_msg] + new_messages
-                    # 边界条件：如果最后一条消息是特别长的tool消息，可能会最终仅留下来一条system+一条tool，没有user message的情况下大模型调用将报错
+                    # Edge case: if the last message is a very long tool message, it might end up with only system+tool without user message, which will cause LLM call to fail
                     elif user_message_count == 0:
                         continue
                     else:
@@ -475,7 +475,7 @@ class PromptProcessor:
         # 1. Content compression
         compressed_messages = self.compress_messages(messages)
         
-        # 1. Content length limit
+        # 2. Content length limit
         truncated_result = self.truncate_messages(compressed_messages, context)
         truncated_messages = truncated_result.processed_messages
         

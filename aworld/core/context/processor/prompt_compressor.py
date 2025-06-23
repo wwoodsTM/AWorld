@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 def _create_llm_client(llm_config: ModelConfig):
     config = ConfigDict(llm_config)
     return get_llm_model(config)
+
+def _remove_think_blocks(content: str) -> str:
+    """Remove <think>...</think> blocks from content"""
+    # Use regex to remove all <think>...</think> blocks (case insensitive, multiline)
+    pattern = r'<think>.*?</think>'
+    cleaned_content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
+    return cleaned_content
     
 class BaseCompressor(ABC):
     """Base compressor class"""
@@ -38,7 +45,6 @@ class LLMCompressor(BaseCompressor):
     
     def __init__(self, config: Dict[str, Any] = None, llm_config: ModelConfig = None):
         super().__init__(config, llm_config)
-        self.max_tokens = self.config.get("max_tokens", 1000)
         self.compression_prompt = self.config.get("compression_prompt", self._default_compression_prompt())
         # Lazy import to avoid circular dependencies
         self._llm_client = _create_llm_client(llm_config)
@@ -82,11 +88,12 @@ Please output the compressed text:"""
             # Call LLM
             response = llm_client.completion(
                 messages=messages,
-                max_tokens=self.max_tokens,
+                # max_tokens=self.max_tokens,
                 temperature=0.3
             )
             
-            compressed_content = response.content.strip()
+            # Remove <think>...</think> blocks first, then strip whitespace
+            compressed_content = _remove_think_blocks(response.content).strip()
             compression_ratio = self._calculate_compression_ratio(original_content, compressed_content)
             
             return CompressionResult(

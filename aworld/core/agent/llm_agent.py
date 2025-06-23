@@ -75,9 +75,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         # init agent context
         context_rule = kwargs.get("context_rule") if kwargs.get("context_rule") else conf.context_rule
         # update agent context by llm_agent
-        self.init_agent_context(conf.llm_config if (conf.llm_config is not None and conf.llm_config.llm_model_name is not None)
-                                    else ModelConfig(llm_model_name=self.model_name, llm_base_url=self.model_url, llm_api_key=self.model_api_key),
-                                context_rule)
+        self.init_agent_context(conf.llm_config, context_rule)
         self.tools_instances = {}
         self.tools_conf = {}
 
@@ -962,7 +960,16 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     enabled=False  # Compression disabled by default
                 )
             )
-        self.agent_context.set_model_config(llm_config)
+        
+        try:
+            # model_config
+            if llm_config is None or llm_config.llm_model_name is None:
+                llm_config = ModelConfig(llm_provider=self.llm_provider, llm_model_name=self.model_name, llm_api_key=self.model_api_key) \
+                        if self.model_url is None\
+                        else ModelConfig(llm_base_url=self.model_url, llm_model_name=self.model_name, llm_api_key=self.model_api_key)
+                self.agent_context.set_model_config(llm_config)
+        except Exception as e:
+            logger.warn(f"Failed to initialize agent context model config: {e}")
         self.agent_context.context_rule = context_rule
         self.agent_context.system_prompt = self.system_prompt
         self.agent_context.agent_prompt = self.agent_prompt
