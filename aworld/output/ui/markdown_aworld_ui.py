@@ -7,7 +7,11 @@ from pydantic import Field
 from aworld.output import (
     MessageOutput,
     AworldUI,
-    Output, Artifact, ArtifactType, WorkSpace, SearchOutput,
+    Output,
+    Artifact,
+    ArtifactType,
+    WorkSpace,
+    SearchOutput,
 )
 from aworld.output.base import StepOutput, ToolResultOutput
 from aworld.output.ui.template import tool_card_template
@@ -58,6 +62,7 @@ class MarkdownAworldUI(AworldUI):
 
             # Start the consumer in the background
             import asyncio
+
             consumer_task = asyncio.create_task(consume_all())
 
             while True:
@@ -71,25 +76,37 @@ class MarkdownAworldUI(AworldUI):
 
     async def tool_result(self, output: ToolResultOutput):
         """
-            tool_result
+        tool_result
         """
-        custom_output = f"{output.tool_name}#{output.origin_tool_call.function.name}"
-
-        if output.tool_name == "aworld-playwright"  and output.origin_tool_call.function.name == "browser_navigate":
-            custom_output = f"search `{json.loads(output.origin_tool_call.function.arguments)['url']}`"
+        custom_output = await self.gen_custom_output(output)
 
         artifacts = await self.parse_tool_artifacts(output.metadata)
 
         tool_card_content = {
             "type": "mcp",
             "custom_output": custom_output,
-            "artifacts": artifacts
+            "tool_name": output.tool_name,
+            "function_name": output.origin_tool_call.function.name,
+            "function_arguments": output.origin_tool_call.function.arguments,
+            "function_result": output.data,
+            "artifacts": artifacts,
         }
         tool_data = tool_card_template.format(
-            tool_card_content = json.dumps(tool_card_content, indent=2)
+            tool_card_content=json.dumps(tool_card_content, indent=2)
         )
 
         return tool_data
+
+    async def gen_custom_output(self, output):
+        """
+        hook for custom output
+        """
+        custom_output = f"{output.tool_name}#{output.origin_tool_call.function.name}"
+        if output.tool_name == "aworld-playwright" and output.origin_tool_call.function.name == "browser_navigate":
+            custom_output = f"🔍 search `{json.loads(output.origin_tool_call.function.arguments)['url']}`"
+        if output.tool_name == "aworldsearch-server" and output.origin_tool_call.function.name == "search":
+            custom_output = f"🔍 search keywords: {' '.join(json.loads(output.origin_tool_call.function.arguments)['query_list'])}"
+        return custom_output
 
     async def json_parse(self, json_str):
         try:
@@ -105,6 +122,7 @@ class MarkdownAworldUI(AworldUI):
         if output.status == "START":
             if self.cur_agent_name == output.name:
                 return f"{emptyLine}"
+            self.cur_agent_name = output.name
             return f"\n\n🤖 {output.show_name}: \n\n"
         elif output.status == "FINISHED":
             return f"{emptyLine}"
