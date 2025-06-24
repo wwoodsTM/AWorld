@@ -1,16 +1,19 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-from collections import Counter, OrderedDict
-from typing import Dict, List, Any, Optional, Callable, TypedDict
+from collections import OrderedDict
 from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 
 from aworld.config import ConfigDict
 from aworld.config.conf import ContextRuleConfig, ModelConfig
-from aworld.core.context.session import Session
 from aworld.core.context.context_state import ContextState
+from aworld.core.context.session import Session
 from aworld.core.singleton import InheritanceSingleton
 from aworld.models.model_response import ModelResponse
 from aworld.utils.common import nest_dict_counter
+
+if TYPE_CHECKING:
+    from aworld.core.task import Task
 
 @dataclass
 class ContextUsage:
@@ -81,6 +84,7 @@ class AgentContext:
     tool_names: List[str] = None
     model_config: ModelConfig = None
     context_rule: ContextRuleConfig = None
+    _context: 'Context' = None
     state: ContextState = None
 
     # ===== Mutable Configuration Fields =====
@@ -104,6 +108,7 @@ class AgentContext:
                  messages: List[Dict[str, Any]] = None,
                  context_usage: ContextUsage = None,
                  llm_output: ModelResponse = None,
+                 context: 'Context' = None,
                  parent_state: ContextState = None,
                  **kwargs):
         # Configuration fields
@@ -123,6 +128,8 @@ class AgentContext:
         self.context_usage = context_usage if context_usage is not None else ContextUsage()
         self.llm_output = llm_output
 
+        # Initialize Context with runner(session) level context
+        self._context = context
         # Initialize ContextState with parent state (Context's state)
         # If context_state is provided, use it as parent; otherwise will be set later
         self.state = ContextState(parent_state=parent_state)
@@ -176,6 +183,18 @@ class AgentContext:
     def set_state(self, key: str, value: Any):
         self.state[key] = value
 
+    def get_task(self) -> 'Task':
+        return self._context.get_task()
+
+    def get_session(self) -> Session:
+        return self._context.get_session()
+
+    def get_engine(self) -> str:
+        return self._context.get_engine()
+    
+    def get_user(self) -> str:
+        return self._context.get_user()
+
 class Context(InheritanceSingleton):
     """Single instance, can use construction or `instance` static method to create or get `Context` instance.
 
@@ -199,6 +218,7 @@ class Context(InheritanceSingleton):
 
     def _init(self, *, task_id: str = None, trace_id: str = None, session: Session = None, engine: str = None):
         self._task_id = task_id
+        self._task = None
         self._engine = engine
         self._trace_id = trace_id
         self._session: Session = session
@@ -243,6 +263,12 @@ class Context(InheritanceSingleton):
     def clear_agent_context(self, agent_id: str):
         self.check_agent_id(agent_id)
         self._agent_context_map[agent_id] = None
+
+    def set_task(self, task: 'Task'):
+        self._task = task
+
+    def get_task(self) -> 'Task':
+        return self._task
 
     @property
     def trace_id(self):

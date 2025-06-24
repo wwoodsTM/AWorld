@@ -15,7 +15,8 @@ from aworld.core.common import Observation
 from aworld.core.context.base import Context
 from aworld.core.context.session import Session
 from aworld.core.tool.base import Tool, AsyncTool
-from aworld.core.task import Runner, Task, TaskResponse
+from aworld.core.task import Task, TaskResponse
+from aworld.core.runner import Runner
 from aworld.logs.util import logger
 from aworld import trace
 
@@ -60,6 +61,7 @@ class TaskRunner(Runner):
 
         self.context = context if context else Context()
         self.task = task
+        self.context.set_task(task)
         self.agent_oriented = agent_oriented
         self.daemon_target = daemon_target
         self._use_demon = False if not task.conf else task.conf.get('use_demon', False)
