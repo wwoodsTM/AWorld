@@ -6,7 +6,6 @@ from aworld.trace.context_manager import TraceManager
 from aworld.trace.constants import RunType
 from aworld.logs.util import logger
 from aworld.trace.config import configure, ObservabilityConfig
-from aworld.core.event.base import Message, ToolMessage, Constants
 
 
 def get_tool_name(tool_name: str,
@@ -23,7 +22,8 @@ def get_tool_name(tool_name: str,
     return (tool_name, RunType.TOOL)
 
 
-def get_span_name_from_message(message: Message) -> tuple[str, RunType]:
+def get_span_name_from_message(message: 'aworld.core.event.base.Message') -> tuple[str, RunType]:
+    from aworld.core.event.base import Constants
     span_name = (message.receiver or message.id)
     if message.category == Constants.AGENT:
         return (span_name, RunType.AGNET)
@@ -38,7 +38,7 @@ def get_span_name_from_message(message: Message) -> tuple[str, RunType]:
     return (span_name, RunType.OTHER)
 
 
-def message_span(message: Message = None, attributes: dict = None):
+def message_span(message: 'aworld.core.event.base.Message' = None, attributes: dict = None):
     if message:
         span_name, run_type = get_span_name_from_message(message)
         message_span_attribute = {
