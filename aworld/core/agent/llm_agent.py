@@ -185,7 +185,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
             cur_msg['content'] = urls
         messages.append(cur_msg)
 
-        # Context length management: rerank, compress, and truncate operations
+        # truncate and other process
         try:
             messages = self._process_messages(messages=messages, agent_context=self.agent_context, context=self.context)
         except Exception as e:
@@ -253,7 +253,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
             cur_msg['content'] = urls
         messages.append(cur_msg)
 
-        # Context length management: rerank, compress, and truncate operations
+        # truncate and other process
         try:
             messages = self._process_messages(messages=messages, agent_context=self.agent_context, context=self.context)
         except Exception as e:
