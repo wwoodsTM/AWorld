@@ -167,9 +167,9 @@ class TaskEventRunner(TaskRunner):
                 logger.info(
                     f"event_runner _handle_task start, message: {message.id}")
                 if asyncio.iscoroutinefunction(handler):
-                    con = await handler(con)
+                    con = await handler(con, context=self.context)
                 else:
-                    con = handler(con)
+                    con = handler(con, context=self.context)
 
                 logger.info(f"event_runner _handle_task message= {message.id}")
                 if isinstance(con, Message):
