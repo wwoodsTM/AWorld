@@ -114,7 +114,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             context=self.context,
             parent_state=self.context.state  # Pass Context's state as parent state
         )
-        self.context.set_agent_context(self.id(), self.agent_context)
         self.state = AgentStatus.START
         self._finished = True
         self.hooks: Dict[str, List[str]] = {}
