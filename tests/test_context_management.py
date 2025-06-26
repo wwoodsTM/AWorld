@@ -8,30 +8,36 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from aworld.core.task import Task
-from aworld.core.agent.base import AgentFactory
 from aworld.core.agent.swarm import Swarm
 from aworld.runner import Runners
 from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig, ContextRuleConfig, ModelConfig, OptimizationConfig, LlmCompressionConfig
 from aworld.core.context.base import Context
-from aworld.core.event.base import Message
-from aworld.runners.hook.hooks import PreLLMCallHook, PostLLMCallHook
 from aworld.runners.hook.hook_factory import HookFactory
-from aworld.utils.common import convert_to_snake
 from tests.base_test import BaseTest
+
 
 class TestContextManagement(BaseTest):
     """Test cases for Context Management system based on README examples"""
 
+    def __init__(self):
+        """Set up test fixtures"""
+        self.mock_model_name = "qwen/qwen3-1.7b"
+        self.mock_base_url = "http://localhost:1234/v1"
+        self.mock_api_key = "lm-studio"
+        os.environ["LLM_API_KEY"] = self.mock_api_key
+        os.environ["LLM_BASE_URL"] = self.mock_base_url
+        os.environ["LLM_MODEL_NAME"] = self.mock_model_name
+
     def init_agent(self, config_type: str = "1", context_rule: ContextRuleConfig = None):
         if config_type == "1":
-            conf=AgentConfig(
+            conf = AgentConfig(
                 llm_model_name=self.mock_model_name,
                 llm_base_url=self.mock_base_url,
                 llm_api_key=self.mock_api_key
             )
         else:
-            conf=AgentConfig(
+            conf = AgentConfig(
                 llm_config=ModelConfig(
                     llm_model_name=self.mock_model_name,
                     llm_base_url=self.mock_base_url,
@@ -46,45 +52,37 @@ class TestContextManagement(BaseTest):
             context_rule=context_rule
         )
 
-    def __init__(self):
-        """Set up test fixtures"""
-        self.mock_model_name = "qwen/qwen3-1.7b"
-        self.mock_base_url = "http://localhost:1234/v1"
-        self.mock_api_key = "lm-studio"
-        os.environ["LLM_API_KEY"] = self.mock_api_key
-        os.environ["LLM_BASE_URL"] = self.mock_base_url
-        os.environ["LLM_MODEL_NAME"] = self.mock_model_name
-
     class _AssertRaisesContext:
         """Context manager for assertRaises"""
+
         def __init__(self, expected_exception):
             self.expected_exception = expected_exception
-        
+
         def __enter__(self):
             return self
-        
+
         def __exit__(self, exc_type, exc_value, traceback):
             if exc_type is None:
                 raise AssertionError(f"Expected {self.expected_exception.__name__} to be raised, but no exception was raised")
             if not issubclass(exc_type, self.expected_exception):
                 raise AssertionError(f"Expected {self.expected_exception.__name__} to be raised, but got {exc_type.__name__}: {exc_value}")
             return True  # Suppress the exception
-    
+
     def fail(self, msg=None):
         """Fail immediately with the given message"""
         raise AssertionError(msg or "Test failed")
-    
+
     def run_agent(self, input, agent: Agent):
         swarm = Swarm(agent, max_steps=1)
         return Runners.sync_run(
-            input= input,
+            input=input,
             swarm=swarm
         )
 
     def run_multi_agent(self, input, agent1: Agent, agent2: Agent):
         swarm = Swarm(agent1, agent2, max_steps=1)
         return Runners.sync_run(
-            input= input,
+            input=input,
             swarm=swarm
         )
 
@@ -94,7 +92,7 @@ class TestContextManagement(BaseTest):
         return Runners.sync_run_task(task)
 
     def test_default_context_configuration(self):
-        
+
         # No need to explicitly configure context_rule, system automatically uses default configuration
         # Default configuration is equivalent to:
         # context_rule=ContextRuleConfig(
@@ -107,11 +105,11 @@ class TestContextManagement(BaseTest):
         #     )
         # )
         mock_agent = self.init_agent("1")
-        response = self.run_agent(input= """What is an agent. describe within 20 words""", agent=mock_agent)
-        
+        response = self.run_agent(input="""What is an agent. describe within 20 words""", agent=mock_agent)
+
         self.assertIsNotNone(response.answer)
         self.assertEqual(mock_agent.agent_context.model_config.llm_model_name, self.mock_model_name)
-        
+
         # Test default context rule behavior
         self.assertIsNotNone(mock_agent.agent_context.context_rule)
         self.assertIsNotNone(mock_agent.agent_context.context_rule.optimization_config)
@@ -134,8 +132,8 @@ class TestContextManagement(BaseTest):
                 )
             )
         ))
-        
-        response = self.run_agent(input= """describe What is an agent in details""", agent=mock_agent)
+
+        response = self.run_agent(input="""describe What is an agent in details""", agent=mock_agent)
         self.assertIsNotNone(response.answer)
 
         # Test configuration values
@@ -148,6 +146,7 @@ class TestContextManagement(BaseTest):
                 result = await super().async_policy(observation, info, **kwargs)
                 self.context.state['policy_executed'] = True
                 return result
+
         class StateTrackingAgent(Agent):
             async def async_policy(self, observation, info=None, **kwargs):
                 result = await super().async_policy(observation, info, **kwargs)
@@ -165,7 +164,7 @@ class TestContextManagement(BaseTest):
             system_prompt="You are a Python expert who provides detailed and practical answers.",
             agent_prompt="You are a Python expert who provides detailed and practical answers.",
         )
-        
+
         # Create a second agent for multi-agent testing
         second_agent = StateTrackingAgent(
             conf=AgentConfig(
@@ -177,7 +176,7 @@ class TestContextManagement(BaseTest):
             system_prompt="You are a helpful assistant.",
             agent_prompt="You are a helpful assistant.",
         )
-        
+
         response = self.run_multi_agent(
             input="What is an agent. describe within 20 words",
             agent1=custom_agent,
@@ -189,23 +188,22 @@ class TestContextManagement(BaseTest):
         self.assertTrue(custom_agent.context.state.get('policy_executed', True))
         self.assertTrue(second_agent.agent_context.state.get('policy_executed', True))
 
+
 class TestHookSystem(TestContextManagement):
-
-
     def __init__(self):
         super().__init__()
-    
+
     def test_hook_registration(self):
         from tests.test_llm_hook import TestPreLLMHook, TestPostLLMHook
         """Test hook registration and retrieval"""
         # Test that hooks are registered in _cls attribute
         self.assertIn("TestPreLLMHook", HookFactory._cls)
         self.assertIn("TestPostLLMHook", HookFactory._cls)
-        
+
         # Test hook creation using __call__ method
         pre_hook = HookFactory("TestPreLLMHook")
         post_hook = HookFactory("TestPostLLMHook")
-        
+
         self.assertIsInstance(pre_hook, TestPreLLMHook)
         self.assertIsInstance(post_hook, TestPostLLMHook)
 
@@ -213,7 +211,7 @@ class TestHookSystem(TestContextManagement):
         from tests.test_llm_hook import TestPreLLMHook, TestPostLLMHook
 
         mock_agent = self.init_agent("1")
-        response = self.run_agent(input= """What is an agent. describe within 20 words""", agent=mock_agent)
+        response = self.run_agent(input="""What is an agent. describe within 20 words""", agent=mock_agent)
         self.assertIsNotNone(response.answer)
 
     def test_task_context_transfer(self):
