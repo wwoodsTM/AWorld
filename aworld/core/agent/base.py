@@ -107,7 +107,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         self.tools = []
         self.context = None
         self.agent_context = None
-        print('base_agent init ', self.name(), ' \n', self.context)
         self.state = AgentStatus.START
         self._finished = True
         self.hooks: Dict[str, List[str]] = {}
@@ -127,7 +126,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             context=self.context,
             parent_state=self.context.state  # Pass Context's state as parent state
         )
-        print('init_context agent_context ', self.name(), ' \n', self.agent_context, ' \n', self.context)
 
     def id(self) -> str:
         return self._id
@@ -139,7 +137,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
         return self._desc
 
     def run(self, message: Message, **kwargs) -> Message:
-        print('run___')
         self._init_context(message.context)
         observation = message.payload
         with trace.span(self._name, run_type=trace.RunType.AGNET) as agent_span:
@@ -152,7 +149,6 @@ class BaseAgent(Generic[INPUT, OUTPUT]):
             return final_result if final_result else result
 
     async def async_run(self, message: Message, **kwargs) -> Message:
-        print('async_run___')
         self._init_context(message.context)
         observation = message.payload
         if eventbus is not None:
@@ -265,7 +261,6 @@ class AgentManager(Factory):
         return self._desc.get(name, "")
 
     def agent_instance(self, name: str) -> BaseAgent | None:
-        print('agent_instance ', name, ' \n', self._agent_instance)
         if self._agent_instance.get(name, None):
             return self._agent_instance[name]
         return None
