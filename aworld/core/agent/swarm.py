@@ -283,17 +283,6 @@ class AgentGraph:
         self.predecessor = predecessor
         self.successor = successor
 
-        Args:
-            ordered_agents: Order of agents.
-            agents: Agent nodes.
-            predecessor: The direct predecessor of the agent.
-            successor: The direct successor of the agent.
-        """
-        self.ordered_agents = ordered_agents
-        self.agents = agents
-        self.predecessor = predecessor
-        self.successor = successor
-
     def topological_sequence(self) -> Tuple[List[BaseAgent], bool]:
         """Obtain the agent sequence of topology, and be able to determine whether the topology has cycle during the process.
 
