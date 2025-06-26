@@ -652,25 +652,6 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         else:
             return obj
 
-    def update_current_agent_context(self, context_rule: ContextRuleConfig):
-        current_agent_context = AgentContext(
-            agent_id=self.id(),
-            agent_name=self.name(),
-            agent_desc=self._desc,
-            system_prompt=self.system_prompt,
-            agent_prompt=self.agent_prompt,
-            tool_names=self.tool_names,
-            context_rule=context_rule,
-            context_usage=ContextUsage(total_context_length=self.conf.llm_config.max_model_len)
-        )
-        self.current_agent_context = current_agent_context
-
-    def update_current_agent_messages(self, messages: List[Message]):
-        self.current_agent_context.set_messages(messages)
-
-    def restore_current_agent_context(self) -> List[Message]:
-        return self.current_agent_context.messages
-
     async def llm_and_tool_execution(self, observation: Observation, messages: List[Dict[str, str]] = [], info: Dict[str, Any] = {}, **kwargs) -> List[ActionModel]:
         """Perform combined LLM call and tool execution operations.
 
@@ -947,6 +928,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
     def _init_context(self, context: Context):
         super()._init_context(context)
+        print('init_context llm_agent ', self.name(), ' \n', self.agent_context, ' \n', self.conf, ' \n', self.context_rule)
         # Generate default configuration when context_rule is empty
         llm_config = self.conf.llm_config
         context_rule = self.context_rule

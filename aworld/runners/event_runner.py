@@ -49,7 +49,8 @@ class TaskEventRunner(TaskRunner):
 
         if self.swarm:
             # register agent handler
-            for _, agent in self.swarm.agents.items():
+            print("register agent handler ", [a.id() for a in self.swarm.agent_list], ' ', self.swarm.agents, ' ', [a.id() for a in self.swarm.ordered_agents], ' ', self.swarm)
+            for agent in self.swarm.agent_list:
                 agent.set_tools_instances(self.tools, self.tools_conf)
                 if agent.handler:
                     await self.event_mng.register(Constants.AGENT, agent.id(), agent.handler)
