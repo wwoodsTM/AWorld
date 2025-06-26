@@ -76,7 +76,6 @@ class TestContextManagement(BaseTest):
     
     def run_agent(self, input, agent: Agent):
         swarm = Swarm(agent, max_steps=1)
-        print('swarm ', swarm)
         return Runners.sync_run(
             input= input,
             swarm=swarm
@@ -92,9 +91,7 @@ class TestContextManagement(BaseTest):
     def run_task(self, context: Context, agent: Agent):
         swarm = Swarm(agent, max_steps=1)
         task = Task(input="""What is an agent.""", swarm=swarm, context=context)
-        result = Runners.sync_run_task(task)
-        print( "----------------------------------------------------------------------------------------------")
-        print(result)
+        return Runners.sync_run_task(task)
 
     def test_default_context_configuration(self):
         
@@ -142,7 +139,6 @@ class TestContextManagement(BaseTest):
         self.assertIsNotNone(response.answer)
 
         # Test configuration values
-        print('test_custom_context_configuration ', mock_agent, ' \n', mock_agent.agent_context)
         self.assertTrue(mock_agent.agent_context.context_rule.optimization_config.enabled)
         self.assertTrue(mock_agent.agent_context.context_rule.llm_compression_config.enabled)
 
@@ -234,9 +230,9 @@ if __name__ == '__main__':
     testContextManagement.test_default_context_configuration()
     testContextManagement.test_custom_context_configuration()
     testContextManagement.test_state_management_and_recovery()
-    # testHookSystem = TestHookSystem()
-    # testHookSystem.test_hook_registration()
-    # testHookSystem = TestHookSystem()
-    # testHookSystem.test_hook_execution()
-    # testHookSystem = TestHookSystem()
-    # testHookSystem.test_task_context_transfer()
+    testHookSystem = TestHookSystem()
+    testHookSystem.test_hook_registration()
+    testHookSystem = TestHookSystem()
+    testHookSystem.test_hook_execution()
+    testHookSystem = TestHookSystem()
+    testHookSystem.test_task_context_transfer()

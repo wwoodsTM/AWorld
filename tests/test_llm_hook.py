@@ -25,7 +25,6 @@ class TestPreLLMHook(PreLLMCallHook):
     def name(self):
         return convert_to_snake("TestPreLLMHook")
     async def exec(self, message: Message, context: Context = None) -> Message:
-        print("TestPreLLMHook test ", message.sender, ' ', AgentFactory._agent_instance)
         agent = AgentFactory.agent_instance(message.sender)
         agent_context = agent.agent_context
         if agent_context is not None:
