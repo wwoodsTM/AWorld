@@ -4,8 +4,11 @@ import json
 from aworld.cmd import BaseAWorldAgent, ChatCompletionRequest
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.agents.llm_agent import Agent
+from aworld.core.agent.swarm import Swarm
 from aworld.core.task import Task
 from aworld.runner import Runners
+from examples.plan_execute.agent import PlanAgent
+from .prompt import *
 
 logger = logging.getLogger(__name__)
 
@@ -15,17 +18,17 @@ class AWorldAgent(BaseAWorldAgent):
         super().__init__(*args, **kwargs)
 
     def name(self):
-        return "Demo Agent"
+        return "Team Agent"
 
     def description(self):
-        return "Demo Agent with fetch and time mcp server"
+        return "Team Agent with fetch and time mcp server"
 
     async def run(self, prompt: str = None, request: ChatCompletionRequest = None):
-        llm_provider = os.getenv("LLM_PROVIDER_DEMO", "openai")
-        llm_model_name = os.getenv("LLM_MODEL_NAME_DEMO")
-        llm_api_key = os.getenv("LLM_API_KEY_DEMO")
-        llm_base_url = os.getenv("LLM_BASE_URL_DEMO")
-        llm_temperature = os.getenv("LLM_TEMPERATURE_DEMO", 0.0)
+        llm_provider = os.getenv("LLM_PROVIDER_TEAM", "openai")
+        llm_model_name = os.getenv("LLM_MODEL_NAME_TEAM")
+        llm_api_key = os.getenv("LLM_API_KEY_TEAM")
+        llm_base_url = os.getenv("LLM_BASE_URL_TEAM")
+        llm_temperature = os.getenv("LLM_TEMPERATURE_TEAM", 0.0)
 
         if not llm_model_name or not llm_api_key or not llm_base_url:
             raise ValueError(
@@ -45,12 +48,36 @@ class AWorldAgent(BaseAWorldAgent):
         with open(mcp_path, "r") as f:
             mcp_config = json.load(f)
 
-        super_agent = Agent(
+        plan_agent = PlanAgent(name="🙋🏻‍♂️ Team Agent Demo", conf=agent_config)
+
+        search_agent = Agent(
             conf=agent_config,
-            name="🙋🏻‍♂️ Demo Agent",
-            system_prompt="You are a demo agent, you can query current time and fetch data from the internet. you must use search engine to get url, then fetch data from the url, don't use url don't exist.",
+            name="🔎 Search Agent",
+            system_prompt=search_sys_prompt,
+            agent_prompt=search_agent_prompt,
             mcp_config=mcp_config,
             mcp_servers=mcp_config.get("mcpServers", {}).keys(),
+        )
+
+        summary_agent = Agent(
+            conf=agent_config,
+            name="💬 Summary Agent",
+            system_prompt=summary_sys_prompt,
+            agent_prompt=summary_agent_prompt,
+        )
+
+        output_agent = Agent(
+            conf=agent_config,
+            name="💬 Output Agent",
+            system_prompt=output_sys_prompt,
+            agent_prompt=output_agent_prompt,
+            mcp_config=mcp_config,
+            mcp_servers=mcp_config.get("mcpServers", {}).keys(),
+        )
+
+        # default is sequence swarm mode
+        swarm = Swarm(
+            plan_agent, search_agent, summary_agent, output_agent, max_steps=10
         )
 
         if prompt is None and request is not None:
@@ -58,7 +85,7 @@ class AWorldAgent(BaseAWorldAgent):
 
         task = Task(
             input=prompt,
-            agent=super_agent,
+            swarm=swarm,
             conf=TaskConfig(max_steps=20),
         )
 
