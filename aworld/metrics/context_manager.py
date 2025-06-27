@@ -1,3 +1,4 @@
+import logging
 import time
 import asyncio
 from typing import Callable
@@ -38,6 +39,7 @@ class MetricContext:
         elif provider == "otlp":
             from aworld.metrics.opentelemetry.opentelemetry_adapter import configure_otlp_provider
             configure_otlp_provider(backend, base_url, write_token, **kwargs)
+            logging.info(f"🚀configure otlp provider success")
         cls._initialized = True
 
     @classmethod

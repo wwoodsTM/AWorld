@@ -19,18 +19,27 @@ from aworld.logs.util import logger
 from aworld.mcp.utils import mcp_tool_desc_transform
 from aworld.core.memory import MemoryItem
 from aworld.memory.main import Memory
+from aworld.metrics import MetricContext
+from aworld.metrics.metric import MetricType
+from aworld.metrics.template import MetricTemplate
 from aworld.models.llm import get_llm_model, call_llm_model, acall_llm_model
 from aworld.models.model_response import ModelResponse, ToolCall
 from aworld.models.utils import tool_desc_transform, agent_desc_transform
 from aworld.output import Outputs
 from aworld.output.base import StepOutput, MessageOutput
-from aworld.utils.common import convert_to_snake, sync_exec
+from aworld.utils.common import convert_to_snake, sync_exec, get_local_ip
 from aworld.logs.util import logger, trace_logger, color_log, Color
 import aworld.trace as trace
 
 INPUT = TypeVar('INPUT')
 OUTPUT = TypeVar('OUTPUT')
 
+LLM_CALL_COUNTER = MetricTemplate(
+    type=MetricType.COUNTER,
+    name="LLM_CALL_COUNTER",
+    description="LLM_CALL_COUNTER",
+    unit="1"
+)
 
 def is_agent_by_name(name: str) -> bool:
     return name in AgentFactory
@@ -643,6 +652,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 llm_span.set_attribute("error", str(e))
                 raise e
             finally:
+                MetricContext.count(LLM_CALL_COUNTER, 1, {"agent_name": self.name(), "pod_id": get_local_ip()})
                 if llm_response:
                     use_tools = self.use_tool_list(llm_response)
                     is_use_tool_prompt = len(use_tools) > 0
