@@ -1,6 +1,5 @@
-<div align="center">
+<div align="left">
 
-![](readme_assets/framework_logic.jpg)
 # AWorld: Advancing Agentic AI
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
@@ -8,8 +7,19 @@
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue?logo=discord&logoColor=white)](https://discord.gg/b4Asj2ynMw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-Explore-blueviolet?logo=wikipedia&logoColor=white)](https://deepwiki.com/inclusionAI/AWorld)
+[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx)
 
 </div>
+
+## Table of Contents
+- [News](#news) — Latest updates and announcements.
+- [Introduction](#introduction) — Overview and purpose of the project.
+- [Installation](#installation) — Step-by-step setup instructions.
+- [Quick Start](#quick-start) — Get started with usage examples.
+- [Architecture](#architecture) — Explore the multi-agent system design.
+- [Demo](#demo) — See the project in action with demonstrations.
+- [Contributing](#contributing) — How to get involved and contribute.
+- [License](#license) — Project licensing details.
 
 ## News
 - 🦩 [2025/06/19] We have updated our score to 72.43 on the GAIA test. Additionally, we have introduced a new local running mode. See `./README-local.md` for detailed instructions.
@@ -19,20 +29,24 @@
 
 
 ## Introduction
-For self-improving, AWorld (Agent World) is designed to achieve two primary objectives: (1) provide the effiecent forward process, and (2) facilitate diverse backward processes, including but not limit foundation model training and system design meta-learning.
-![](readme_assets/aworld_overview.jpg)
+AWorld (Agent World) is a multi-agent playground that enables agents to collaborate and self-improve. The framework supports a wide range of applications, including but not limited to product prototype verification, foundation model training and Multi-Agent System (MAS) design meta-learning.
 
-### Forward process
+### Key Features
 | 1. Agent Construction | 2. Topology Orchestration | 3. Environments |
-|-------------------|------------------------|--------------|
-| • ✅ Support different model services <br> • ✅ Support MCP tools <br> • ✅ Support custom tools | • ✅ Encapsulate protocol between models and tools <br> • ✅ Encapsulate protocol among agents | • ✅ Encapsulate runtime state management <br> • ✅ Support state tracing <br> • ✅ Support distributed high-concurrency envs |
+|----------------------|--------------------------|-----------------|
+| • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
 
-Follow the instructions in `./README-local.md` to run a forward process on the GAIA benchmark. Watch the demo on [Youtube](https://www.youtube.com/watch?v=Z_B8D9CsAFI)
+### Playground Demo with GUI
+![](readme_assets/product_tmp.png)
 
-### Incubated backward methods
-| Method Category | Description | Key Information |
-|----------------|-------------|--------------|
-| Foundation Model Training | Improving Function call ability of large language models | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+In this demo, we showcase how to:
+
+- Construct an agent
+- Form an agent team
+- Execute complex tasks through teamwork
+
+Follow the instructions in `./README-docker.md` to run the playground shown above.
+
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
 
@@ -44,8 +58,8 @@ cd AWorld
 python setup.py install
 ```
 
-## Usage
-> Here’s a quick start guide to: (1) create your first agent; (2) equip it with a MCP tool; (3) assign a teammate; and (4) answer a user query through teamwork.
+## Quick Start
+> Here's a quick start guide to: (1) create your first agent; (2) equip it with a MCP tool; (3) assign a teammate; and (4) answer a user query through teamwork.
 
 ```python
 from aworld.config.conf import AgentConfig
@@ -99,6 +113,21 @@ if __name__ == '__main__':
                      swarm=swarm)
     print(res)
 ```
+
+## Architecture
+AWorld is designed to achieve two primary objectives: (1) provide an efficient forward process, and (2) facilitate diverse backward processes, including but not limited to foundation model training and system design meta-learning.
+
+### Forward
+> An illustration of the runtime, showing the message workflow when Agent1 receives a query from a user.
+
+![](readme_assets/runtime.jpg)
+
+### Backward
+> During training, an action-state rollout demonstration using AWorld's distributed environments.
+
+![](readme_assets/agent_training.jpg)
+
+
 
 ## Demo
 > Running Pre-defined Agents (e.g., see [demo code](examples/browsers/run.py)). Below are demonstration videos showcasing AWorld's capabilities across various agent configurations and environments.
