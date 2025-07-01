@@ -115,11 +115,12 @@ class AworldTaskExecutor(BaseModel):
             task.mark_success()
             await self._task_db.update_task(task)
             await self._task_db.save_task_result(result)
+            logging.info(f"🔍[task executor] task#{task.task_id} execute success")
             task_logger.log_task_submission(task, "execute_finished", task_result=result)
         except Exception as err:
             task.mark_failed()
             await self._task_db.update_task(task)
-            traceback.print_exc()
+            logging.error(f"🔍[task executor] task#{task.task_id} execute failed, err is {err} \n traceback is {traceback.format_exc()}")
             task_logger.log_task_submission(task, "execute_failed", details=f"err is {err}")
 
     async def _execute_task(self, task: AworldTask):
