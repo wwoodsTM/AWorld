@@ -92,9 +92,8 @@ async def generate_openai_chat_completion(form_data: OpenAIChatCompletionForm):
                         return
 
                 except Exception as e:
-                    logging.error(f"Error: {e}")
                     import traceback
-                    traceback.print_exc()
+                    logging.error(f"generate_openai_chat_completion Error: {e}, traceback: {traceback.format_exc()}")
                     yield f"data: {json.dumps({'error': {'detail': str(e)}})}\n\n"
                     return
 

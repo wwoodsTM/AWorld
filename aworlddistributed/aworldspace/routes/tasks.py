@@ -4,6 +4,9 @@ import time
 from datetime import datetime
 from typing import AsyncGenerator, Optional, List
 
+from aworld.metrics import MetricContext
+from aworld.metrics.metric import MetricType
+from aworld.metrics.template import MetricTemplate
 from aworld.utils.common import get_local_ip
 from fastapi import APIRouter, Query, Response
 from fastapi.responses import StreamingResponse
@@ -27,7 +30,12 @@ from config import ROOT_DIR
 __STOP_TASK__ = object()
 
 
-
+TASK_EXECUTOR_COUNTER = MetricTemplate(
+    type=MetricType.COUNTER,
+    name="TASK_EXECUTOR_COUNTER",
+    description="TASK_EXECUTOR_COUNTER",
+    unit="1"
+)
 
 class AworldTaskExecutor(BaseModel):
     """
@@ -37,7 +45,7 @@ class AworldTaskExecutor(BaseModel):
     """
     _task_db: AworldTaskDB = PrivateAttr()
     _tasks: Queue = PrivateAttr()
-    max_concurrent: int = Field(default=os.environ.get("AWORLD_MAX_CONCURRENT_TASKS", 2), description="max concurrent tasks")
+    max_concurrent: int = Field(default=int(os.environ.get("AWORLD_MAX_CONCURRENT_TASKS", 2)), description="max concurrent tasks")
 
     def __init__(self, task_db: AworldTaskDB):
         super().__init__()
@@ -82,7 +90,7 @@ class AworldTaskExecutor(BaseModel):
         finally:
             # release semaphore
             self._semaphore.release()
-        logging.info(f"✅[task executor] execute task#{task.task_id} success, use time {time.time() - start_time:.2f}s")
+            logging.info(f"✅[task executor] execute task#{task.task_id} finished, use time {time.time() - start_time:.2f}s")
 
     async def load_task(self):
         interval = int(os.environ.get("AWORLD_TASK_LOAD_INTERVAL", 10))
@@ -116,12 +124,16 @@ class AworldTaskExecutor(BaseModel):
             await self._task_db.update_task(task)
             await self._task_db.save_task_result(result)
             logging.info(f"🔍[task executor] task#{task.task_id} execute success")
+            MetricContext.count(TASK_EXECUTOR_COUNTER, 1,
+                                {"agent_name": task.agent_id, "user_id": task.user_id, "pod_id": get_local_ip(), "success": "1"})
             task_logger.log_task_submission(task, "execute_finished", task_result=result)
         except Exception as err:
             task.mark_failed()
             await self._task_db.update_task(task)
             logging.error(f"🔍[task executor] task#{task.task_id} execute failed, err is {err} \n traceback is {traceback.format_exc()}")
             task_logger.log_task_submission(task, "execute_failed", details=f"err is {err}")
+            MetricContext.count(TASK_EXECUTOR_COUNTER, 1,
+                                {"agent_name": task.agent_id, "user_id": task.user_id, "pod_id": get_local_ip(), "success": "0"})
 
     async def _execute_task(self, task: AworldTask):
 

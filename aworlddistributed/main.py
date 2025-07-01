@@ -7,6 +7,7 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import aworld.trace as trace  # noqa
+from aworld.metrics import MetricContext
 from aworld.utils.common import get_local_ip
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,7 +83,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(docs_url="/docs", redoc_url=None, lifespan=lifespan)
 
-
+MetricContext.configure(provider="otlp",backend="antmonitor")
 origins = ["*"]
 
 
