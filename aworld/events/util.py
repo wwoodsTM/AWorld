@@ -52,5 +52,4 @@ async def send_message(msg: Message) -> asyncio.Task:
     Args:
         msg: The content and meta information to be sent.
     """
-    task = asyncio.create_task(send_message(msg), name=msg.id)
-    return task
+    await _send_message(msg)
