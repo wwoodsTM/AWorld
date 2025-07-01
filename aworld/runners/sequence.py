@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import time
+import traceback
 
 from typing import List
 
@@ -173,6 +174,7 @@ class SequenceRunner(TaskRunner):
                                     break
             except Exception as err:
                 await self.outputs.add_output(StepOutput.build_failed_output(name=f"Step{step}", step_num=step, data=f"Runner run failed, err is {err}"))
+                traceback.print_exc()
                 logger.error(f"Runner run failed, err is {err}")
                 raise err
             finally:

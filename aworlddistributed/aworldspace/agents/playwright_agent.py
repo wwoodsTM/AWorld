@@ -904,24 +904,7 @@ class Pipeline(AworldBaseAgent):
         Returns:
 
         """
-        # task_config: TaskConfig = task.conf
-        # web_task_id = int(task_config['ext']['origin_message'])
-        # web_task = await self.get_m2w_task(web_task_id)
-        # agent_result = ""
-        if isinstance(outputs, StreamingOutputs):
-            agent_result = await outputs._visited_outputs[-2].get_finished_response()  # read llm result
-        # match = re.search(r"<answer>(.*?)</answer>", agent_result)
-        result = ""
-        # if match:
-        #     answer = match.group(1)
-        logging.info(f"Agent answer: {agent_result}")
-        #
-        # metadata = await outputs.get_metadata()
-        # if not metadata:
-        #     await outputs.set_metadata({})
-        #     metadata = await outputs.get_metadata()
-        # metadata['web_task'] = web_task
-        return result
+        return ""
 
     def add_file_path(self, task: Dict[str, Any]
                       ):
