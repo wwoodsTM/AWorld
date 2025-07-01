@@ -36,7 +36,7 @@ def subscribe(key: str, category: str = None):
 async def _send_message(msg: Message) -> str:
     context = msg.context
     if not context:
-        context = Context()
+        raise Exception(f"no context in {msg}")
 
     event_mng = context.event_manager
     if not event_mng:
