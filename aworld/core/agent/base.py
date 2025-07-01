@@ -653,7 +653,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                 raise e
             finally:
                 if llm_response:
-                    MetricContext.count(LLM_CALL_COUNTER, 1, {"agent_name": self.name(), "pod_id": get_local_ip(), "success": "1"})
+                    MetricContext.count(LLM_CALL_COUNTER, 1, {"agent_name": self.name(),"llm_model": self.llm.provider.model_name, "pod_id": get_local_ip(), "success": "1"})
                     use_tools = self.use_tool_list(llm_response)
                     is_use_tool_prompt = len(use_tools) > 0
                     color_log(f"step_{step}: llm token usage: {json.dumps(llm_response.usage)}",
@@ -672,7 +672,7 @@ class Agent(BaseAgent[Observation, Union[List[ActionModel], None]]):
                             }
                         ))
                 else:
-                    MetricContext.count(LLM_CALL_COUNTER, 1, {"agent_name": self.name(), "pod_id": get_local_ip(), "success": "0"})
+                    MetricContext.count(LLM_CALL_COUNTER, 1, {"agent_name": self.name(),"llm_model": self.llm.provider.model_name, "pod_id": get_local_ip(), "success": "0"})
                     logger.error(f"{self.name()} failed to get LLM response")
                     raise RuntimeError(f"{self.name()} failed to get LLM response")
 
