@@ -694,3 +694,17 @@ async def cleanup_server(server):
         )
     except Exception as e:
         logging.warning(f"Failed to cleanup server: {e}")
+
+def load_mcp_config():
+    """
+    Load MCP configuration of current working directory file#[mcp.json]
+    """
+
+    path_cwd = os.getcwd()  # Get current working directory at runtime
+    mcp_path = os.path.join(path_cwd, "mcp.json")
+    try:
+        with open(mcp_path, "r") as f:
+            return json.load(f)
+    except Exception as err:
+        logging.error(f"Failed to load {mcp_path}: {err}")
+        return None

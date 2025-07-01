@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig, TaskConfig
 from aworld.core.task import Task
+from aworld.mcp_client.utils import load_mcp_config
 from aworld.output.ui.base import AworldUI
 from aworld.runner import Runners
 from custom.custom_rich_aworld_ui import RichAworldUI
@@ -29,6 +30,7 @@ if __name__ == '__main__':
         system_prompt=amap_sys_prompt,
         mcp_servers=["amap-amap-sse"],  # MCP server name for agent to use
         history_messages=100,
+        mcp_config=load_mcp_config()
     )
 
     user_input = (
