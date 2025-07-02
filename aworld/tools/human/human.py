@@ -3,8 +3,7 @@
 from typing import Any, Dict, Tuple
 from aworld.config import ToolConfig
 from aworld.core.common import Observation, ActionModel, ActionResult
-from aworld.core.context.base import Context
-from aworld.core.event import eventbus
+from aworld.events.util import send_message
 from aworld.core.event.base import Message, Constants, TopicType
 from aworld.core.tool.base import ToolFactory, AsyncTool
 from aworld.logs.util import logger
@@ -82,7 +81,7 @@ class HumanTool(AsyncTool):
         self.content = None
         try:
             self.content = confirm_content
-            await eventbus.publish(Message(
+            await send_message(Message(
                 category=Constants.TASK,
                 payload=confirm_content,
                 sender=self.name(),
