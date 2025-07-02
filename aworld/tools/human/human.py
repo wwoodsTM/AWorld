@@ -27,7 +27,7 @@ class HumanTool(AsyncTool):
         self.step_finished = True
 
     async def reset(self, *, seed: int | None = None, options: Dict[str, str] | None = None) -> Tuple[
-        Observation, dict[str, Any]]:
+            Observation, dict[str, Any]]:
         await super().reset(seed=seed, options=options)
 
         await self.close()
@@ -45,7 +45,7 @@ class HumanTool(AsyncTool):
         return self.step_finished
 
     async def do_step(self, actions: list[ActionModel], **kwargs) -> Tuple[
-        Observation, float, bool, bool, Dict[str, Any]]:
+            Observation, float, bool, bool, Dict[str, Any]]:
         self.step_finished = False
         reward = 0.
         fail_error = ""
@@ -86,7 +86,7 @@ class HumanTool(AsyncTool):
                 category=Constants.TASK,
                 payload=confirm_content,
                 sender=self.name(),
-                session_id=Context.instance().session_id,
+                session_id=self.context.session_id,
                 topic=TopicType.HUMAN_CONFIRM
             ))
             return self.content, error
