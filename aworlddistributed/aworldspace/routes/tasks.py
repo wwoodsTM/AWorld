@@ -255,6 +255,9 @@ class AworldTaskManager(BaseModel):
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         task_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        status: Optional[str] = None,
         page_size: int = 100
     ) -> List[dict]:
         """
@@ -262,6 +265,8 @@ class AworldTaskManager(BaseModel):
         """
         all_results = []
         page_num = 1
+
+        logging.info(f"🚀 [TASK_DOWNLOAD] query_and_download_task_results start, start_time: {start_time}, end_time: {end_time}, task_id: {task_id}, user_id: {user_id}, agent_id: {agent_id}, status: {status}, page_size: {page_size}")
         
         while True:
             # Build query filter conditions
@@ -272,24 +277,37 @@ class AworldTaskManager(BaseModel):
                 filter_dict['end_time'] = end_time
             if task_id:
                 filter_dict['task_id'] = task_id
-            
+            if user_id:
+                filter_dict['user_id'] = user_id
+            if agent_id:
+                filter_dict['agent_id'] = agent_id
+            if status:
+                filter_dict['status'] = status
+
             # Page query tasks
+            page_start_time = time.time()
             page_result = await self._task_db.page_query_tasks(
                 filter=filter_dict, 
                 page_size=page_size, 
                 page_num=page_num
             )
+            logging.info(f"🚀 [TASK_DOWNLOAD] query_and_download_task_results page_result: use_time: {time.time() - page_start_time:.2f}s")
             
             if not page_result['items']:
                 break
                 
             tasks = page_result['items']
             
+            # Batch query task results
+            task_ids = [task.task_id for task in tasks]
+
+            task_start_time = time.time()
+            task_results = await self._task_db.query_latest_task_results_by_ids(task_ids)
+            logging.info(f"🚀 [TASK_DOWNLOAD] query_and_download_task_results use_time: {time.time() - task_start_time:.2f}s")
+            
+            # Build results using batch queried data
             for task in tasks:
-                # Only query task_result (may not exist)
-                task_result = await self._task_db.query_latest_task_result_by_id(task.task_id)
-                
-                # Use task information to build results
+                task_result = task_results.get(task.task_id)
                 result_data = {
                     "task_id": task.task_id,
                     "agent_id": task.agent_id,
@@ -309,6 +327,8 @@ class AworldTaskManager(BaseModel):
             
             if len(page_result['items']) < page_size:
                 break
+
+            logging.info(f"🚀 [TASK_DOWNLOAD] query_and_download_task_results page_num: {page_num}, page_size: {page_size}")
                 
             page_num += 1
         
@@ -386,7 +406,10 @@ async def download_task_results(
     start_time: Optional[str] = Query(None, description="Start time, format: YYYY-MM-DD HH:MM:SS"),
     end_time: Optional[str] = Query(None, description="End time, format: YYYY-MM-DD HH:MM:SS"),
     task_id: Optional[str] = Query(None, description="Task ID"),
-    page_size: int = Query(100, description="Page size, ge=1, le=1000")
+    page_size: int = Query(100, description="Page size, ge=1, le=1000"),
+    user_id: Optional[str] = Query(None, description="User ID"),
+    agent_id: Optional[str] = Query(None, description="Agent ID"),
+    status: Optional[str] = Query(None, description="Status")
 ) -> StreamingResponse:
     """
     Download task results, generate jsonl format file
@@ -414,7 +437,10 @@ async def download_task_results(
             start_time=start_datetime,
             end_time=end_datetime,
             task_id=task_id,
-            page_size=page_size
+            page_size=page_size,
+            user_id=user_id,
+            agent_id=agent_id,
+            status=status
         )
         
         if not results:

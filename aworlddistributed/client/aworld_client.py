@@ -195,6 +195,9 @@ class AworldTaskClient(BaseModel):
         start_time: str = None, 
         end_time: str = None, 
         task_id: str = None, 
+        user_id: str = None,
+        agent_id: str = None,
+        status: str = None,
         page_size: int = 100,
         save_path: str = None
     ) -> str:
@@ -232,6 +235,12 @@ class AworldTaskClient(BaseModel):
                 params["end_time"] = end_time
             if task_id:
                 params["task_id"] = task_id
+            if user_id:
+                params["user_id"] = user_id
+            if agent_id:
+                params["agent_id"] = agent_id
+            if status:
+                params["status"] = status
             
             # send download request
             async with httpx.AsyncClient(timeout=300.0) as client:  # 5分钟超时

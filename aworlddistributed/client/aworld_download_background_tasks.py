@@ -29,7 +29,7 @@ async def download_replay_file(replay_file_url: str, pbar: tqdm, semaphore: asyn
         finally:
             pbar.update(1)
 
-async def download_with_timerange(know_hosts: list[str], start_time, end_time):
+async def download_with_timerange(know_hosts: list[str], start_time, end_time, user_id=None, agent_id=None, status=None, download_replay=True):
     # create client
     client = AworldTaskClient(know_hosts = know_hosts)
     replay_dir = "results/" + str(datetime.now().strftime("%Y%m%d_%H%M%S")) + "/replays"
@@ -39,6 +39,9 @@ async def download_with_timerange(know_hosts: list[str], start_time, end_time):
     file_path = await client.download_task_results(
         start_time=start_time,
         end_time=end_time,
+        user_id=user_id,
+        agent_id=agent_id,
+        status=status,
         save_path=save_path
     )
 
@@ -63,6 +66,10 @@ async def download_with_timerange(know_hosts: list[str], start_time, end_time):
     print(json.dumps(task_stats, indent=2))
     print("-----------------------\n")
 
+    if not download_replay:
+        logger.info(f"🚀 [TASK_DOWNLOAD] download_replay is False, skip download replay")
+        return
+    
     if download_replay_urls:
         semaphore = asyncio.Semaphore(4)
         logger.info(f"Downloading {len(download_replay_urls)} replay files with 4 concurrent workers.")
@@ -73,5 +80,8 @@ async def download_with_timerange(know_hosts: list[str], start_time, end_time):
 
 if __name__ == '__main__':
     asyncio.run(download_with_timerange(know_hosts= ["http://localhost:9999"],
-                    start_time="2025-06-01 00:00:00",
-                    end_time="2025-06-12 23:59:59"))
+                    start_time="2025-05-02 04:00:00",
+                    end_time="2025-07-02 18:00:00",
+                    # agent_id='gaia_agent',
+                    # status='SUCCESS',
+                    download_replay=True))

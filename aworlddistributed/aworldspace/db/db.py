@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import func
 
 from base import AworldTask, AworldTaskResult
 from aworldspace.db.models import (
@@ -21,6 +22,17 @@ class AworldTaskDB(ABC):
 
     @abstractmethod
     async def query_latest_task_result_by_id(self, task_id: str) -> Optional[AworldTaskResult]:
+        pass
+
+    @abstractmethod
+    async def query_latest_task_results_by_ids(self, task_ids: list[str]) -> dict[str, Optional[AworldTaskResult]]:
+        """
+        Batch query latest task results by task ids
+        Args:
+            task_ids: list of task ids
+        Returns:
+            dict mapping task_id to its latest result (or None if no result exists)
+        """
         pass
 
     @abstractmethod
@@ -64,6 +76,39 @@ class SqliteTaskDB(AworldTaskDB):
                 .first()
             )
             return orm_to_pydantic_result(orm_result) if orm_result else None
+
+    async def query_latest_task_results_by_ids(self, task_ids: list[str]) -> dict[str, Optional[AworldTaskResult]]:
+        with self.Session() as session:
+            # Use a subquery to get the latest result for each task
+            latest_results = (
+                session.query(
+                    AworldTaskResultModel.task_id,
+                    AworldTaskResultModel.server_host,
+                    AworldTaskResultModel.data,
+                    func.row_number().over(
+                        partition_by=AworldTaskResultModel.task_id,
+                        order_by=AworldTaskResultModel.created_at.desc()
+                    ).label('rn')
+                )
+                .filter(AworldTaskResultModel.task_id.in_(task_ids))
+                .subquery()
+            )
+            
+            # Get only the latest result for each task
+            results = session.query(latest_results).filter(latest_results.c.rn == 1).all()
+            
+            # Convert to dictionary mapping task_id to result
+            result_dict = {}
+            for task_id in task_ids:
+                result_dict[task_id] = None
+                
+            for result in results:
+                result_dict[result.task_id] = AworldTaskResult(
+                    server_host=result.server_host,
+                    data=result.data
+                )
+                
+            return result_dict
 
     async def insert_task(self, task: AworldTask):
         with self.Session() as session:
@@ -149,6 +194,39 @@ class PostgresTaskDB(AworldTaskDB):
                 .first()
             )
             return orm_to_pydantic_result(orm_result) if orm_result else None
+
+    async def query_latest_task_results_by_ids(self, task_ids: list[str]) -> dict[str, Optional[AworldTaskResult]]:
+        with self.Session() as session:
+            # Use a CTE to get the latest result for each task
+            latest_results = (
+                session.query(
+                    AworldTaskResultModel.task_id,
+                    AworldTaskResultModel.server_host,
+                    AworldTaskResultModel.data,
+                    func.row_number().over(
+                        partition_by=AworldTaskResultModel.task_id,
+                        order_by=AworldTaskResultModel.created_at.desc()
+                    ).label('rn')
+                )
+                .filter(AworldTaskResultModel.task_id.in_(task_ids))
+                .cte()
+            )
+            
+            # Get only the latest result for each task
+            results = session.query(latest_results).filter(latest_results.c.rn == 1).all()
+            
+            # Convert to dictionary mapping task_id to result
+            result_dict = {}
+            for task_id in task_ids:
+                result_dict[task_id] = None
+                
+            for result in results:
+                result_dict[result.task_id] = AworldTaskResult(
+                    server_host=result.server_host,
+                    data=result.data
+                )
+                
+            return result_dict
 
     async def insert_task(self, task: AworldTask):
         with self.Session() as session:
