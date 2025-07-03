@@ -2,6 +2,7 @@
 # Copyright (c) 2025 inclusionAI.
 import asyncio
 import logging
+from concurrent.futures.process import ProcessPoolExecutor
 from typing import List, Dict, Union
 
 from aworld.config import RunConfig
@@ -34,9 +35,10 @@ class Runners:
 
         logging.info(f"[Runners]streamed_run_task start task_id={task.id}, agent={task.agent}, swarm = {task.swarm} ")
 
-        streamed_result._run_impl_task = asyncio.create_task(
-            Runners.run_task(task)
-        )
+        futures = []
+        with ProcessPoolExecutor(1) as pool:
+            futures.append(pool.submit(Runners.sync_run_task, task, ))
+
         return streamed_result
 
     @staticmethod
