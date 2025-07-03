@@ -33,6 +33,7 @@ class TaskEventRunner(TaskRunner):
         super().__init__(task, *args, **kwargs)
         self._task_response = None
         self.event_mng = EventManager(self.context)
+        self.context.event_manager = self.event_mng
         self.hooks = {}
         self.background_tasks = set()
         self.state_manager = EventRuntimeStateManager.instance()
@@ -274,12 +275,12 @@ class TaskEventRunner(TaskRunner):
                 logger.debug(f"[TaskEventRunner] next snap {self.task.id}")
                 # consume message
                 message: Message = await self.event_mng.consume()
-                logger.debug(
-                    f"[TaskEventRunner] next consume finished {self.task.id}: message = {message}")
+                logger.info(
+                    f"[TaskEventRunner] next consume finished {self.task.id}: message = {message.category} {message.id}")
 
                 # use registered handler to process message
                 await self._common_process(message)
-                logger.debug(
+                logger.info(
                     f"[TaskEventRunner] _common_process finished {self.task.id}")
         except Exception as e:
             logger.error(f"consume message fail. {traceback.format_exc()}")
@@ -312,6 +313,8 @@ class TaskEventRunner(TaskRunner):
                                 f"event_runner Failed to cleanup sandbox for agent {agent_name}: {e}")
 
     async def do_run(self, context: Context = None):
+        import os
+        logger.info(f"current process id: {os.getpid()}")
         if self.swarm and not self.swarm.initialized:
             raise RuntimeError("swarm needs to use `reset` to init first.")
         async with trace.span("Task_" + self.init_message.session_id):
