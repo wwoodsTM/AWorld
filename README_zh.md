@@ -36,7 +36,7 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 |----------------------|--------------------------|-----------------|
 | • ✅ 支持多种模型服务 <br> • ✅ 集成 MCP 工具 <br> • ✅ 支持自定义工具 | • ✅ 封装模型与工具间协议 <br> • ✅ 封装智能体间协议 | • ✅ 运行时状态管理 <br> • ✅ 状态追踪支持 <br> • ✅ 分布式高并发训练环境 |
 
-### Playground 图形界面演示
+### GAIA Agent-Runtime 图形界面演示
 ![](readme_assets/product_tmp.png)
 
 本演示展示了如何：
@@ -45,7 +45,7 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 - 组建智能体团队
 - 通过团队协作完成复杂任务
 
-请参考 `./README-docker.md` 运行上述 playground。
+请按照 `./README-docker.md` 中的说明，初始化 GAIA 智能体运行环境并运行上述 playground。
 
 > **想构建自己的多智能体系统？请参考下方详细教程！ ⬇️⬇️⬇️** 
 

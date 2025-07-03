@@ -41,7 +41,7 @@ AWorld (Agent World) is a multi-agent playground that enables agents to collabor
 |----------------------|--------------------------|-----------------|
 | • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
 
-### Playground Demo with GUI
+### Demo of GAIA Agent-Runtime
 ![](readme_assets/product_tmp.png)
 
 In this demo, we showcase how to:
@@ -50,7 +50,7 @@ In this demo, we showcase how to:
 - Form an agent team
 - Execute complex tasks through teamwork
 
-Follow the instructions in `./README-docker.md` to run the playground shown above.
+Follow the instructions in `./README-docker.md` to init the GAIA agent-runtime and run the playground shown above.
 
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
@@ -132,7 +132,14 @@ AWorld is designed to achieve two primary objectives: (1) provide an efficient f
 
 ![](readme_assets/agent_training.jpg)
 
+> An illustration of training code that seamlessly integrates the learning framework (Swift, in this example) with AWorld as the environment.
 
+```python
+# git clone **
+# git apply diff_patch
+# run the code
+
+```
 
 ## Demo
 > Running Pre-defined Agents (e.g., see [demo code](examples/browsers/run.py)). Below are demonstration videos showcasing AWorld's capabilities across various agent configurations and environments.
