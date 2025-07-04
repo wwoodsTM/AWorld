@@ -1,6 +1,6 @@
 <div align="left">
 
-# AWorld：推动智能体 AI 进步
+# AWorld：为智能体自我提升提供运行环境
 
 [![Twitter 关注](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
 [![微信二维码](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/aworld_wechat_qr.jpg)

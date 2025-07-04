@@ -1,6 +1,6 @@
 <div align="left">
 
-# AWorld: Advancing Agentic AI
+# AWorld: Prividing an Agent Runtime for Self-Improvement
 
 
 
