@@ -44,6 +44,13 @@ class AworldTaskResult(BaseModel):
     server_host: Optional[str] = Field(default=None, description="aworld server id")
     data: Any = Field(default=None, description="result data")
 
+    @property
+    def task_replays_file(self):
+        if self.data:
+            return self.data.get('replays_file')
+        else:
+            return None
+
 class AworldTaskForm(BaseModel):
     batch_id: str = Field(default=str(uuid.uuid4()), description="batch_id")
     task: Optional[AworldTask] = Field(default=None, description="task")

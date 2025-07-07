@@ -1,15 +1,20 @@
 import json
 import os
+import shutil
+import tempfile
 import time
 from datetime import datetime
-from typing import AsyncGenerator, Optional, List
+from typing import AsyncGenerator, Optional, List, Dict, Any
+import zipfile
+
+import oss2
 
 from aworld.metrics import MetricContext
 from aworld.metrics.metric import MetricType
 from aworld.metrics.template import MetricTemplate
 from aworld.utils.common import get_local_ip
-from fastapi import APIRouter, Query, Response
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Query, Response, HTTPException
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 
 import logging
 import traceback
@@ -228,6 +233,7 @@ class AworldTaskManager(BaseModel):
         if task:
             task_result = await self._task_db.query_latest_task_result_by_id(task_id)
             if task_result:
+                task_result.task = task
                 return task_result
             return AworldTaskResult(task=task)
 
@@ -385,6 +391,205 @@ async def get_task_result(task_id) -> Optional[AworldTaskResult]:
         traceback.print_exc()
         logging.error(f"❌ get task result#{task_id} failed, err is {err}")
         raise ValueError("❌ get task result failed, please see logs for details")
+
+
+OSS_PREFIX = 'aworld'
+
+async def download_replay_file(replay_file_url: str, local_dir: str) -> Optional[str]:
+    """
+    Download a replay file from OSS to local directory.
+    
+    Args:
+        replay_file_url (str): The relative path of the replay file in OSS
+        local_dir (str): The local directory to save the downloaded file
+        
+    Returns:
+        Optional[str]: The local path of the downloaded file if successful, None otherwise
+    """
+    oss_url = os.path.join(OSS_PREFIX, replay_file_url)
+
+    try:
+        auth = oss2.Auth(os.environ["OSS_ACCESS_KEY_ID"], os.environ["OSS_ACCESS_KEY_SECRET"])
+        bucket_name = os.environ["OSS_BUCKET"]
+        endpoint = os.environ["OSS_ENDPOINT"]
+        bucket = oss2.Bucket(auth, endpoint, bucket_name)
+
+        os.makedirs(local_dir, exist_ok=True)
+        filename = os.path.basename(replay_file_url)
+        local_path = os.path.join(local_dir, filename)
+
+        await asyncio.to_thread(bucket.get_object_to_file, oss_url, local_path)
+        logging.info(f"✅ Successfully downloaded {oss_url} to {local_path}")
+        return local_path
+    except KeyError as e:
+        logging.error(f"❌ Missing OSS configuration: {e}")
+        raise ValueError("OSS configuration is incomplete")
+    except Exception as e:
+        logging.error(f"❌ Failed to download {oss_url}: {e}")
+        return None
+
+async def download_task_replay(task_result: AworldTaskResult) -> List[str]:
+    """
+    Download all replay files for a specific task.
+    
+    Args:
+        task_id (str): The ID of the task
+        
+    Returns:
+        List[str]: List of local paths to the downloaded replay files
+    """
+    try:
+        # Create a directory for task replays
+        local_dir = os.path.join('task_replays', task_result.task.task_id)
+        os.makedirs(local_dir, exist_ok=True)
+
+        downloaded_files = []
+        task_replays_file = task_result.task_replays_file
+        if not task_replays_file:
+            return downloaded_files
+        local_path = await download_replay_file(task_replays_file, local_dir)
+        if local_path:
+            downloaded_files.append(local_path)
+                
+        logging.info(f"✅ Downloaded {len(downloaded_files)} replay files for task {task_result.task.task_id}")
+        return downloaded_files
+    except Exception as e:
+        logging.error(f"❌ Failed to download task replays for {task_result.task.task_id}: {e}")
+        raise ValueError(f"Failed to download task replays: {str(e)}")
+
+async def create_replay_zip(task_id: str, replay_files: List[str]) -> Optional[str]:
+    """
+    Create a zip file containing all replay files.
+    
+    Args:
+        task_id (str): The ID of the task
+        replay_files (List[str]): List of replay file paths
+        
+    Returns:
+        Optional[str]: Path to the created zip file if successful, None otherwise
+    """
+    if not replay_files:
+        return None
+        
+    try:
+        # Create a temporary zip file
+        zip_path = os.path.join(tempfile.gettempdir(), f"task_{task_id}_replays.zip")
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in replay_files:
+                if os.path.exists(file_path):
+                    # Add file to zip with its basename as archive name
+                    zipf.write(file_path, os.path.basename(file_path))
+                    
+        logging.info(f"✅ Created replay zip file at {zip_path}")
+        return zip_path
+    except Exception as e:
+        logging.error(f"❌ Failed to create zip file for task {task_id}: {e}")
+        return None
+
+class TaskReplayRequest(BaseModel):
+    """
+    Request model for task replay download
+    """
+    task_id_list: List[str]
+
+@router.post("/task_replays")
+async def get_task_replays(request: TaskReplayRequest):
+    """
+    API endpoint to download task replays as a zip file for multiple tasks.
+    
+    Args:
+        request (TaskReplayRequest): Request body containing list of task IDs
+        
+    Returns:
+        FileResponse: Zip file containing all replay files
+        or
+        JSONResponse: Error response if download fails
+    """
+    task_id_list = request.task_id_list
+    if not task_id_list:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "error": "❌ task_id_list is empty"}
+        )
+
+    logging.info(f"🚀 Downloading replays for tasks: {task_id_list}")
+    try:
+        all_downloaded_files = []
+        failed_tasks = []
+        
+        # Download replays for each task
+        for task_id in task_id_list:
+            try:
+                task_result = await task_manager.get_task_result(task_id)
+                if not task_result or task_result.task.status != 'SUCCESS':
+                    failed_tasks.append({"task_id": task_id, "reason": "Task not found or not completed"})
+                    continue
+                    
+                # Download replay files for this task
+                downloaded_files = await download_task_replay(task_result)
+                if downloaded_files:
+                    all_downloaded_files.extend(downloaded_files)
+                else:
+                    failed_tasks.append({"task_id": task_id, "reason": "No replay files found"})
+                    
+            except Exception as e:
+                failed_tasks.append({"task_id": task_id, "reason": str(e)})
+                logging.error(f"❌ Failed to download replays for task {task_id}: {e}")
+                
+        if not all_downloaded_files:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error", 
+                    "error": "⚠️ No replay files found for any tasks",
+                    "failed_tasks": failed_tasks
+                }
+            )
+            
+        # Create zip file with all replays
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"task_replays_{timestamp}.zip"
+        zip_path = os.path.join(tempfile.gettempdir(), zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in all_downloaded_files:
+                if os.path.exists(file_path):
+                    # Add file to zip with task_id prefix to avoid name conflicts
+                    task_id = os.path.basename(os.path.dirname(file_path))
+                    archive_name = f"{task_id}/{os.path.basename(file_path)}"
+                    zipf.write(file_path, archive_name)
+                    
+        logging.info(f"✅ Created replay zip file at {zip_path} with {len(all_downloaded_files)} files")
+        
+        # Clean up downloaded files after sending response
+        def cleanup_files():
+            try:
+                # Remove individual replay files and their directories
+                task_dirs = set(os.path.dirname(f) for f in all_downloaded_files)
+                for dir_path in task_dirs:
+                    if os.path.exists(dir_path):
+                        shutil.rmtree(dir_path)
+                # Remove the zip file
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+            except Exception as e:
+                logging.error(f"❌ Failed to cleanup files: {e}")
+        
+        return FileResponse(
+            path=zip_path,
+            filename=zip_filename,
+            media_type="application/zip",
+            background=cleanup_files
+        )
+        
+    except Exception as err:
+        traceback.print_exc()
+        logging.error(f"❌ Failed to download replays: {err}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(err)}
+        )
 
 @router.post("/get_batch_task_results")
 async def get_batch_task_results(task_ids: List[str]) -> List[dict]:
