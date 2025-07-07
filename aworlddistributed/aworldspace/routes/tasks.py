@@ -409,9 +409,9 @@ async def download_replay_file(replay_file_url: str, local_dir: str) -> Optional
     oss_url = os.path.join(OSS_PREFIX, replay_file_url)
 
     try:
-        auth = oss2.Auth(os.environ["OSS_ACCESS_KEY_ID"], os.environ["OSS_ACCESS_KEY_SECRET"])
+        auth = oss2.Auth(os.environ["OSS_AK_ID"], os.environ["OSS_AK_SECRET"])
         bucket_name = os.environ["OSS_BUCKET"]
-        endpoint = os.environ["OSS_ENDPOINT"]
+        endpoint = os.environ["OSS_BUCKET_URL"]
         bucket = oss2.Bucket(auth, endpoint, bucket_name)
 
         os.makedirs(local_dir, exist_ok=True)
