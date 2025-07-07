@@ -1,6 +1,7 @@
 <div align="left">
 
 # AWorld：为智能体自我演进提供运行环境
+*"最难的问题不是在有局限的情况下解决问题，而是发现自己的局限性"*
 
 [![Twitter 关注](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
 [![微信二维码](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/aworld_wechat_qr.jpg)
@@ -41,7 +42,7 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 ### 自我演进
 | 类别 | 学习模式 (强化学习+运行时) | 描述 | 关键信息 |
 |-----|----------------|-------------|--------------|
-| 工具使用 | [Verl](https://github.com/volcengine/verl) + AWorld 运行时 | 在 BFCL 基准测试中达 SOTA 水平 <br> ![智能体框架](readme_assets/framework_agent.png) | [![数据集](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![模型](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![论文](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![博客](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![代码](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+| 工具使用 | [Verl](https://github.com/volcengine/verl) + AWorld 运行时 | 在 BFCL 基准测试中达 SOTA 水平 <br> ![智能体框架](readme_assets/funReason_BFCL.png) | [![数据集](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![模型](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![论文](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![博客](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![代码](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
 
 
 ### GAIA Agent-Runtime 图形界面演示
@@ -52,7 +53,7 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 - 产品原型验证
 - 自我改进训练
 
-按照 `./README-docker.md` 中的说明来初始化GAIA智能体运行时并运行上面显示的游乐场。
+按照 `./README-local.md` 中的说明来初始化GAIA智能体运行时并运行上面显示的游乐场。
 
 > **想构建自己的多智能体系统？请参考下方详细教程！ ⬇️⬇️⬇️** 
 
@@ -200,7 +201,7 @@ AWorld 旨在实现两个核心目标：（1）高效的前向流程；（2）�
 ```bibtex
 @software{aworld2025,
   author = {Agent Team at InclusionAI},
-  title = {AWorld: A Framework for Agent Learning of Complex Tasks via Action-Observation-Reward Experience},
+  title = {AWorld: Enabling Agent Self-Improvement through Interactive Experience with Dynamic Runtime},
   year = {2025},
   url = {https://github.com/inclusionAI/AWorld},
   version = {0.1.0},
