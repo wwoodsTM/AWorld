@@ -10,7 +10,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue?logo=discord&logoColor=white)](https://discord.gg/b4Asj2ynMw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-Explore-blueviolet?logo=wikipedia&logoColor=white)](https://deepwiki.com/inclusionAI/AWorld)
-[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx)
+<!-- [![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx) -->
 
 </div>
 
@@ -41,16 +41,21 @@ AWorld (Agent World) is a multi-agent playground that enables agents to collabor
 |----------------------|--------------------------|-----------------|
 | • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
 
+### Self-Improvement
+| Learning Pattern (RL+Runtime) | Description | Key Information |
+|----------------|-------------|--------------|
+| [Verl](https://github.com/volcengine/verl) + AWorld runtime | Improving Function call ability of large language models | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+
+
 ### Demo of GAIA Agent-Runtime
 ![](readme_assets/product_tmp.png)
 
-In this demo, we showcase how to:
+We demonstrate how to construct a GAIA agent runtime, which can be used for:
 
-- Construct an agent
-- Form an agent team
-- Execute complex tasks through teamwork
+- Product prototype verification
+- Self-improvement training
 
-Follow the instructions in `./README-docker.md` to init the GAIA agent-runtime and run the playground shown above.
+Follow the instructions in `./README-docker.md` to initialize the GAIA agent runtime and run the playground shown above.
 
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
@@ -130,7 +135,7 @@ AWorld is designed to achieve two primary objectives: (1) provide an efficient f
 ### Backward
 > During training, an action-state rollout demonstration using AWorld's distributed environments.
 
-![](readme_assets/agent_training.jpg)
+![](readme_assets/agent_training2.jpg)
 
 > An illustration of training code that seamlessly integrates the learning framework (Swift, in this example) with AWorld as the environment.
 

@@ -1,13 +1,13 @@
 <div align="left">
 
-# AWorld：为智能体自我提升提供运行环境
+# AWorld：为智能体自我演进提供运行环境
 
 [![Twitter 关注](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
 [![微信二维码](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/aworld_wechat_qr.jpg)
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue?logo=discord&logoColor=white)](https://discord.gg/b4Asj2ynMw)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-Explore-blueviolet?logo=wikipedia&logoColor=white)](https://deepwiki.com/inclusionAI/AWorld)
-[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx)
+<!-- [![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx) -->
 
 </div>
 
@@ -36,16 +36,21 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 |----------------------|--------------------------|-----------------|
 | • ✅ 支持多种模型服务 <br> • ✅ 集成 MCP 工具 <br> • ✅ 支持自定义工具 | • ✅ 封装模型与工具间协议 <br> • ✅ 封装智能体间协议 | • ✅ 运行时状态管理 <br> • ✅ 状态追踪支持 <br> • ✅ 分布式高并发训练环境 |
 
+
+### 自我改进
+| 学习模式 (强化学习+运行时) | 描述 | 关键信息 |
+|----------------|-------------|--------------|
+| [Verl](https://github.com/volcengine/verl) + AWorld 运行时 | 提升大语言模型的函数调用能力 | [![数据集](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![模型](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![论文](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![博客](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![代码](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+
 ### GAIA Agent-Runtime 图形界面演示
 ![](readme_assets/product_tmp.png)
 
-本演示展示了如何：
+我们演示了如何构建一个GAIA智能体运行时，可用于：
 
-- 构建智能体
-- 组建智能体团队
-- 通过团队协作完成复杂任务
+- 产品原型验证
+- 自我改进训练
 
-请按照 `./README-docker.md` 中的说明，初始化 GAIA 智能体运行环境并运行上述 playground。
+按照 `./README-docker.md` 中的说明来初始化GAIA智能体运行时并运行上面显示的游乐场。
 
 > **想构建自己的多智能体系统？请参考下方详细教程！ ⬇️⬇️⬇️** 
 
@@ -125,7 +130,7 @@ AWorld 旨在实现两个核心目标：（1）高效的前向流程；（2）�
 ### 后向流程
 > 训练时，AWorld 分布式环境下的动作-状态 rollout 示意。
 
-![](readme_assets/agent_training.jpg)
+![](readme_assets/agent_training2.jpg)
 
 
 
