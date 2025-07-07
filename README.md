@@ -36,7 +36,7 @@
 ## Introduction
 AWorld (Agent World) is a multi-agent playground that enables agents to collaborate and self-improve. The framework supports a wide range of applications, including but not limited to product prototype verification, foundation model training and Multi-Agent System (MAS) design meta-learning.
 
-### Key Features
+### Runtime Key Features
 | 1. Agent Construction | 2. Topology Orchestration | 3. Environments |
 |----------------------|--------------------------|-----------------|
 | • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
