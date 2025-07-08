@@ -1,7 +1,7 @@
 <div align="left">
 
-# AWorld: Providing an Agent Runtime for Self-Improvement
-*"The hardest problem isn't solving within limits, it's discovering the own limitations"*
+# AWorld: The Agent Runtime for Self-Improvement
+*"Self-awareness: the hardest problem isn't solving within limits, it's discovering the own limitations"*
 
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
@@ -44,19 +44,18 @@ AWorld (Agent World) is a multi-agent playground that enables agents to collabor
 ### Self-Improvement
 | Category | Learning Pattern (RL+Runtime) | Description | Key Information |
 |-----|----------------|-------------|--------------|
-| Tool Use | [Verl](https://github.com/volcengine/verl) + AWorld runtime | Competitive SOTA on BFCL benchmark  <br> ![Agent Framework](readme_assets/funReason_BFCL.png) | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+| Tool Use | 1. init runtime <br> 2. discover limitations (i.e., high quality samples) <br> 3. learn by [Verl](https://github.com/volcengine/verl) | Competitive SOTA on BFCL benchmark  <br> ![Agent Framework](readme_assets/funReason_BFCL.png) | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
 
 
 ### Demo of GAIA Agent-Runtime
 ![](readme_assets/product_tmp.png)
 
-We demonstrate how to construct a GAIA agent runtime, which can be used for:
+We will release various runtime environments for agent self-improvement to advance AGI development. Agents (models) can run in these different runtime environments to gain experience through practice. Here we first introduce the **GAIA runtime**, which can be constructed on your local computer. It can be used for:
 
-- Product prototype verification
-- Self-improvement training
+- **Product prototype verification**
+- **Self-improvement training**
 
-Follow the instructions in `./README-local.md` to initialize the GAIA agent runtime and run the playground shown above.
-
+Follow the instructions in [`./README-local.md`](./README-local.md) to initialize the GAIA agent runtime and run the playground shown above.
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
 
