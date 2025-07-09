@@ -23,7 +23,7 @@
 - [许可证](#许可证) — 项目授权信息。
 
 ## 最新动态
-- 🦤 [2025/07/07] AWorld 作为运行时现已准备好进行智能体训练。同时，我们在 GAIA 测试中的得分已更新至 77.08。
+- 🦤 [2025/07/07] AWorld 作为运行时现已准备好进行智能体训练。详情请参见[自我改进部分](#self-improvement-with-diverse-runtimes)。我们在 GAIA 测试中的得分已更新至 77.08。在[演示部分](#demo-of-gaia-agent-runtime)了解如何构建 GAIA 运行时。
 - 🦩 [2025/06/19] GAIA 测试分数提升至 72.43，新增本地运行模式，详见 `./README-local.md`。
 - 🐳 [2025/05/22] GAIA 评测、MCP 工具、AWorld 及模型现已集成于单一 Docker 镜像，详见 <code>./README-docker.md</code>，[演示视频](https://www.youtube.com/watch?v=kkYWeVvJKrg)。
 - 🥳 [2025/05/13] 浏览器场景状态管理升级，视频处理 MCP server 增强，GAIA 验证分数 77.58（Pass@1 = 61.8），继续保持开源框架第一。详见 [GAIA 排行榜](https://huggingface.co/spaces/gaia-benchmark/leaderboard)。
@@ -40,21 +40,23 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 
 
 ### 多样化运行时的自我演进
+通过构建多样化的运行时环境（包含工具、智能体和模型），AWorld 旨在发现模型的局限性并推动智能向前发展。在这里，我们将记录我们的一些工作来证明我们方法的有效性。
+
 | 类别 | 运行时 | 指标 | 关键信息 |
 |-----|----------------|-------------|--------------|
 | 工具使用 | 函数调用运行时即将发布 | 在 BFCL 基准测试中达到竞争性 SOTA 水平 <br> ![智能体框架](readme_assets/funReason_BFCL.png) | [![数据集](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![模型](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![论文](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![博客](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![代码](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
 | 深度搜索 | 搜索运行时即将发布 | 在 HotpotQA 基准测试中达到 SOTA 水平 <br> ![Agent Framework](readme_assets/HotpotQA_chart.png) | [![数据集](https://img.shields.io/badge/Dataset-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning) <br> [![模型](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/collections/endertzw/rag-r1-68481d7694b3fca8b809aa29) <br> [![论文](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2507.02962) <br> [![代码](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning)|
 
 
-### GAIA Agent-Runtime 图形界面演示
-![](readme_assets/product_tmp.png)
+### GAIA 智能体运行时演示
+![GAIA 智能体运行时演示](readme_assets/product_tmp.png)
 
-我们将发布各种用于智能体自我改进的运行时环境，以推动 AGI 发展。智能体（模型）可以在这些不同的运行时环境中运行，通过实践获得经验。这里我们首先介绍 **GAIA 运行时**，它可以在您的本地计算机上构建。它可以用于：
+这里我们首先介绍 **GAIA 运行时**，它可以在您的本地计算机上构建。它可以用于：
 
 - **产品原型验证**
-- **自我改进训练**
+- **自我改进训练**（详情请参见[训练流程](#后向流程)）
 
-按照 [`./README-local.md`](./README-local.md) 中的说明来初始化 GAIA 智能体运行时并运行上面显示的游乐场。
+按照 [`./examples/gaia/README.md`](./examples/gaia/README.md) 中的说明来初始化 GAIA 智能体运行时并运行上面显示的演示。
 
 
 > **想构建自己的多智能体系统？请参考下方详细教程！ ⬇️⬇️⬇️** 

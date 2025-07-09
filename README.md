@@ -26,7 +26,7 @@
 - [License](#license) — Project licensing details.
 
 ## News
-- 🦤 [2025/07/07] AWorld, as a runtime, is now ready for agentic training. We have updated our score to 77.08 on the GAIA test.
+- 🦤 [2025/07/07] AWorld, as a runtime, is now ready for agentic training. See [Self-Improvement section](#self-improvement-with-diverse-runtimes) for details. We have updated our score to 77.08 on the GAIA test. Learn how to construct a GAIA runtime in the [Demo section](#demo-of-gaia-agent-runtime).
 - 🦩 [2025/06/19] We have updated our score to 72.43 on the GAIA test. Additionally, we have introduced a new local running mode. See `./README-local.md` for detailed instructions.
 - 🐳 [2025/05/22] For quick GAIA evaluation, MCP tools, AWorld, and models are now available in a single Docker image. See <code>./README-docker.md</code> for instructions and [youtube video](https://www.youtube.com/watch?v=kkYWeVvJKrg) for demo.
 - 🥳 [2025/05/13] AWorld has updated its state management for browser use and enhanced the video processing MCP server, achieving a score of 77.58 on GAIA validation (Pass@1 = 61.8) and maintaining its position as the top-ranked open-source framework. Learn more: [GAIA leaderboard](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
@@ -42,21 +42,22 @@ AWorld (Agent World) is a multi-agent playground that enables agents to collabor
 | • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
 
 ### Self-Improvement with Diverse Runtimes
+By constructing diverse runtime environments (with tools, agents, or models in them), AWorld aims to find the limitations of a model and push intelligence forward. Here we will record some of our work to prove the effectiveness of our proposal.
+
 | Category | Runtime | Performance | Key Information |
 |-----|----------------|-------------|--------------|
-| Tool Use | Functin call runtime to be released | Competitive SOTA on BFCL benchmark  <br> ![Agent Framework](readme_assets/funReason_BFCL.png) | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+| Tool Use | Functin call runtime to be released | Competitive on BFCL benchmark  <br> ![Agent Framework](readme_assets/funReason_BFCL.png) | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
 | Deep Search | Search runtime to be released | SOTA on HotpotQA benchmark  <br> ![Agent Framework](readme_assets/HotpotQA_chart.png) | [![Dataset](https://img.shields.io/badge/Dataset-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning) <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/collections/endertzw/rag-r1-68481d7694b3fca8b809aa29) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2507.02962) <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning)|
 
-
 ### Demo of GAIA Agent-Runtime
-![](readme_assets/product_tmp.png)
+![GAIA Agent Runtime Demo](readme_assets/product_tmp.png)
 
-We will release various runtime environments for agent self-improvement to advance AGI development. Agents (models) can run in these different runtime environments to gain experience through practice. Here we first introduce the **GAIA runtime**, which can be constructed on your local computer. It can be used for:
+Here we first introduce the **GAIA runtime**, which can be constructed on your local computer. It can be used for:
 
 - **Product prototype verification**
-- **Self-improvement training**
+- **Self-improvement training** (See [training pipeline](#backward) for details)
 
-Follow the instructions in [`./README-local.md`](./README-local.md) to initialize the GAIA agent runtime and run the playground shown above.
+Follow the instructions in [`./examples/gaia/README.md`](./examples/gaia/README.md) to initialize the GAIA agent runtime and run the demo shown above.
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
 
