@@ -49,7 +49,7 @@ AWorld（Agent World）是一个多智能体 playground，支持智能体协作�
 
 
 ### GAIA 智能体运行时演示
-![GAIA 智能体运行时演示](readme_assets/product_tmp.png)
+![GAIA 智能体运行时演示](readme_assets/gaia_demo.gif)
 
 这里我们首先介绍 **GAIA 运行时**，它可以在您的本地计算机上构建。它可以用于：
 

@@ -50,7 +50,7 @@ By constructing diverse runtime environments (with tools, agents, or models in t
 | Deep Search | Search runtime to be released | SOTA on HotpotQA benchmark  <br> ![Agent Framework](readme_assets/HotpotQA_chart.png) | [![Dataset](https://img.shields.io/badge/Dataset-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning) <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/collections/endertzw/rag-r1-68481d7694b3fca8b809aa29) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2507.02962) <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning)|
 
 ### Demo of GAIA Agent-Runtime
-![GAIA Agent Runtime Demo](readme_assets/product_tmp.png)
+![GAIA Agent Runtime Demo](readme_assets/gaia_demo.gif)
 
 Here we first introduce the **GAIA runtime**, which can be constructed on your local computer. It can be used for:
 
