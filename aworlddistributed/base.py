@@ -6,6 +6,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from pydantic import Field
 
+from aworld.utils.common import get_local_ip
+
 
 class AworldTask(BaseModel):
     task_id: str = Field(default=None, description="task id")
@@ -32,6 +34,7 @@ class AworldTask(BaseModel):
 
     def mark_running(self):
         self.status = 'RUNNING'
+        self.node_id = get_local_ip()
 
     def mark_failed(self):
         self.status = 'FAILED'
