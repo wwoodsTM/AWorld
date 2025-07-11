@@ -135,6 +135,16 @@ class AworldTaskExecutor(BaseModel):
         except Exception as err:
             task.mark_failed()
             await self._task_db.update_task(task)
+
+            # add error task_result
+            data = {
+                "task_result": f"execute failed, err is {err} \n traceback is {traceback.format_exc()}",
+                "md_file": "",
+                "replays_file": f"trace_data/{datetime.now().strftime('%Y%m%d')}/{get_local_ip()}/replays/task_replay_{task.task_id}.json"
+            }
+            result = AworldTaskResult(task=task, server_host=get_local_ip(), data=data)
+            await self._task_db.save_task_result(result)
+
             logging.error(f"🔍[task executor] task#{task.task_id} execute failed, err is {err} \n traceback is {traceback.format_exc()}")
             task_logger.log_task_submission(task, "execute_failed", details=f"err is {err}")
             MetricContext.count(TASK_EXECUTOR_COUNTER, 1,
@@ -522,10 +532,10 @@ async def get_task_replays(request: TaskReplayRequest):
         for task_id in task_id_list:
             try:
                 task_result = await task_manager.get_task_result(task_id)
-                if not task_result or task_result.task.status != 'SUCCESS':
+                if not task_result:
                     failed_tasks.append({"task_id": task_id, "reason": "Task not found or not completed"})
                     continue
-                    
+
                 # Download replay files for this task
                 downloaded_files = await download_task_replay(task_result)
                 if downloaded_files:
