@@ -1,0 +1,252 @@
+From 3c294d0311e373fcd05680a5b873322eceba05d3 Mon Sep 17 00:00:00 2001
+From: yuchengyue <yuchengyue.ycy@antgroup.com>
+Date: Mon, 14 Jul 2025 16:27:13 +0800
+Subject: [PATCH] feat: add agent training support with aworld-server
+
+---
+ examples/train/grpo/plugin/plugin.py        |  37 ++++++
+ swift/trainers/rlhf_trainer/grpo_trainer.py | 121 +++++++++++++++++---
+ 2 files changed, 142 insertions(+), 16 deletions(-)
+
+diff --git a/examples/train/grpo/plugin/plugin.py b/examples/train/grpo/plugin/plugin.py
+index 7a9d5bb..6c8595d 100644
+--- a/examples/train/grpo/plugin/plugin.py
++++ b/examples/train/grpo/plugin/plugin.py
+@@ -28,6 +28,42 @@ Step 3: Configure the Arguments
+     bash --plugin /path/to/plugin.py --reward_funcs external_math_acc
+ """
+ 
++class GaiaAnswerMatch(ORM):
++    def __call__(self, completions, solution, **kwargs) -> List[float]:
++        """
++        Check whether the generated content exactly matches the reference answer within <answer>...</answer> tags.
++
++        Args:
++            completions: List[str], the generated outputs from the model
++            solution: List[str], the reference answers
++            **kwargs: additional parameters (not used)
++
++        Returns:
++            List[float]: 1.0 for exact match, 0.0 otherwise
++        """
++
++        pattern = r'<answer>(.*?)</answer>'
++        rewards = []
++
++        for content, sol in zip(completions, solution):
++            comp_match = re.search(pattern, content, re.DOTALL | re.MULTILINE)
++            if not comp_match:
++                rewards.append(0.0)
++                continue
++            comp_answer = comp_match.group(1).strip()
++
++            def is_same_answer(a, b):
++                a_clean = a.replace(" ", "").lower()
++                b_clean = b.replace(" ", "").lower()
++                return a_clean == b_clean
++
++            if is_same_answer(comp_answer, sol):
++                rewards.append(1.0)
++            else:
++                rewards.append(0.0)
++
++        return rewards
++
+ 
+ # Code borrowed from plugin/orm.py
+ class MathAccuracy(ORM):
+@@ -454,6 +490,7 @@ orms['external_r1v_acc'] = MultiModalAccuracyORM
+ orms['external_code_reward'] = CodeReward
+ orms['external_code_format'] = CodeFormat
+ orms['external_code_reward_by_judge0'] = CodeRewardByJudge0
++orms['external_gaia_reward'] = GaiaAnswerMatch
+ 
+ 
+ # For genrm you can refer to swift/llm/plugin/rm_plugin/GenRMPlugin
+diff --git a/swift/trainers/rlhf_trainer/grpo_trainer.py b/swift/trainers/rlhf_trainer/grpo_trainer.py
+index 238b214..31fd2a4 100644
+--- a/swift/trainers/rlhf_trainer/grpo_trainer.py
++++ b/swift/trainers/rlhf_trainer/grpo_trainer.py
+@@ -5,6 +5,7 @@ import inspect
+ import os
+ import re
+ import time
++import asyncio
+ from collections import defaultdict, deque
+ from concurrent.futures import Future
+ from contextlib import contextmanager, nullcontext
+@@ -15,6 +16,7 @@ from math import ceil
+ from queue import Queue
+ from types import MethodType
+ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
++from datetime import datetime, timedelta
+ 
+ import datasets
+ import torch
+@@ -44,6 +46,15 @@ from .rlhf_mixin import RLHFTrainerMixin
+ from .utils import _ForwardRedirection, patch_lora_merge, patch_lora_unmerge, unwrap_model_for_generation
+ from .vllm_client import VLLMClient
+ 
++import sys
++sys.path.append('/path/to/AWorld')
++
++from dotenv import load_dotenv
++load_dotenv()
++
++from aworlddistributed.client.aworld_server import aworld_rollout_manager, download_with_timerange
++from aworlddistributed.client.replay_download_process import replay_status_check, replay_download_requests, replay_process
++
+ del HFGRPOTrainer.__init__
+ del HFGRPOTrainer.log
+ 
+@@ -182,6 +193,7 @@ class GRPOTrainer(RLHFTrainerMixin, SwiftMixin, HFGRPOTrainer):
+ 
+         self.use_vllm = args.use_vllm
+         self.async_generate = args.async_generate
++        logger.info(f"********************kwargs: {kwargs}*******************")
+         vllm_client = kwargs.pop('vllm_client')  # for external vllm
+ 
+         super().__init__(model, ref_model, *_args, **kwargs)
+@@ -552,8 +564,9 @@ class GRPOTrainer(RLHFTrainerMixin, SwiftMixin, HFGRPOTrainer):
+                 return []
+ 
+             if self.accelerator.is_main_process:
+-                results: List[ChatCompletionResponse] = self._engine_infer(
+-                    infer_requests=all_inputs, request_config=request_config)
++                # results: List[ChatCompletionResponse] = self._engine_infer(
++                #     infer_requests=all_inputs, request_config=request_config)
++                results = self._engine_infer(infer_requests=all_inputs, request_config=request_config)
+             else:
+                 results = [None] * len(all_inputs)
+             # Broadcast the results from the main process to all processes,
+@@ -647,20 +660,24 @@ class GRPOTrainer(RLHFTrainerMixin, SwiftMixin, HFGRPOTrainer):
+         self._set_inputs_system(inputs)
+         # infer first turn
+         results = self._infer(inputs, request_config, is_global_inputs)
+-
++        
+         if not self.multi_turn_func:
+             # Single-turn: combine completions with messages and retain the finish reason.
+-            outputs = []
+-            for i, output in enumerate(results):
+-                _choices = []
+-                for choice in output.choices:
+-                    _input: Dict = deepcopy(inputs[i])
+-                    InferRequest.remove_response(_input['messages'])
+-                    _input['messages'].append({'role': 'assistant', 'content': choice.message.content})
+-                    _choices.append((_input['messages'], choice.finish_reason))
+-                outputs.append(_choices)
++            # outputs = []
++            # for i, output in enumerate(results):
++            #     _choices = []
++            #     for choice in output.choices:
++            #         _input: Dict = deepcopy(inputs[i])
++            #         InferRequest.remove_response(_input['messages'])
++            #         _input['messages'].append({'role': 'assistant', 'content': choice.message.content})
++            #         _choices.append((_input['messages'], choice.finish_reason))
++            #     outputs.append(_choices)
++
+             # flatten 2D list to 1D list
+-            outputs = [item for sublist in outputs for item in sublist]
++            # outputs = [item for sublist in outputs for item in sublist]
++
++            outputs = results
++
+         else:
+             # Multi-turn: continue to rollout until finished.
+             orig_size = len(inputs)
+@@ -1069,8 +1086,8 @@ class GRPOTrainer(RLHFTrainerMixin, SwiftMixin, HFGRPOTrainer):
+         for messages in messages_list:
+             InferRequest.remove_response(messages)
+             template_inputs = StdTemplateInputs.from_dict({'messages': messages})
+-            res_context_list, _, _ = self.template._swift_encode(template_inputs)
+-            prompts_text.append(''.join(res_context_list))
++            # res_context_list, _, _ = self.template._swift_encode(template_inputs)
++            prompts_text.append(str(template_inputs))
+         return prompts_text
+ 
+     @profiling_decorator
+@@ -1365,7 +1382,79 @@ class GRPOTrainer(RLHFTrainerMixin, SwiftMixin, HFGRPOTrainer):
+         with profiling_context(self, 'generate'):
+             if self.vllm_mode == 'server':
+                 self._process_infer_requests_images(infer_requests)
+-                return self.vllm_client.infer(infer_requests, asdict(request_config), use_tqdm=use_tqdm)
++
++                # Load environment variables
++                LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/default/path/to/logs.jsonl")
++                KNOWN_HOSTS = os.getenv("KNOWN_HOSTS", "https://default-host.com").split(",")
++                REPLAY_DOWNLOAD_BASE_DIR = os.getenv("REPLAY_DOWNLOAD_BASE_DIR", "/default/replay/dir")
++                FALLBACK_CONTENT = os.getenv("FALLBACK_CONTENT", "No response was received. Please try again later.")
++                MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
++                RETRY_WAIT_SECONDS = int(os.getenv("RETRY_WAIT_SECONDS", "120"))
++                AGENT_ID = os.getenv("AGENT_ID", "gaia_agent")
++                USER_ID = os.getenv("USER_ID", "SYSTEM")
++
++                logger.info("Submitting tasks to remote...")
++                start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
++
++                gaia_task_ids = [_infer_request["messages"][0]["content"] for _infer_request in infer_requests]
++                asyncio.run(aworld_rollout_manager(gaia_task_ids=gaia_task_ids))
++
++                retry_count = 0
++                while retry_count < MAX_RETRIES:
++                    logger.info(f"Waiting for {RETRY_WAIT_SECONDS}s before downloading background tasks (Retry {retry_count + 1}/{MAX_RETRIES})...")
++                    time.sleep(RETRY_WAIT_SECONDS)
++
++                    end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
++
++                    logger.info("Downloading latest logs with timerange...")
++                    asyncio.run(download_with_timerange(
++                        know_hosts=KNOWN_HOSTS,
++                        start_time=start_time,
++                        end_time=end_time,
++                        save_path=LOG_FILE_PATH
++                    ))
++
++                    logger.info("Checking downloaded logs...")
++                    task_ids = replay_status_check(
++                        log_file_path=LOG_FILE_PATH,
++                        agent_id=AGENT_ID,
++                        user_id=USER_ID
++                    )
++                    has_running = any(task_id["status"] == "RUNNING" for task_id in task_ids)
++
++                    if has_running:
++                        logger.info("Remaining tasks uncompleted. Waiting for next retry...")
++                        retry_count += 1
++                    else:
++                        break
++                else:
++                    logger.warning("Max retries reached.")
++
++                timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
++                replay_downloaded_path = os.path.join(REPLAY_DOWNLOAD_BASE_DIR, timestamp)
++
++                result = replay_download_requests(
++                    [task_id["task_id"] for task_id in task_ids],
++                    save_path=replay_downloaded_path,
++                    time_stamp=timestamp
++                )
++
++                outputs = []
++                if "Error" in result:
++                    # Mock fallback completion
++                    fallback_completion = {
++                        "role": "assistant",
++                        "content": FALLBACK_CONTENT
++                    }
++                    for req in infer_requests:
++                        new_messages = req["messages"].copy()[1:]
++                        new_messages.append(fallback_completion)
++                        outputs.append((new_messages, "length"))
++                else:
++                    outputs = replay_process(file_path=replay_downloaded_path, num_generations=len(infer_requests))
++
++                return outputs
++
+             else:
+                 return self.engine.infer(infer_requests, request_config, use_tqdm=use_tqdm)
+ 
+-- 
+2.39.3 (Apple Git-145)
+
