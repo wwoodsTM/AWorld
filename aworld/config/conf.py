@@ -85,6 +85,7 @@ class ModelConfig(BaseModel):
     llm_sync_enabled: bool = True
     llm_async_enabled: bool = True
     max_retries: int = 3
+    timeout: int = 180
 
 
 class AgentConfig(BaseModel):

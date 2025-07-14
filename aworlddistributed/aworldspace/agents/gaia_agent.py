@@ -98,7 +98,8 @@ class Pipeline(AworldBaseAgent):
             llm_model_name=task.llm_model_name if task and task.llm_model_name else llm_model_name,
             llm_api_key=task.llm_api_key if task and task.llm_api_key else llm_api_key,
             llm_base_url=task.llm_base_url if task and task.llm_base_url else llm_base_url,
-            max_retries=task.max_retries if task and task.max_retries else 3
+            max_retries=task.max_retries if task and task.max_retries else 3,
+            timeout=int(task.ext_info.get("llm_timeout")) if task and task.ext_info and task.ext_info.get("llm_timeout")  else 180
         )
 
         return AgentConfig(
