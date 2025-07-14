@@ -8,7 +8,7 @@ from aworld.models.llm import acall_llm_model, get_llm_model
 from aworld.models.model_response import ModelResponse, LLMResponseError
 from pydantic import BaseModel, Field
 
-from base import AworldTask, AworldTaskResult, AworldTaskForm
+from aworlddistributed.base import AworldTask, AworldTaskResult, AworldTaskForm
 
 
 class TaskLogger:
@@ -122,7 +122,7 @@ class AworldTaskClient(BaseModel):
 
     async def _async_submit_task_to_server(self, aworld_server, task: AworldTask):
         import httpx
-        from base import AworldTaskForm, AworldTaskResult
+        from aworlddistributed.base import AworldTaskForm, AworldTaskResult
         # 构建 AworldTaskForm
         form_data = AworldTaskForm(task=task)
         async with httpx.AsyncClient() as client:
