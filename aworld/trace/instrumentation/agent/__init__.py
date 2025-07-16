@@ -142,7 +142,7 @@ async def _async_run_instance_wrapper(tracer: Tracer):
     return _awrapper
 
 
-def __call_llm_model_class_wrapper(tracer: Tracer):
+def _call_llm_model_class_wrapper(tracer: Tracer):
     async def _call_llm_model_wrapper(wrapped, instance, args, kwargs):
         attributes = {
             semconv.AGENT_ID: instance.id(),
@@ -178,6 +178,16 @@ def __call_llm_model_class_wrapper(tracer: Tracer):
     return _call_llm_model_wrapper
 
 
+async def _call_llm_model_instance_wrapper(tracer: Tracer):
+
+    @wrapt.decorator
+    async def _awrapper(wrapped, instance, args, kwargs):
+        wrapper_func = _call_llm_model_class_wrapper(tracer=tracer)
+        return await wrapper_func(wrapped, instance, args, kwargs)
+
+    return _awrapper
+
+
 class AgentInstrumentor(Instrumentor):
 
     def instrumentation_dependencies(self) -> Collection[str]:
@@ -196,6 +206,11 @@ class AgentInstrumentor(Instrumentor):
             "BaseAgent.async_run",
             _async_run_class_wrapper(tracer=tracer)
         )
+        wrapt.wrap_function_wrapper(
+            "aworld.agents.llm_agent",
+            "Agent._call_llm_model",
+            _call_llm_model_class_wrapper(tracer=tracer)
+        )
 
     def _uninstrument(self, **kwargs: Any):
         pass
@@ -209,8 +224,11 @@ def wrap_agent(agent: 'aworld.core.agent.base.BaseAgent'):
         tracer = tracer_provider.get_tracer(
             "aworld.trace.instrumentation.agent")
 
-        wrapper = _async_run_instance_wrapper(tracer)
-        agent.async_run = wrapper(agent.async_run)
+        async_run_wrapper = _async_run_instance_wrapper(tracer)
+        agent.async_run = async_run_wrapper(agent.async_run)
+        if hasattr(agent, "_call_llm_model"):
+            call_llm_model_wrapper = _call_llm_model_instance_wrapper(tracer)
+            agent._call_llm_model = call_llm_model_wrapper(agent._call_llm_model)
     except Exception:
         logger.warning(traceback.format_exc())
 
