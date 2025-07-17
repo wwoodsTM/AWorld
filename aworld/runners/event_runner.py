@@ -222,7 +222,8 @@ class TaskEventRunner(TaskRunner):
                         if self.is_group_finish(event):
                             from aworld.runners.state_manager import RuntimeStateManager, RunNodeStatus, RunNodeBusiType
                             state_mng = RuntimeStateManager.instance()
-                            await state_mng.finish_sub_group(message.group_id, message.headers.get('root_message_id'), [event])
+                            await state_mng.finish_sub_group(message.group_id, message.headers.get('root_message_id'),
+                                                             [event])
                         else:
                             await self.event_mng.emit_message(event)
                 else:
@@ -283,7 +284,7 @@ class TaskEventRunner(TaskRunner):
                                                            success=True if not msg else False,
                                                            id=self.task.id,
                                                            time_cost=(
-                                                               time.time() - start),
+                                                                   time.time() - start),
                                                            usage=self.context.token_usage)
                     break
                 logger.debug(f"[TaskEventRunner] next snap {self.task.id}")
@@ -318,8 +319,8 @@ class TaskEventRunner(TaskRunner):
                 if not self.task.is_sub_task:
                     logger.info(f"FINISHED|TaskEventRunner|outputs|{self.task.id} {self.task.is_sub_task}")
                     await self.task.outputs.mark_completed()
-                # todo sandbox cleanup
-                if self.swarm and hasattr(self.swarm, 'agents') and self.swarm.agents:
+
+                if self.swarm and self.swarm.agents:
                     for agent_name, agent in self.swarm.agents.items():
                         try:
                             if hasattr(agent, 'sandbox') and agent.sandbox:

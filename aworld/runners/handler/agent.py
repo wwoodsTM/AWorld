@@ -571,7 +571,6 @@ class DefaultTeamHandler(AgentHandler):
                     merge_context.merge_context(t.context)
                     merge_context.save_action_trajectory(steps.get(node[idx]).id, t.answer)
                 logger.info(f"DefaultTeamHandler|parallel_node|end|{res}")
-                res = res[-1]
             else:
                 logger.info(f"DefaultTeamHandler|single_node|start|{node}")
                 step_info: StepInfo = steps.get(node)
@@ -589,7 +588,6 @@ class DefaultTeamHandler(AgentHandler):
                 merge_context.merge_context(res.context)
                 merge_context.save_action_trajectory(step_info.id, res.answer, agent_name=agent.id())
                 logger.info(f"DefaultTeamHandler|single_node|end|{res}")
-        logger.info(f"DefaultTeamHandler|single_node|end|{res}")
         new_plan_input = Observation(content=merge_context.task_input)
         yield AgentMessage(session_id=message.session_id,
                            payload=new_plan_input,

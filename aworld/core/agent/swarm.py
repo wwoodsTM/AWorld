@@ -16,7 +16,9 @@ from aworld.utils.common import new_instance, convert_to_subclass
 
 class GraphBuildType(Enum):
     WORKFLOW = "workflow"
+    # Collaborative
     HANDOFF = "handoff"
+    # Coordination
     TEAM = "team"
 
 
@@ -109,10 +111,12 @@ class Swarm(object):
             return
 
         _, has_cycle = agent_graph.topological_sequence()
+        # Coordination mode, ordered_agents only requires the master node
         if self.build_type == GraphBuildType.TEAM.value:
             agent_graph.ordered_agents.clear()
             agent_graph.ordered_agents.append(agent_graph.root_agent)
 
+        # Workflow cannot have cycles. For simple loops, you can use `LoopableAgent`.
         if self.build_type == GraphBuildType.WORKFLOW.value and has_cycle:
             raise Exception("Workflow unsupported cycle graph.")
 
@@ -265,6 +269,7 @@ class Swarm(object):
 
 
 class WorkflowSwarm(Swarm):
+    """Workflow Paradigm."""
     def __init__(self,
                  *args,  # agent
                  root_agent: BaseAgent = None,
@@ -282,6 +287,7 @@ class WorkflowSwarm(Swarm):
 
 
 class TeamSwarm(Swarm):
+    """Coordination paradigm."""
     def __init__(self,
                  *args,  # agent
                  root_agent: BaseAgent = None,
@@ -299,6 +305,7 @@ class TeamSwarm(Swarm):
 
 
 class HandoffSwarm(Swarm):
+    """Collaborative paradigm."""
     def __init__(self,
                  *args,  # agent
                  max_steps: int = 0,
@@ -593,7 +600,6 @@ class WorkflowBuilder(TopologyBuilder):
         """Built as workflow, different forms will be internally constructed as different agents,
         such as ParallelizableAgent, SerialableAgent or LoopableAgent.
 
-        # TODO: Complete Graph Definition Capability
         Returns:
             Direct topology diagram (AgentGraph) of the agents.
         """
@@ -660,7 +666,7 @@ class HandoffBuilder(TopologyBuilder):
             if not isinstance(pair, (list, tuple)):
                 raise RuntimeError(
                     f"{pair} is not a tuple or list value, please check it.")
-            elif len(pair) != 2:
+            if len(pair) != 2:
                 raise RuntimeError(f"{pair} is not a pair, please check it.")
 
             valid_agent_pair.append(pair)
