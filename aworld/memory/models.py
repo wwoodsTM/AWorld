@@ -1,9 +1,9 @@
 import uuid
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Any, Dict, List, Optional, Literal, Union
+from typing import Any, Dict, List, Optional, Literal
 
 from aworld.models.model_response import ToolCall
 
@@ -235,7 +235,7 @@ class MemoryHumanMessage(MemoryMessage):
         metadata (MessageMetadata): Metadata object containing user, session, task, and agent IDs.
         content (str): The content of the message.
     """
-    def __init__(self, metadata: MessageMetadata, content: str) -> None:
+    def __init__(self, metadata: MessageMetadata, content: Any) -> None:
         super().__init__(role="user", metadata=metadata, content=content)
     
     def to_openai_message(self) -> dict:
@@ -260,14 +260,15 @@ class MemoryAIMessage(MemoryMessage):
     @property
     def tool_calls(self) -> List[ToolCall]:
         if "tool_calls" not in self.metadata or not self.metadata['tool_calls']:
-            return []
-        return [ToolCall(**tool_call) for tool_call in self.metadata['tool_calls']]
-    
+            return None
+        tc = [ToolCall(**tool_call) for tool_call in self.metadata['tool_calls']]
+        return tc if len(tc) > 0 else None
+      
     def to_openai_message(self) -> dict:
         return {
             "role": self.role,
             "content": self.content,
-            "tool_calls": [tool_call.to_dict() for tool_call in self.tool_calls]
+            "tool_calls": [tool_call.to_dict() for tool_call in self.tool_calls or []]
         }
 
 class MemoryToolMessage(MemoryMessage):
