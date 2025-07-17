@@ -260,7 +260,8 @@ class DefaultAgentHandler(AgentHandler):
         if GraphBuildType.TEAM.value == self.swarm.build_type:
             agent = self.swarm.agents.get(action.agent_name)
             caller = self.swarm.agent_graph.root_agent.id() or message.caller
-            if agent.id != self.swarm.agent_graph.root_agent.id():
+            if agent.id() != self.swarm.agent_graph.root_agent.id():
+                logger.info(f"_stop_check Team|{agent.id()} --> {caller}")
                 yield Message(
                     category=Constants.AGENT,
                     payload=Observation(content=action.policy_info),
