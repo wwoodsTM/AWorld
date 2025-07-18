@@ -228,13 +228,13 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
 
         session_id = message.context.get_task().session_id
         task_id = message.context.get_task().id
-        histories = self.memory.get_last_n(self.history_messages, filters={
+        histories = self.memory.get_all(filters={
             "agent_id": self.id(),
             "session_id": session_id,
             "task_id": task_id,
-            "message_type": "message"
-        }, agent_memory_config=self.memory_config)
-        last_history = histories[-1] if histories else None
+            "memory_type": "message"
+        })
+        last_history = histories[-1] if histories and len(histories)> 0 else None
 
         # append observation to memory
         if observation.is_tool_result:
@@ -242,7 +242,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 tool_call_id = action_item.tool_call_id
                 content = action_item.content
                 await self._add_tool_result_to_memory(tool_call_id, tool_result=content, context=message.context)
-        elif not self.use_tools_in_prompt and "tool_calls" in last_history.metadata and last_history.metadata[
+        elif not self.use_tools_in_prompt and last_history and last_history.metadata and "tool_calls" in last_history.metadata and last_history.metadata[
             'tool_calls']:
             for tool_call in last_history.metadata['tool_calls']:
                 tool_call_id = tool_call['id']
@@ -268,8 +268,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         histories = self.memory.get_last_n(self.history_messages, filters={
             "agent_id": self.id(),
             "session_id": session_id,
-            "task_id": task_id,
-            "message_type": "message"
+            "task_id": task_id
         }, agent_memory_config=self.memory_config)
         if histories:
             # default use the first tool call
@@ -294,6 +293,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         return messages
 
     def use_tool_list(self, resp: ModelResponse) -> List[Dict[str, Any]]:
+        if not self.use_tools_in_prompt:
+            return []
         tool_list = []
         try:
             if resp and hasattr(resp, 'content') and resp.content:
@@ -771,7 +772,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     # messages length
                     "origin_messages_count": origin_messages_count,
                     "truncated_messages_count": truncated_messages_count,
-                    "truncated_ratio": round(truncated_messages_count / origin_messages_count, 2),
+                    "truncated_ratio": round(truncated_messages_count / origin_messages_count, 2) if origin_messages_count > 0 else 0,
                     # token length
                     "origin_len": origin_len,
                     "compressed_len": compressed_len,
@@ -791,8 +792,6 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         outputs = None
         if kwargs.get("outputs") and isinstance(kwargs.get("outputs"), Outputs):
             outputs = kwargs.get("outputs")
-        if not messages:
-            messages = await self._prepare_llm_input(observation, **kwargs)
 
         llm_response = None
         source_span = trace.get_current_span()
@@ -1047,18 +1046,21 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         task_id = context.get_task().id
         user_id = context.get_task().user_id
 
-        histories = self.memory.get_last_n(self.history_messages, filters={
+        histories = self.memory.get_last_n(0, filters={
             "agent_id": self.id(),
             "session_id": session_id,
-            "task_id": task_id,
-            "message_type": "init"
+            "task_id": task_id
         }, agent_memory_config=self.memory_config)
         if histories and len(histories) > 0:
             logger.debug(
                 f"🧠 [MEMORY:short-term] histories is not empty, do not need add system input to agent memory")
             return
+        if not self.system_prompt:
+            return
+        content = await self.custom_system_prompt(context=context, content=content)
+        logger.info(f'system prompt content: {content}')
 
-        self.memory.add(MemorySystemMessage(
+        await self.memory.add(MemorySystemMessage(
             content=content,
             metadata=MessageMetadata(
                 session_id=session_id,
@@ -1074,7 +1076,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
     async def custom_system_prompt(self, context: Context, content: str):
         return content
 
-    async def _add_human_input_to_memory(self, content: Any, context: Context):
+    async def _add_human_input_to_memory(self, content: Any, context: Context, memory_type = "init"):
         """Add user input to memory"""
         if not context.get_task():
             logger.error(f"Task is None")
@@ -1082,7 +1084,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         user_id = context.get_task().user_id
         task_id = context.get_task().id
 
-        self.memory.add(MemoryHumanMessage(
+        await self.memory.add(MemoryHumanMessage(
             content=content,
             metadata=MessageMetadata(
                 session_id=session_id,
@@ -1090,7 +1092,8 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                 task_id=task_id,
                 agent_id=self.id(),
                 agent_name=self.name(),
-            )
+            ),
+            memory_type=memory_type
         ), agent_memory_config=self.memory_config)
         logger.info(f"🧠 [MEMORY:short-term] Added human input to task memory: "
                     f"User#{user_id}, "
@@ -1109,7 +1112,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         user_id = context.get_task().user_id
         task_id = context.get_task().id
 
-        self.memory.add(MemoryAIMessage(
+        await self.memory.add(MemoryAIMessage(
             content=llm_response.content,
             tool_calls=llm_response.tool_calls if not self.use_tools_in_prompt else custom_prompt_tool_calls,
             metadata=MessageMetadata(
@@ -1146,7 +1149,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                     }
                 }
             ]
-            await self._add_human_input_to_memory(image_content, context)
+            await self._add_human_input_to_memory(image_content, context, "message")
         else:
             await self._do_add_tool_result_to_memory(tool_call_id, tool_result, context)
 
@@ -1156,7 +1159,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
         user_id = context.get_task().user_id
         task_id = context.get_task().id
 
-        self.memory.add(MemoryToolMessage(
+        await self.memory.add(MemoryToolMessage(
             content=tool_result.content if hasattr(tool_result, 'content') else tool_result,
             tool_call_id=tool_call_id,
             status="success",
