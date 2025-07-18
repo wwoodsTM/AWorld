@@ -208,7 +208,7 @@ class Pipeline(AworldBaseAgent):
         gaia_task = await self.get_gaia_task(gaia_task_id)
         agent_result = ""
         if isinstance(outputs, StreamingOutputs):
-            agent_result = await outputs._visited_outputs[-2].get_finished_response() # read llm result
+            agent_result = await outputs._visited_outputs[-3].get_finished_response() # read llm result
         match = re.search(r"<answer>(.*?)</answer>", agent_result)
         answer = agent_result
         if match:

@@ -197,9 +197,13 @@ class AworldBaseAgent:
                                     await queue.put(item)
                             else:
                                 await queue.put(res)
-                    custom_output = await self.custom_output_after_task(outputs, chat_id, task)
-                    if custom_output:
-                        await queue.put(custom_output)
+
+                    try:
+                        custom_output = await self.custom_output_after_task(outputs, chat_id, task)
+                        if custom_output:
+                            await queue.put(custom_output)
+                    except:
+                        pass
                     await queue.put(task)
                 finally:
                     await queue.put(_SENTINEL)
