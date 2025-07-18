@@ -55,6 +55,22 @@ class AworldTaskDB(ABC):
     async def save_task_result(self, result: AworldTaskResult):
         pass
 
+    @abstractmethod
+    async def acquire_and_mark_tasks(self, status: str, new_status: str, nums: int) -> list[AworldTask]:
+        """
+        Atomically acquire tasks with specified status and mark them with new status.
+        This operation is done in a single transaction to ensure consistency.
+        
+        Args:
+            status: Current status to query for
+            new_status: New status to set for acquired tasks
+            nums: Maximum number of tasks to acquire
+            
+        Returns:
+            List of acquired tasks
+        """
+        pass
+
 
 class SqliteTaskDB(AworldTaskDB):
     def __init__(self, db_path: str):
@@ -172,6 +188,38 @@ class SqliteTaskDB(AworldTaskDB):
                 "items": items
             }
 
+    async def acquire_and_mark_tasks(self, status: str, new_status: str, nums: int) -> list[AworldTask]:
+        """
+        SQLite实现的原子任务获取和状态更新。
+        注意：SQLite不支持SKIP LOCKED，但它的事务可以保证原子性。
+        在高并发场景下，可能会有一些性能损失。
+        """
+        with self.Session() as session:
+            try:
+                # SQLite会自动在查询时获取写锁
+                orm_tasks = (
+                    session.query(AworldTaskModel)
+                    .filter_by(status=status)
+                    .limit(nums)
+                    .with_for_update()  # SQLite的行级锁
+                    .all()
+                )
+                
+                if not orm_tasks:
+                    return []
+                    
+                # 在同一个事务中更新状态
+                for task in orm_tasks:
+                    task.status = new_status
+                    task.updated_at = func.now()
+                
+                session.commit()
+                
+                return [orm_to_pydantic_task(t) for t in orm_tasks]
+            except Exception as e:
+                session.rollback()
+                raise e
+
 
 class PostgresTaskDB(AworldTaskDB):
     def __init__(self, db_url: str):
@@ -243,6 +291,47 @@ class PostgresTaskDB(AworldTaskDB):
                 .all()
             )
             return [orm_to_pydantic_task(t) for t in orm_tasks]
+
+    async def acquire_and_mark_tasks(self, status: str, new_status: str, nums: int) -> list[AworldTask]:
+        """
+        Atomically acquire tasks with specified status and mark them with new status.
+        This operation is done in a single transaction to ensure consistency.
+        
+        Args:
+            status: Current status to query for
+            new_status: New status to set for acquired tasks
+            nums: Maximum number of tasks to acquire
+            
+        Returns:
+            List of acquired tasks
+        """
+        with self.Session() as session:
+            try:
+                # 在同一个事务中完成查询和更新
+                orm_tasks = (
+                    session.query(AworldTaskModel)
+                    .filter_by(status=status)
+                    .with_for_update(skip_locked=True)
+                    .limit(nums)
+                    .all()
+                )
+                
+                # 如果没有任务，直接返回空列表
+                if not orm_tasks:
+                    return []
+                    
+                # 在同一个事务中更新状态
+                for task in orm_tasks:
+                    task.status = new_status
+                    task.updated_at = func.now()
+                
+                # 提交事务，这会在更新完成后才释放锁
+                session.commit()
+                
+                return [orm_to_pydantic_task(t) for t in orm_tasks]
+            except Exception as e:
+                session.rollback()
+                raise e
 
     async def update_task(self, task: AworldTask):
         with self.Session() as session:
