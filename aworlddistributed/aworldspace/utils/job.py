@@ -14,7 +14,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
-from aworldspace.base import AGENT_SPACE
+from aworldspace.space import AGENT_SPACE
 from aworldspace.utils.utils import get_last_user_message
 from base import OpenAIChatCompletionForm
 

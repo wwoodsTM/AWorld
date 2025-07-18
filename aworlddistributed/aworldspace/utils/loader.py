@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 import traceback
-from aworldspace.base import AGENT_SPACE
+from aworldspace.space import AGENT_SPACE
 import aworld.trace as trace  # noqa
 
 from config import AGENTS_DIR
