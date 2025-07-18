@@ -17,12 +17,12 @@ from aworld.config.conf import AgentConfig, ModelConfig
 
 from examples.deepresearch.prompts import *
 
-# os.environ["LLM_MODEL_NAME"] = "qwen/qwen3-8b"
-# os.environ["LLM_BASE_URL"] = "http://localhost:1234/v1"
-# os.environ["LLM_API_KEY"] = "lm-studio"
-os.environ["LLM_MODEL_NAME"] = "DeepSeek-V3"
-os.environ["LLM_BASE_URL"] = "https://agi.alipay.com/api"
-os.environ["LLM_API_KEY"] = "sk-5d0c421b87724cdd883cfa8e883998da"
+os.environ["LLM_MODEL_NAME"] = "gpt-4o"
+os.environ["LLM_BASE_URL"] = "http://localhost:34567"
+os.environ["LLM_API_KEY"] = "lm-studio"
+# os.environ["LLM_MODEL_NAME"] = "DeepSeek-V3"
+# os.environ["LLM_BASE_URL"] = "https://agi.alipay.com/api"
+# os.environ["LLM_API_KEY"] = "sk-5d0c421b87724cdd883cfa8e883998da"
 
 def get_deepresearch_swarm(user_input):
 

@@ -14,7 +14,6 @@ from aworld.config.conf import AgentConfig, ModelConfig, ContextRuleConfig, Opti
 from aworld.core.context.processor import CompressionResult, CompressionType
 from aworld.core.context.processor.llm_compressor import LLMCompressor
 from aworld.core.context.processor.prompt_processor import PromptProcessor
-from aworld.core.context.base import Context, ContextUsage
 
 
 class TestPromptCompressor(BaseTest):

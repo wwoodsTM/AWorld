@@ -99,7 +99,7 @@ class Context:
         super().__init__()
         self._user = user
         self._init(task_id=task_id, trace_id=trace_id,
-                   session=session, engine=engine, **kwargs)
+                   session=session, engine=engine)
 
     def _init(self, *, task_id: str = None, trace_id: str = None, session: Session = None, engine: str = None):
         self._task_id = task_id
@@ -115,7 +115,6 @@ class Context:
             "prompt_tokens": 0,
             "total_tokens": 0,
         }
-        # TODO workspace
         self._swarm = None
         self._event_manager = None
 

@@ -54,13 +54,6 @@ class AgentResult(BaseModel):
     is_call_tool: bool = True
 
 
-class MemoryModel(BaseModel):
-    # TODO: memory module
-    message: Dict = {}
-    tool_calls: Any = None
-    content: Any = None
-
-
 class BaseAgent(Generic[INPUT, OUTPUT]):
     __metaclass__ = abc.ABCMeta
 
