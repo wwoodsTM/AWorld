@@ -106,18 +106,32 @@ class AworldTaskExecutor(BaseModel):
                 logging.info(f"🔍[task executor] runner is busy, wait {interval}s and retry")
                 await asyncio.sleep(interval)
                 continue
-            tasks = await self._task_db.query_tasks_by_status(status="INIT", nums=need_load)
-            logging.info(f"🔍[task executor] load {len(tasks)} tasks from db (need {need_load})")
 
-            if not tasks or len(tasks) == 0:
-                logging.info(f"🔍[task executor] no task to load, wait {interval}s and retry")
+            try:
+                # 使用原子操作获取并标记任务
+                tasks = await self._task_db.acquire_and_mark_tasks(
+                    status="INIT",
+                    new_status="RUNNING",
+                    nums=need_load
+                )
+                
+                logging.info(f"🔍[task executor] atomically acquired {len(tasks)} tasks from db (need {need_load})")
+
+                if not tasks:
+                    logging.info(f"🔍[task executor] no task to load, wait {interval}s and retry")
+                    await asyncio.sleep(interval)
+                    continue
+
+                # 将任务放入队列
+                for task in tasks:
+                    await self._tasks.put(task)
+                    logging.info(f"✅[task executor] task#{task.task_id} queued for execution")
+                    
+                return True
+            except Exception as e:
+                logging.error(f"❌[task executor] failed to load tasks: {e}")
                 await asyncio.sleep(interval)
                 continue
-            for task in tasks:
-                task.mark_running()
-                await self._task_db.update_task(task)
-                await self._tasks.put(task)
-            return True
 
     async def execute_task(self, task: AworldTask):
         """
@@ -226,17 +240,6 @@ class AworldTaskManager(BaseModel):
         task_logger.log_task_submission(task, status="init")
 
         return AworldTaskResult(task = task)
-
-    async def load_one_unfinished_task(self) -> Optional[AworldTask]:
-        tasks = await self._task_db.query_tasks_by_status(status="INIT", nums=1)
-        if not tasks or len(tasks) == 0:
-            return None
-
-        cur_task = tasks[0]
-        cur_task.mark_running()
-        await self._task_db.update_task(cur_task)
-        # from db load one task by locked and mark task running
-        return cur_task
 
     async def get_task_result(self, task_id: str) -> Optional[AworldTaskResult]:
         task = await self._task_db.query_task_by_id(task_id)
