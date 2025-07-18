@@ -120,7 +120,7 @@ class Pipeline(AworldBaseAgent):
         return [
             "e2b-server",
             "terminal-controller",
-            "excel",
+            # "excel",
             "calculator",
             "ms-playwright",
             "audio_server",

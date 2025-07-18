@@ -142,5 +142,5 @@ if __name__ == "__main__":
         "aworlddistributed.main:app",
         host="0.0.0.0",
         port=8088,
-        reload=True,
+        reload=False,
     )
