@@ -27,13 +27,13 @@ class ToolHandler(DefaultHandler):
 
 @HandlerFactory.register(name=f'__{Constants.TOOL}__')
 class DefaultToolHandler(ToolHandler):
-    def is_valid(self, message: Message):
+    def is_valid_message(self, message: Message):
         if message.category != Constants.TOOL:
             return False
         return True
 
     async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
-        if not self.is_valid(message):
+        if not self.is_valid_message(message):
             return
 
         headers = {"context": message.context}

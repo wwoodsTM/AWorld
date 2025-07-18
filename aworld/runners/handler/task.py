@@ -40,13 +40,13 @@ class TaskHandler(DefaultHandler):
 
 @HandlerFactory.register(name=f'__{Constants.TASK}__')
 class DefaultTaskHandler(TaskHandler):
-    def is_valid(self, message: Message):
+    def is_valid_message(self, message: Message):
         if message.category != Constants.TASK:
             return False
         return True
 
     async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
-        if not self.is_valid(message):
+        if not self.is_valid_message(message):
             return
 
         logger.debug(f"task handler receive message: {message}")

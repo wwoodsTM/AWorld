@@ -19,13 +19,13 @@ from aworld.utils.run_util import exec_agent, exec_tool
 
 @HandlerFactory.register(name=f'__{Constants.PLAN}__')
 class PlanHandler(AgentHandler):
-    def is_valid(self, message: Message):
+    def is_valid_message(self, message: Message):
         if message.category != Constants.PLAN:
             return False
         return True
 
     async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
-        if not self.is_valid(message):
+        if not self.is_valid_message(message):
             return
 
         logger.info(f"PlanHandler|handle|taskid={self.task_id}|is_sub_task={message.context._task.is_sub_task}")

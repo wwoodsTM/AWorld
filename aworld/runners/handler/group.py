@@ -35,13 +35,13 @@ class GroupHandler(DefaultHandler):
 
 @HandlerFactory.register(name=f'__{Constants.GROUP}__')
 class DefaultGroupHandler(GroupHandler):
-    def is_valid(self, message: Message):
+    def is_valid_message(self, message: Message):
         if message.category != Constants.GROUP:
             return False
         return True
 
     async def handle(self, message: GroupMessage) -> AsyncGenerator[Message, None]:
-        if not self.is_valid(message):
+        if not self.is_valid_message(message):
             return
 
         self.context = message.context
