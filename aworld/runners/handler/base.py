@@ -38,7 +38,7 @@ class DefaultHandler(Handler[Message, AsyncGenerator[Message, None]]):
         return True
 
     async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
-        if not self.is_valid(message):
+        if not self.is_valid_message(message):
             return
         async for event in self._do_handle(message):
             msg = await self.post_handle(event)
