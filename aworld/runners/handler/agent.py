@@ -22,6 +22,7 @@ class AgentHandler(DefaultHandler):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, runner: 'TaskEventRunner'):
+        super().__init__()
         self.runner = runner
         self.swarm = runner.swarm
         self.endless_threshold = runner.endless_threshold
@@ -47,7 +48,7 @@ class DefaultAgentHandler(AgentHandler):
             return False
         return True
 
-    async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
+    async def _do_handle(self, message: Message) -> AsyncGenerator[Message, None]:
         if not self.is_valid_message(message):
             return
 
@@ -488,3 +489,28 @@ class DefaultAgentHandler(AgentHandler):
                 receiver=caller,
                 headers=message.headers
             )
+
+
+    def is_group_finish(self, event: Message) -> bool:
+        """Determine if an event triggers group completion"""
+        if not isinstance(event, Message) or not event.group_id:
+            return False
+
+        agent_id = event.sender
+        if not agent_id:
+            return False
+
+        agent = self.swarm.agents.get(agent_id)
+        if not agent:
+            return False
+
+        return agent._finished and agent.id() == event.headers.get('root_agent_id', '')
+
+    async def post_handle(self, message: Message) -> Message:
+        if self.is_group_finish(message):
+            from aworld.runners.state_manager import RuntimeStateManager
+            state_mng = RuntimeStateManager.instance()
+            await state_mng.finish_sub_group(message.group_id, message.headers.get('root_message_id'),
+                                             [message])
+            return None
+        return message

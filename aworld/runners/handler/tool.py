@@ -17,6 +17,7 @@ class ToolHandler(DefaultHandler):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, runner: 'TaskEventRunner'):
+        super().__init__()
         self.tools = runner.tools
         self.tools_conf = runner.tools_conf
 
@@ -32,7 +33,7 @@ class DefaultToolHandler(ToolHandler):
             return False
         return True
 
-    async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
+    async def _do_handle(self, message: Message) -> AsyncGenerator[Message, None]:
         if not self.is_valid_message(message):
             return
 

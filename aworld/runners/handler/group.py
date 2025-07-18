@@ -1,8 +1,8 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import abc
-import asyncio
 import copy
+import json
 from typing import AsyncGenerator, List, Dict, Any, Tuple
 
 from aworld.agents.llm_agent import Agent
@@ -16,6 +16,7 @@ from aworld.runners import HandlerFactory
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.tool import DefaultToolHandler
 from aworld.runners.state_manager import RuntimeStateManager, RunNodeStatus
+from aworld.runners.utils import _to_serializable
 from aworld.utils.run_util import exec_agent
 
 
@@ -23,6 +24,7 @@ class GroupHandler(DefaultHandler):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, runner: 'TaskEventRunner'):
+        super().__init__()
         self.runner = runner
         self.swarm = runner.swarm
         self.endless_threshold = runner.endless_threshold
@@ -40,7 +42,7 @@ class DefaultGroupHandler(GroupHandler):
             return False
         return True
 
-    async def handle(self, message: GroupMessage) -> AsyncGenerator[Message, None]:
+    async def _do_handle(self, message: GroupMessage) -> AsyncGenerator[Message, None]:
         if not self.is_valid_message(message):
             return
 
@@ -178,7 +180,7 @@ class DefaultGroupHandler(GroupHandler):
 
                 if node_results and tool_call_id:
                     act_res = ActionResult(
-                        content=node_results,
+                        content=json.dumps(_to_serializable(node_results), ensure_ascii=False),
                         tool_call_id=tool_call_id
                     )
                     action_results.append(act_res)
@@ -192,7 +194,7 @@ class DefaultGroupHandler(GroupHandler):
                     receiver=group_sender,
                     headers={'context': agent_context}
                 )
-                receiver_results[group_sender].append(group_res_msg)
+                receiver_results[group_sender] = [group_res_msg]
 
             for receiver, res_msgs in receiver_results.items():
                 result_message = self._merge_result_messages(res_msgs, message, group_sender_node_id)
@@ -242,6 +244,7 @@ class DefaultGroupHandler(GroupHandler):
         Args:
             agent_tasks: Agent async tasks
         """
+        root_agent_set = set()
         for node_id, task in agent_tasks.items():
             res = await task
             logger.info(f"{node_id} finished task: {res}")
@@ -251,7 +254,7 @@ class DefaultGroupHandler(GroupHandler):
                 logger.warn(f"{self.name()} get group result with empty node.")
                 return
             root_agent_id = node.metadata.get('root_agent_id')
-            # receiver = self._get_step_receiver(root_agent_id)
+            root_agent_set.add(root_agent_id)
             self.context.merge_context(res.context)
             msg = Message(
                 category=Constants.AGENT,
@@ -273,6 +276,10 @@ class DefaultGroupHandler(GroupHandler):
                     finish_group_messages.append(event)
                     print(f"======== event context: {event.context},.context.task: {event.context.get_task()}")
             await state_manager.finish_sub_group(node.metadata.get('group_id'), node_id, finish_group_messages)
+        for agent_id in root_agent_set:
+            agent = self.swarm.agents.get(agent_id)
+            if agent:
+                agent._finished = True
 
     def _merge_result_messages(self, res_msgs: List[Message], input_message: Message, group_sender_node_id: str):
         """Merge multiple result messages

@@ -206,13 +206,7 @@ class TaskEventRunner(TaskRunner):
                             results=[con],
                             handlers=self.handlers
                     ):
-                        if self.is_group_finish(event):
-                            from aworld.runners.state_manager import RuntimeStateManager, RunNodeStatus, RunNodeBusiType
-                            state_mng = RuntimeStateManager.instance()
-                            await state_mng.finish_sub_group(message.group_id, message.headers.get('root_message_id'),
-                                                             [event])
-                        else:
-                            await self.event_mng.emit_message(event)
+                        await self.event_mng.emit_message(event)
                 else:
                     self.state_manager.save_message_handle_result(name=handler.__name__,
                                                                   message=message)

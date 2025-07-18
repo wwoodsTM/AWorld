@@ -22,6 +22,7 @@ class TaskHandler(DefaultHandler):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, runner: 'TaskEventRunner'):
+        super().__init__()
         self.runner = runner
         self.retry_count = runner.task.max_retry_count
         self.hooks = {}
@@ -45,7 +46,7 @@ class DefaultTaskHandler(TaskHandler):
             return False
         return True
 
-    async def handle(self, message: Message) -> AsyncGenerator[Message, None]:
+    async def _do_handle(self, message: Message) -> AsyncGenerator[Message, None]:
         if not self.is_valid_message(message):
             return
 
@@ -123,13 +124,3 @@ class DefaultTaskHandler(TaskHandler):
             # Avoid waiting to receive events and send a mock event for quick cancel
             yield Message(session_id=self.runner.context.session_id, sender=self.name(), category='mock')
             await self.runner.stop()
-
-    async def run_hooks(self, message: Message, hook_point: str) -> AsyncGenerator[Message, None]:
-        hooks = self.hooks.get(hook_point, [])
-        for hook in hooks:
-            try:
-                msg = hook(message)
-                if msg:
-                    yield msg
-            except:
-                logger.warning(f"{hook.point()} {hook.name()} execute fail.")
