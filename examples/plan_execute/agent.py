@@ -2,12 +2,12 @@
 # Copyright (c) 2025 inclusionAI.
 import copy
 import json
-import time
 import traceback
 from typing import Dict, Any, List, Union
 
-from aworld.config.common import Agents
-from aworld.core.agent.base import Agent, AgentFactory
+from examples.tools.common import Agents
+from aworld.core.agent.base import AgentResult
+from aworld.agents.llm_agent import Agent
 from aworld.models.llm import call_llm_model
 from aworld.config.conf import AgentConfig, ConfigDict
 from aworld.core.common import Observation, ActionModel
@@ -16,10 +16,12 @@ from examples.plan_execute.prompts import *
 from examples.plan_execute.utils import extract_pattern
 
 
-@AgentFactory.register(name=Agents.EXECUTE.value, desc="execute agent")
 class ExecuteAgent(Agent):
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
-        super(ExecuteAgent, self).__init__(conf, **kwargs)
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], name: str, **kwargs):
+        super(ExecuteAgent, self).__init__(conf, name, **kwargs)
+
+    def id(self) -> str:
+        return Agents.EXECUTE.value
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -139,7 +141,10 @@ class ExecuteAgent(Agent):
                 tool_name = names[0]
                 action_name = '__'.join(names[1:]) if len(names) > 1 else ''
                 params = json.loads(tool_call.function.arguments)
-                res.append(ActionModel(tool_name=tool_name, action_name=action_name, params=params))
+                res.append(ActionModel(agent_name=Agents.EXECUTE.value,
+                                       tool_name=tool_name,
+                                       action_name=action_name,
+                                       params=params))
 
         if res:
             res[0].policy_info = content
@@ -147,19 +152,26 @@ class ExecuteAgent(Agent):
         elif content:
             policy_info = extract_pattern(content, "final_answer")
             if policy_info:
-                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=policy_info))
+                res.append(ActionModel(agent_name=Agents.EXECUTE.value,
+                                       policy_info=policy_info))
                 self._finished = True
             else:
-                res.append(ActionModel(agent_name=Agents.PLAN.value, policy_info=content))
+                res.append(ActionModel(agent_name=Agents.EXECUTE.value,
+                                       policy_info=content))
 
         logger.info(f">>> execute result: {res}")
-        return res
+
+        result = AgentResult(actions=res,
+                             current_state=None)
+        return result.actions
 
 
-@AgentFactory.register(name=Agents.PLAN.value, desc="plan agent")
 class PlanAgent(Agent):
-    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], **kwargs):
-        super(PlanAgent, self).__init__(conf, **kwargs)
+    def __init__(self, conf: Union[Dict[str, Any], ConfigDict, AgentConfig], name: str, **kwargs):
+        super(PlanAgent, self).__init__(conf, name, **kwargs)
+
+    def id(self) -> str:
+        return Agents.PLAN.value
 
     def reset(self, options: Dict[str, Any]):
         """Execute agent reset need query task as input."""
@@ -193,12 +205,6 @@ class PlanAgent(Agent):
         # build input of llm based history
         for traj in self.trajectory:
             input_content.append({'role': 'user', 'content': traj[0].content})
-            # if traj[-1].tool_calls is not None:
-            #     input_content.append(
-            #         {'role': 'assistant', 'content': '', 'tool_calls': traj[-1].tool_calls})
-            # else:
-            #     input_content.append({'role': 'assistant', 'content': traj[-1].content})
-
             # plan agent no tool to call, use content
             input_content.append({'role': 'assistant', 'content': traj[-1].content})
 
@@ -233,4 +239,8 @@ class PlanAgent(Agent):
 
         self.first = False
         logger.info(f">>> plan result: {content}")
-        return [ActionModel(agent_name=Agents.EXECUTE.value, policy_info=content)]
+        result = AgentResult(actions=[ActionModel(agent_name=Agents.PLAN.value,
+                                                  tool_name=Agents.EXECUTE.value,
+                                                  policy_info=content)],
+                             current_state=None)
+        return result.actions

@@ -1,74 +1,82 @@
-<div align="center">
+<div align="left">
 
-![](readme_assets/framework_logic.png)
-# AWorld: Advancing Agentic AI
+# AWorld: The Agent Runtime for Self-Improvement
+*"Self-awareness: the hardest problem isn't solving within limits, it's discovering the own limitations"*
+
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/AWorld_AI?style=social)](https://x.com/InclusionAI666)
-[![WeChat QR Code](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/aworld_wechat_qr.png)
+[![WeChat QR Code](https://img.shields.io/badge/WeChat-Add%20us-green?logo=wechat&logoColor=white)](https://raw.githubusercontent.com/inclusionAI/AWorld/main/readme_assets/aworld_wechat_qr.jpg)
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-blue?logo=discord&logoColor=white)](https://discord.gg/b4Asj2ynMw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-Explore-blueviolet?logo=wikipedia&logoColor=white)](https://deepwiki.com/inclusionAI/AWorld)
+<!-- [![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b.svg)](https://arxiv.org/abs/xxxx.xxxxx) -->
 
 </div>
 
+[中文版](./README_zh.md)
+
+## Table of Contents
+- [News](#news) — Latest updates and announcements.
+- [Introduction](#introduction) — Overview and purpose of the project.
+- [Installation](#installation) — Step-by-step setup instructions.
+- [Quick Start](#quick-start) — Get started with usage examples.
+- [Architecture](#architecture) — Explore the multi-agent system design.
+- [Demo](#demo) — See the project in action with demonstrations.
+- [Contributing](#contributing) — How to get involved and contribute.
+- [License](#license) — Project licensing details.
+
 ## News
-- 🐳 [2024/05/22] For quick GAIA evaluation, MCP tools, AWorld, and models are now available in a single Docker image. See <code>./README-docker.md</code> for instructions and [youtube video](https://www.youtube.com/watch?v=kkYWeVvJKrg) for demo.
-- 🥳 [2024/05/13] AWorld has updated its state management for browser use and enhanced the video processing MCP server, achieving a score of 77.58 on GAIA validation (Pass@1 = 61.8) and maintaining its position as the top-ranked open-source framework. Learn more: [GAIA leaderboard](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
+- 🦤 [2025/07/07] AWorld, as a runtime, is now ready for agentic training. See [Self-Improvement section](#self-improvement-with-diverse-runtimes) for details. We have updated our score to 77.08 on the GAIA test. Learn how to construct a GAIA runtime in the [Demo section](#demo-of-gaia-agent-runtime).
+- 🦩 [2025/06/19] We have updated our score to 72.43 on the GAIA test. Additionally, we have introduced a new local running mode. See `./README-local.md` for detailed instructions.
+- 🐳 [2025/05/22] For quick GAIA evaluation, MCP tools, AWorld, and models are now available in a single Docker image. See <code>./README-docker.md</code> for instructions and [youtube video](https://www.youtube.com/watch?v=kkYWeVvJKrg) for demo.
+- 🥳 [2025/05/13] AWorld has updated its state management for browser use and enhanced the video processing MCP server, achieving a score of 77.58 on GAIA validation (Pass@1 = 61.8) and maintaining its position as the top-ranked open-source framework. Learn more: [GAIA leaderboard](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
 - ✨ [2025/04/23] AWorld ranks 3rd on GAIA benchmark (69.7 avg) with impressive Pass@1 = 58.8, 1st among open-source frameworks. Reproduce with <code>python examples/gaia/run.py</code>
 
 
 ## Introduction
+AWorld (Agent World) is a multi-agent playground that enables agents to collaborate and self-improve. The framework supports a wide range of applications, including but not limited to product prototype verification, foundation model training and Multi-Agent System (MAS) design meta-learning.
 
-AWorld (short for Agent World) is an advanced framework where multiple AI agents collaborate to accomplish complex goals, such as those found in the GAIA benchmark. Its core features include:
+### Runtime Key Features
+| 1. Agent Construction | 2. Topology Orchestration | 3. Environments |
+|----------------------|--------------------------|-----------------|
+| • ✅ Support for various model services <br> • ✅ Integration with MCP tools <br> • ✅ Custom tool support | • ✅ Protocol encapsulation between models and tools <br> • ✅ Protocol encapsulation among agents | • ✅ Runtime state management <br> • ✅ State tracing support <br> • ✅ Distributed, high-concurrency environments for training |
 
-- **Collaboration**: Enables event-driven communication on two hierarchical levels—between agents, and between models and environments (e.g., MCP servers).
-- **Autonomy**: Features robust runtime state management for handling multi-step, intricate tasks.
-- **Evolution**: Supports a highly concurrent execution environment, empowering agents to learn and adapt across diverse tasks and environments.
+### Self-Improvement with Diverse Runtimes
+By constructing diverse runtime environments (with tools, agents, or models in them), AWorld aims to find the limitations of a model and push intelligence forward. Here we will record some of our work to prove the effectiveness of our proposal.
 
-Unlock the power of intelligent teamwork and continuous improvement with AWorld!
+| Category | Runtime | Performance | Key Information |
+|-----|----------------|-------------|--------------|
+| Tool Use | Function call runtime to be released | Competitive on BFCL benchmark  <br> ![Agent Framework](readme_assets/funReason_BFCL.png) | [![Dataset](https://img.shields.io/badge/Dataset-Coming%20Soon-007ACC?style=for-the-badge&logo=dataset&logoColor=white)]() <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/Bingguang/FunReason) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/pdf/2505.20192) <br> [![Blog](https://img.shields.io/badge/Blog-Coming%20Soon-FF5722?style=for-the-badge&logo=blogger&logoColor=white)]() <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/BingguangHao/FunReason)|
+| Deep Search | Search runtime to be released | SOTA on HotpotQA benchmark  <br> ![Agent Framework](readme_assets/HotpotQA_chart.png) | [![Dataset](https://img.shields.io/badge/Dataset-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning) <br> [![Model](https://img.shields.io/badge/Model-Hugging%20Face-FF6B6B?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/collections/endertzw/rag-r1-68481d7694b3fca8b809aa29) <br> [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2507.02962) <br> [![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/inclusionAI/AgenticLearning)|
 
-## What we offer:
-For quick evaluation, training, rapid prototyping, and other use cases, we provide Docker images that package the MCP tools, AWorld framework, and models together. This enables users to effortlessly utilize AWorld’s communication protocols and state management features right out of the box. The available Docker images are listed below:
+### Demo of GAIA Agent-Runtime
+![GAIA Agent Runtime Demo](readme_assets/gaia_demo.gif)
 
-<table>
-  <tr>
-    <th>Scenario</th>
-    <th>Docker</th>
-    <th>Demo</th>
-  </tr>
-  <tr>
-    <td rowspan="1">Evalution</td>
-    <td>GAIA Evaluation Docker Image. For instructions on building the image, see <code>./README-docker.md</code>.</td>
-   <td>
-      <a href="https://www.youtube.com/watch?v=kkYWeVvJKrg" target="_blank">
-        <img src="https://img.youtube.com/vi/kkYWeVvJKrg/0.jpg" alt="AWorld Browser Demo on YouTube" width="95%">
-        <br>
-        <p align="left">▶️ Runing GAIA task in our image</p>
-      </a>
-   </td>
-  </tr>
+Here we first introduce the **GAIA runtime**, which can be constructed on your local computer. It can be used for:
 
-  <tr>
-    <td rowspan="1">Training</td>
-    <td>  GAIA Training Docker Images, supporting distributed and  high-concurrency deployments. Instructions for training are <i>coming soon</i>.
-</td>
-    <td></td>
-  </tr>
-</table>
+- **Product prototype verification**
+- **Self-improvement training** (See [training pipeline](#backward) for details)
+
+Follow the instructions in [`./examples/gaia/README.md`](./examples/gaia/README.md) to initialize the GAIA agent runtime and run the demo shown above.
 
 > **Want to build your own multi-agent system? Check out the detailed tutorials below to get started! ⬇️⬇️⬇️** 
 
 ## Installation
-With Python>=3.11:
+ Python>=3.11:
 ```bash
-pip install aworld
+git clone https://github.com/inclusionAI/AWorld
+cd AWorld
+python setup.py install
 ```
 
-## Usage
-### Quick Start
+## Quick Start
+> Here's a quick start guide to: (1) create your first agent; (2) equip it with a MCP tool; (3) assign a teammate; and (4) answer a user query through teamwork.
+
 ```python
 from aworld.config.conf import AgentConfig
-from aworld.core.agent.base import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.runner import Runners
+from aworld.core.agent.swarm import Swarm
 
 if __name__ == '__main__':
     agent_config = AgentConfig(
@@ -80,23 +88,87 @@ if __name__ == '__main__':
         # llm_base_url="https://api.openai.com/v1"
     )
 
+    # Register the MCP tool here, or create a separate configuration file.
+    mcp_config = {
+        "mcpServers": {
+            "amap-amap-sse": {
+                "type": "sse",
+                "url": "https://mcp.amap.com/sse?key=YOUR_API_KEY",
+                "timeout": 5,
+                "sse_read_timeout": 300
+            }
+        }
+    }
+
+    # Create your first agent equipped with an MCP tool
     search = Agent(
         conf=agent_config,
         name="search_agent",
         system_prompt="You are a helpful agent.",
-        mcp_servers=["amap-amap-sse"] # MCP server name for agent to use
+        mcp_servers=["amap-amap-sse"], # MCP server name for agent to use
+        mcp_config=mcp_config
     )
 
-    # Run agent
-    Runners.sync_run(input="Hotels within 1 kilometer of West Lake in Hangzhou",
-                     agent=search)
+    # Add a new teammate to the agent
+    summary = Agent(
+        conf=agent_config,
+        name="summary_agent",
+        system_prompt="You are a helpful summary agent."
+    )
+
+    # Collaborate as a team; the default is a static workflow
+    swarm = Swarm(search, summary)
+
+    # Run agent team
+    res = Runners.sync_run(input="Hotels within 1 kilometer of West Lake in Hangzhou",
+                     swarm=swarm)
+    print(res)
 ```
-Here is a MCP server config [example.](examples/mcp_demo/mcp_example.json)
 
+## Architecture
+AWorld is designed to achieve two primary objectives: (1) provide an efficient forward process, and (2) facilitate diverse backward processes, including but not limited to foundation model training and system design meta-learning.
 
+### Forward
+> An illustration of the runtime, showing the message workflow when Agent1 receives a query from a user.
 
-### Running Pre-defined Agents ([demo code](examples/browsers/run.py))
-Below are demonstration videos showcasing AWorld's capabilities across different agent configurations and environments.
+![](readme_assets/runtime.jpg)
+
+### Backward
+
+> During training, an action-state rollout demonstration using **AWorld's distributed environments**.
+
+![](readme_assets/agent_training2.jpg)
+
+> An illustration of training code that seamlessly integrates the RL learning framework (Swift, in this example) with AWorld as the environment is shown below. This integration enables scalable and efficient agent training through distributed environment execution. (To run high-concurrency rollouts, you need to deploy an online distributed environment. Please contact [chenyi.zcy@antgroup.com](mailto:chenyi.zcy@antgroup.com) if assistance is needed.)
+
+#### Usage
+
+To apply and use this integration:
+
+1. Clone AWorld's `agent_training_server` branch:
+```bash
+git clone -b agent_training_server --single-branch https://github.com/inclusionAI/AWorld.git AWorld
+```
+
+2. Clone ms-swift's v3.5.2 branch (shallow clone):
+```bash
+git clone -b v3.5.2 --depth=1 https://github.com/modelscope/ms-swift.git ms-swift
+```
+
+3. Copy patch files from AWorld to ms-swift:
+```bash
+cp -r AWorld/patches ms-swift/
+```
+
+4. Enter the patches directory and apply the patch:
+```bash
+cd ms-swift/patches
+git apply 0001-feat-add-agent-training-support-with-aworld-server.patch
+```
+
+## Demo
+> Running Pre-defined Agents (e.g., see [demo code](examples/browsers/run.py)). Below are demonstration videos showcasing AWorld's capabilities across various agent configurations and environments.
+
 
 <table>
   <tr>
@@ -152,143 +224,6 @@ Below are demonstration videos showcasing AWorld's capabilities across different
   </tr>
 </table>
 
-### or Creating Your Own Agents ([Quick Start Tutorial](./aworld/agents/README.md))
-Here is a multi-agent example of running a level2 task from the [GAIA](https://huggingface.co/gaia-benchmark) benchmark:
-
-```python
-from aworld.agents.gaia.agent import PlanAgent, ExecuteAgent
-from aworld.config.common import Agents, Tools
-from aworld.core.agent.swarm import Swarm
-from aworld.core.task import Task
-from aworld.config.conf import AgentConfig, TaskConfig
-from aworld.dataset.mock import mock_dataset
-from aworld.runner import Runners
-
-import os
-# Need OPENAI_API_KEY
-os.environ['OPENAI_API_KEY'] = "your key"
-# Optional endpoint settings, default `https://api.openai.com/v1`
-# os.environ['OPENAI_ENDPOINT'] = "https://api.openai.com/v1"
-
-# One sample for example
-test_sample = mock_dataset("gaia")
-
-# Create agents
-plan_config = AgentConfig(
-    name=Agents.PLAN.value,
-    llm_provider="openai",
-    llm_model_name="gpt-4o",
-)
-agent1 = PlanAgent(conf=plan_config)
-
-exec_config = AgentConfig(
-    name=Agents.EXECUTE.value,
-    llm_provider="openai",
-    llm_model_name="gpt-4o",
-)
-agent2 = ExecuteAgent(conf=exec_config, tool_names=[Tools.DOCUMENT_ANALYSIS.value])
-
-# Create swarm for multi-agents
-# define (head_node, tail_node) edge in the topology graph
-# NOTE: the correct order is necessary
-swarm = Swarm((agent1, agent2), sequence=False)
-
-# Define a task
-task = Task(input=test_sample, swarm=swarm, conf=TaskConfig())
-
-# Run task
-result = Runners.sync_run_task(task=task)
-
-print(f"Time cost: {result['time_cost']}")
-print(f"Task Answer: {result['task_0']['answer']}")
-```
-```
-Time cost: 26.431413888931274
-Task Answer: Time-Parking 2: Parallel Universe
-```
-<p align="left">
-  <video src="https://github.com/user-attachments/assets/84ccf675-08df-47c1-bd0e-416480ad7cff" controls="controls" muted="muted" style="width: 45%;"></video>
-</p>
-
-## Framework Architecture
-
-AWorld uses a client-server architecture with three main components:
-
-1. **Client-Server Architecture**: Similar to [ray](https://github.com/ray-project/ray), this architecture:
-    - Decouples agents and environments for better scalability and flexibility
-    - Provides a unified interaction protocol for all agent-environment interactions
-
-2. **Agent/Actor**: 
-   - Encapsulates system prompts, tools, mcp servers, and models with the capability to hand off execution to other agents
-
-    | Field        | Type      | Description                                                           |
-    |--------------|-----------|-----------------------------------------------------------------------|
-    | `id`         | string    | Unique identifier for the agent                                       |
-    | `name`       | string    | Name of the agent                                                     |
-    | `model_name` | string    | LLM model name of the agent                                           |
-    | `_llm`       | object    | LLM model instance based on model_name (e.g., "gpt-4", "claude-3")    |
-    | `conf`       | BaseModel | Configuration inheriting from pydantic BaseModel                      |
-    | `trajectory`     | object    | Memory for maintaining context across interactions                   |
-    | `tool_names` | list      | List of tools the agent can use                                       |
-    | `mcp_servers` | list      | List of mcp servers the agent can use                                       |
-    | `handoffs`   | list      | Agent as tool; list of other agents the agent can delegate tasks to                 |
-    | `finished`   | bool      | Flag indicating whether the agent has completed its task              |
-
-3. **Environment/World Model**: Various tools and models in the environment
-   - MCP servers
-   - Computer interfaces (browser, shell, functions, etc.)
-   - World Model
-
-   | Tools | Description |
-   |-------|-------------|
-   | `mcp Servers` | AWorld seamlessly integrates a rich collection of MCP servers as agent tools|
-   | `browser` | Controls web browsers for navigation, form filling, and interaction with web pages |
-   | `android` | Manages Android device simulation for mobile app testing and automation |
-   | `shell` | Executes shell commands for file operations and system interactions |
-   | `code` | Runs code snippets in various languages for data processing and automation |
-   | `search` | Performs web searches and returns structured results for information gathering and summary |
-   | `document` | Handles file operations including reading, writing, and managing directories |
-
-
-## Dual Purpose Framework
-
-AWorld serves two complementary purposes:
-
-### Agent Evaluation
-- Unified task definitions to run both customized and public benchmarks
-- Efficient and stable execution environment
-- Detailed test reports measuring efficiency (steps to completion), completion rates, token costs, ect.
-
-### Agent Training
-- Agent models improve to overcome challenges from env
-- World models (environments) evolve to present new, more complex scenarios
-
-## 🔧 Key Features
-
-- ✨ **MCP Servers as Tools** - Powerful integration of MCP servers providing robust tooling capabilities
-- 🌐 **Environment Multi-Tool Support**: 
-  - [x] Default computer-use tools; (browser, shell, code, APIs, file system, etc.)
-  - [x] Android device simulation
-  - [ ] Cloud sandbox for quick and stable deployment
-  - [ ] Reward model as env simulation
-
-- 🤖 **AI-Powered Agents**:
-  - [x] Agent initialization
-  - [x] Delegation between multiple agents
-  - [ ] Asynchronous delegation
-  - [ ] Human delegation (e.g., for password entry)
-  - [ ] Pre-deployed open source LLMs powered by state-of-the-art [inference frameworks](https://github.com/alipay/PainlessInferenceAcceleration)
-
-- 🎛️ **Web Interface**:
-  - [ ] UI for execution visualization
-  - [ ] Server configuration dashboard
-  - [ ] Real-time monitoring tools
-  - [ ] Performance reporting
-
-- 🧠 **Benchmarks and Samples**:
-  - [ ] Support standardized benchmarks by default, e.g., GAIA, WebArena
-  - [ ] Support customized benchmarks
-  - [ ] Support generating training samples
 
 ## Contributing
 We warmly welcome developers to join us in building and improving AWorld! Whether you're interested in enhancing the framework, fixing bugs, or adding new features, your contributions are valuable to us.
@@ -297,8 +232,8 @@ For academic citations or wish to contact us, please use the following BibTeX en
 
 ```bibtex
 @software{aworld2025,
-  author = {Agent Team at Ant Group},
-  title = {AWorld: A Unified Agent Playground for Computer and Phone Use Tasks},
+  author = {Agent Team at InclusionAI},
+  title = {AWorld: Enabling Agent Self-Improvement through Interactive Experience with Dynamic Runtime},
   year = {2025},
   url = {https://github.com/inclusionAI/AWorld},
   version = {0.1.0},
@@ -310,3 +245,6 @@ For academic citations or wish to contact us, please use the following BibTeX en
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Star History
+![](https://api.star-history.com/svg?repos=inclusionAI/AWorld&type=Date)

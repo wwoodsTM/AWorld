@@ -4,6 +4,7 @@ import uuid
 
 from dotenv import load_dotenv
 
+from aworld import trace
 from examples.debate.agent.debate_agent import DebateAgent
 from examples.debate.agent.main import DebateArena
 from examples.debate.agent.moderator_agent import ModeratorAgent
@@ -13,10 +14,11 @@ from aworld.output import WorkSpace
 
 if __name__ == '__main__':
     load_dotenv()
+    trace.configure()
 
     base_config = {
         "llm_provider": "openai",
-        "llm_model_name": "gpt-4o",
+        "llm_model_name": os.environ['LLM_MODEL_NAME'],
         "llm_base_url": os.environ['LLM_BASE_URL'],
         "llm_api_key": os.environ['LLM_API_KEY'],
     }
@@ -30,7 +32,8 @@ if __name__ == '__main__':
         conf=AgentConfig.model_validate(base_config | {
             "name": "moderator_agent",
             "agent_prompt": generate_opinions_prompt
-        })
+        }),
+        name="moderator_agent"
     )
 
     debate_arena = DebateArena(affirmative_speaker=agent1, negative_speaker=agent2, moderator=moderator_agent,
@@ -47,4 +50,4 @@ if __name__ == '__main__':
             print(f"{speech.name}: {speech.content}")
 
 
-    asyncio.run(start_debate(debate_arena, topic="Who's GOAT? Jordan or Lebron", rounds=3))
+    asyncio.run(start_debate(debate_arena, topic="张居正", rounds=3))

@@ -6,7 +6,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -47,6 +46,7 @@ venv.bak/
 # IDE specific files
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 .DS_Store
@@ -119,17 +119,20 @@ examples/gaia/gaia_dataset/
 *.pptx
 *.ppt
 *.pdf
-*.html
 *.wav
+*.bak
 
 # Node Modules
 node_modules/
-package.json
-package-lock.json
 
+aworld.db
 .data/
-examples/gaia/GAIA/
+examples/gaia/GAIA
 traces*.json
 trace_data
 
-gaia/output
+examples/gaia/output
+examples/**/workspaces
+examples/**/data
+examples/**/*.bak
+=**

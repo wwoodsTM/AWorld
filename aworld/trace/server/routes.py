@@ -1,27 +1,14 @@
-from aworld.logs.util import logger
-from flask import Flask, render_template, jsonify
-from aworld.trace.opentelemetry.memory_storage import SpanModel, TraceStorage
+from aworld.trace.opentelemetry.memory_storage import TraceStorage
+from aworld.utils.import_package import import_package
+from aworld.trace.server.util import build_trace_tree
 
-app = Flask(__name__, template_folder='../../web/templates')
+import_package('fastapi')  # noqa
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, RedirectResponse
+
+app = FastAPI()
 current_storage = None
 routes_setup = False
-
-
-def build_trace_tree(spans: list[SpanModel]):
-    spans_dict = {span.span_id: span.dict() for span in spans}
-    root_spans = [span for span in spans_dict.values()
-                  if span['parent_id'] is None]
-    for span in spans_dict.values():
-        parent_id = span['parent_id'] if span['parent_id'] else None
-        if parent_id:
-            parent_span = spans_dict.get(parent_id)
-            if not parent_span:
-                logger.warning(f"span[{parent_id}] not be exported")
-                continue
-            if 'children' not in parent_span:
-                parent_span['children'] = []
-            parent_span['children'].append(span)
-    return root_spans
 
 
 def setup_routes(storage: TraceStorage):
@@ -33,12 +20,12 @@ def setup_routes(storage: TraceStorage):
     if routes_setup:
         return app
 
-    @app.route('/')
-    def index():
-        return render_template('trace_ui.html')
+    @app.get("/")
+    async def root():
+        return RedirectResponse("/static/trace_ui.html")
 
-    @app.route('/api/traces')
-    def traces():
+    @app.get('/api/trace/list')
+    async def traces():
         trace_data = []
         for trace_id in current_storage.get_all_traces():
             spans = current_storage.get_all_spans(trace_id)
@@ -48,16 +35,28 @@ def setup_routes(storage: TraceStorage):
                 'trace_id': trace_id,
                 'root_span': trace_tree,
             })
-        return jsonify(trace_data)
+            response = {
+                "data": trace_data
+            }
+        return JSONResponse(content=response)
 
-    @app.route('/api/traces/<trace_id>')
-    def get_trace(trace_id):
+    @app.get('/api/traces/{trace_id}')
+    async def get_trace(trace_id):
         spans = current_storage.get_all_spans(trace_id)
         spans_sorted = sorted(spans, key=lambda x: x.start_time)
         trace_tree = build_trace_tree(spans_sorted)
-        return jsonify({
+        return JSONResponse(content={
             'trace_id': trace_id,
             'root_span': trace_tree,
+        })
+
+    @app.get('/api/trace_flow/{trace_id}')
+    async def get_trace_flow(trace_id):
+        from examples.trace.agent_flow import get_agent_flow
+        trace_tree = get_agent_flow(trace_id)
+        return JSONResponse(content={
+            'trace_id': trace_id,
+            'data': trace_tree
         })
 
     routes_setup = True

@@ -4,6 +4,7 @@ from typing import Dict, Any, Union, List, Literal, Optional
 from datetime import datetime
 import uuid
 
+from aworld.models.model_response import ToolCall
 from examples.debate.agent.base import DebateSpeech
 from examples.debate.agent.prompts import user_assignment_prompt, user_assignment_system_prompt, affirmative_few_shots, \
     negative_few_shots, \
@@ -28,9 +29,9 @@ class DebateAgent(StreamOutputAgent, ABC):
 
     stance: Literal["affirmative", "negative"]
 
-    def __init__(self, name: str, stance: Literal["affirmative", "negative"], conf: AgentConfig, search_engine: Optional[SearchEngine] = TavilySearchEngine()):
+    def __init__(self, conf: AgentConfig, name: str, stance: Literal["affirmative", "negative"], search_engine: Optional[SearchEngine] = TavilySearchEngine()):
         conf.name = name
-        super().__init__(conf)
+        super().__init__(conf, name)
         self.steps = 0
         self.stance = stance
         self.search_engine = search_engine
@@ -70,7 +71,16 @@ class DebateAgent(StreamOutputAgent, ABC):
             logging.info(f"keyword#{search_result['query']}-> result size is {len(search_result['results'])}")
             search_item = {
                 "query": search_result.get("query", ""),
-                "results": [SearchItem(title=result["title"],url=result["url"], content=result['content'], raw_content=result['raw_content'], metadata={}) for result in search_result["results"]]
+                "results": [SearchItem(title=result["title"],url=result["url"], content=result['content'], raw_content=result['raw_content'], metadata={}) for result in search_result["results"]],
+                "origin_tool_call": ToolCall.from_dict({
+                    "id": f"call_search",
+                    "type": "function",
+                    "function": {
+                        "name": "search",
+                        "arguments": keywords
+                    }
+                }),
+                "task_id": self.context.task_id
             }
             search_output = SearchOutput.from_dict(search_item)
             await self.workspace.create_artifact(

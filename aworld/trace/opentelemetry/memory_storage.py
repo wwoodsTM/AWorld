@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, Union
 from opentelemetry.sdk.trace import Span, SpanContext
 from opentelemetry.sdk.trace.export import SpanExporter
 from aworld.logs.util import logger
-from aworld.replay_buffer.processor import ReplayBufferExporter
+from aworld.trace.constants import ATTRIBUTES_MESSAGE_RUN_TYPE_KEY, RunType
 
 
 class SpanStatus(BaseModel):
@@ -29,6 +29,8 @@ class SpanModel(BaseModel):
     status: SpanStatus
     parent_id: Optional[str]
     children: list['SpanModel'] = []
+    run_type: Optional[str] = RunType.OTHER.value
+    is_event: bool = False
 
     @staticmethod
     def from_span(span):
@@ -53,7 +55,10 @@ class SpanModel(BaseModel):
                 description=span.status.description or None
             ),
             parent_id=SpanModel.get_span_id(
-                span.parent) if span.parent else None
+                span.parent) if span.parent else None,
+            run_type=span.attributes.get(
+                ATTRIBUTES_MESSAGE_RUN_TYPE_KEY, RunType.OTHER.value),
+            is_event=(span.attributes.get("event.id") is not None)
         )
 
     @staticmethod
@@ -125,10 +130,13 @@ class InMemoryWithPersistStorage(TraceStorage):
         self._lock = threading.Lock()
         self._persist_thread = None
         self._load_today_traces()
+        self.current_filename = None
 
     def _get_today_filename(self):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"trace_{timestamp}.json"
+        if not self.current_filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.current_filename = f"trace_{timestamp}.json"
+        return self.current_filename
 
     def _load_today_traces(self):
         today = datetime.now().strftime("%Y%m%d")
@@ -219,22 +227,12 @@ class InMemorySpanExporter(SpanExporter):
     Span exporter that stores spans in memory.
     """
 
-    def __init__(self, storage: TraceStorage, export_dir: str = None):
+    def __init__(self, storage: TraceStorage):
         self._storage = storage
-        self._export_dir = export_dir
-        self._export_processor = ReplayBufferExporter()
 
     def export(self, spans):
-        span_model_list = []
         for span in spans:
             self._storage.add_span(span)
-            span_model_list.append(SpanModel.from_span(span).model_dump())
-
-        if (os.getenv("EXPORT_REPLAY_TRACE_TO_FILES") or "true").lower() == "true":
-            storage_dir = self._export_dir or self._storage.storage_dir if hasattr(
-                self._storage, "storage_dir") else "./trace_data"
-            self._export_processor.replay_buffer_exporter(
-                spans=span_model_list, output_dir=storage_dir)
 
     def shutdown(self):
         pass

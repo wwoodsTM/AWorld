@@ -1,13 +1,11 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
-import os
 
+from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig
-
-from aworld.config.common import Tools
-from aworld.core.agent.base import Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.runner import Runners
+from examples.tools.common import Tools
 
 search_sys_prompt = "You are a helpful search agent."
 search_prompt = """
@@ -39,8 +37,6 @@ if __name__ == "__main__":
         llm_model_name="gpt-4o",
         llm_temperature=1,
         # need to set llm_api_key for use LLM
-        llm_base_url="http://localhost:34567",
-        llm_api_key="dummy-key",
     )
 
     search = Agent(
@@ -57,7 +53,7 @@ if __name__ == "__main__":
         system_prompt=summary_sys_prompt,
         agent_prompt=summary_prompt
     )
-    # default is sequence swarm mode
+    # default is workflow swarm
     swarm = Swarm(search, summary, max_steps=1)
 
     prefix = ""

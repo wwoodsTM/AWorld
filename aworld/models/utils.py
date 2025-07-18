@@ -7,12 +7,14 @@ from typing import Dict, Any, List, Union
 
 from aworld.core.context.base import Context
 from aworld.logs.util import logger
+from aworld.models.qwen_tokenizer import qwen_tokenizer
+from aworld.models.openai_tokenizer import openai_tokenizer
 from aworld.utils import import_package
 
 
 def usage_process(usage: Dict[str, Union[int, Dict[str, int]]] = {}, context: Context = None):
     if not context:
-        context = Context.instance()
+        context = Context()
 
     stacks = inspect.stack()
     index = 0
@@ -38,11 +40,17 @@ def num_tokens_from_messages(messages, model="gpt-4o"):
     import_package("tiktoken")
     import tiktoken
 
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
-        logger.warning(f"{model} model not found. Using cl100k_base encoding.")
-        encoding = tiktoken.get_encoding("cl100k_base")
+    if model.lower() == "qwen":
+        encoding = qwen_tokenizer
+    elif model.lower() == "openai":
+        encoding = openai_tokenizer
+    else:
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            logger.warning(
+                f"{model} model not found. Using cl100k_base encoding.")
+            encoding = tiktoken.get_encoding("cl100k_base")
 
     tokens_per_message = 3
     tokens_per_name = 1
@@ -50,12 +58,33 @@ def num_tokens_from_messages(messages, model="gpt-4o"):
     num_tokens = 0
     for message in messages:
         num_tokens += tokens_per_message
-        for key, value in message.items():
-            num_tokens += len(encoding.encode(value))
-            if key == "name":
-                num_tokens += tokens_per_name
+        if isinstance(message, str):
+            num_tokens += len(encoding.encode(message))
+        else:
+            for key, value in message.items():
+                num_tokens += len(encoding.encode(str(value)))
+                if key == "name":
+                    num_tokens += tokens_per_name
     num_tokens += 3
     return num_tokens
+
+
+def truncate_tokens_from_messages(messages: List[Dict[str, Any]], max_tokens: int, keep_both_sides: bool = False, model: str = "gpt-4o"):
+    import_package("tiktoken")
+    import tiktoken
+
+    if model.lower() == "qwen":
+        return qwen_tokenizer.truncate(messages, max_tokens, keep_both_sides)
+    elif model.lower() == "openai":
+        return openai_tokenizer.truncate(messages, max_tokens, keep_both_sides)
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        logger.warning(f"{model} model not found. Using cl100k_base encoding.")
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+    return encoding.truncate(messages, max_tokens, keep_both_sides)
 
 
 def agent_desc_transform(agent_dict: Dict[str, Any],
@@ -74,13 +103,13 @@ def agent_desc_transform(agent_dict: Dict[str, Any],
     agent_as_tools = []
     if not agents and strategy == 'min':
         return agent_as_tools
-
     if provider and 'openai' in provider:
         for agent_name, agent_info in agent_dict.items():
             if agents and agent_name not in agents:
-                logger.debug(f"{agent_name} can not supported in {agents}, you can set `tools` params to support it.")
+                logger.debug(
+                    f"{agent_name} can not supported in {agents}, you can set `tools` params to support it.")
                 continue
-
+            
             for action in agent_info["abilities"]:
                 # Build parameter properties
                 properties = {}
@@ -94,7 +123,7 @@ def agent_desc_transform(agent_dict: Dict[str, Any],
                         required.append(param_name)
 
                 openai_function_schema = {
-                    "name": f'{agent_name}__{action["name"]}',
+                    "name": f'{agent_name}', # __{action["name"]}
                     "description": action["desc"],
                     "parameters": {
                         "type": "object",
@@ -134,7 +163,8 @@ def tool_desc_transform(tool_dict: Dict[str, Any],
     if provider and 'openai' in provider:
         for tool_name, tool_info in tool_dict.items():
             if tools and tool_name not in tools:
-                logger.debug(f"{tool_name} can not supported in {tools}, you can set `tools` params to support it.")
+                logger.debug(
+                    f"{tool_name} can not supported in {tools}, you can set `tools` params to support it.")
                 continue
 
             black_actions = black_tool_actions.get(tool_name, [])

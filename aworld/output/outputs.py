@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import traceback
 from abc import abstractmethod
 from dataclasses import field, dataclass
 from typing import AsyncIterator, Any, Union, Iterator
@@ -112,6 +113,7 @@ class StreamingOutputs(AsyncOutputs):
     # task: Task = Field(default=None)  # The task associated with these outputs
     input: Any = field(default=None)  # Input data for the task
     usage: dict = field(default=None)  # Usage statistics
+    task_id: str = field(default=None)  # Input data for the task
 
     # State tracking
     is_complete: bool = field(default=False)  # Flag indicating if streaming is complete
@@ -132,6 +134,9 @@ class StreamingOutputs(AsyncOutputs):
         Args:
             output (Output): The output to be added to the queue
         """
+        logger.info(f"StreamingOutputs|add_output|{self.task_id}|{output}")
+        if self.task_id != output.task_id:
+            logger.warning(f"{self.task_id} unequals {output.task_id}, add ignored.")
         self._output_queue.put_nowait(output)
 
     async def stream_events(self) -> AsyncIterator[Output]:
@@ -149,27 +154,34 @@ class StreamingOutputs(AsyncOutputs):
             if output == RUN_FINISHED_SIGNAL:
                 self._output_queue.task_done()
                 return
+            # if self.task_id != output.task_id:
+            #     logger.warning(f"{self.task_id} unequals {output.task_id}")
+            #     return
             yield output
 
         # Main streaming loop
         while True:
             self._check_errors()
             if self._stored_exception:
-                logger.debug("Breaking due to stored exception")
+                logger.info("Breaking due to stored exception")
                 self.is_complete = True
                 break
 
             if self.is_complete and self._output_queue.empty():
+                logger.info(f"StreamingOutputs|stream_events|finished|{self.task_id}")
                 break
 
             try:
                 output = await self._output_queue.get()
+                logger.debug("Outputs got output: {}".format(output.output_type()))
                 self._visited_outputs.append(output)
 
-            except asyncio.CancelledError:
+            except asyncio.CancelledError as err:
+                logger.info(f"StreamingOutputs|stream_events|CancelledError|{self.task_id}|{err}")
                 break
 
             if output == RUN_FINISHED_SIGNAL:
+                logger.info(f"StreamingOutputs|stream_events|RUN_FINISHED_SIGNAL|{self.task_id}|{output}")
                 self._output_queue.task_done()
                 self._check_errors()
                 break
@@ -180,6 +192,7 @@ class StreamingOutputs(AsyncOutputs):
         self._cleanup_tasks()
 
         if self._stored_exception:
+            logger.info(f"StreamingOutputs|stream_events|stored_exception|{self.task_id}|{self._stored_exception}")
             raise self._stored_exception
 
     def _check_errors(self):

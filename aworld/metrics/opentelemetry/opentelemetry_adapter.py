@@ -1,4 +1,4 @@
-import requests
+
 import os
 from urllib.parse import urljoin
 from typing import Optional, Sequence
@@ -9,7 +9,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, ConsoleMetricExporter
-from aworld.metrics.metric import(
+from aworld.metrics.metric import (
     Gauge,
     Histogram,
     MetricProvider,
@@ -24,6 +24,7 @@ MEMORY_FIELDS: list[LiteralString] = 'available used free active inactive buffer
 """
 The fields of the memory information returned by psutil.virtual_memory().
 """
+
 
 class OpentelemetryMetricProvider(MetricProvider):
     """
@@ -41,7 +42,8 @@ class OpentelemetryMetricProvider(MetricProvider):
         self._exporter = exporter
 
         self._otel_provider = MeterProvider(
-            metric_readers=[PeriodicExportingMetricReader(exporter=self._exporter, export_interval_millis=5000)],
+            metric_readers=[PeriodicExportingMetricReader(
+                exporter=self._exporter, export_interval_millis=5000)],
             resource=build_otel_resource()
         )
         metrics.set_meter_provider(self._otel_provider)
@@ -133,7 +135,8 @@ class OpentelemetryCounter(Counter):
             provider: The provider of the counter.
         """
         super().__init__(name, description, unit, provider)
-        self._counter = provider._meter.create_counter(name=name, description=description, unit=unit)
+        self._counter = provider._meter.create_counter(
+            name=name, description=description, unit=unit)
 
     def add(self, value: int, labels: dict = None) -> None:
         """
@@ -167,7 +170,8 @@ class OpentelemetryUpDownCounter(UpDownCounter):
             provider: The provider of the counter.
         """
         super().__init__(name, description, unit, provider)
-        self._counter = provider._meter.create_up_down_counter(name=name, description=description, unit=unit)
+        self._counter = provider._meter.create_up_down_counter(
+            name=name, description=description, unit=unit)
 
     def inc(self, value: int, labels: dict = None) -> None:
         """
@@ -212,7 +216,8 @@ class OpentelemetryGauge(Gauge):
             provider: The provider of the gauge.
         """
         super().__init__(name, description, unit, provider)
-        self._gauge = provider._meter.create_gauge(name=name, description=description, unit=unit)
+        self._gauge = provider._meter.create_gauge(
+            name=name, description=description, unit=unit)
 
     def set(self, value: int, labels: dict = None) -> None:
         """
@@ -269,7 +274,7 @@ def configure_otlp_provider(backend: Sequence[str] = None,
                             base_url: str = None,
                             write_token: str = None,
                             **kwargs
-) -> None:
+                            ) -> None:
     """
     Configure the OpenTelemetry provider.
     Args:
@@ -278,13 +283,16 @@ def configure_otlp_provider(backend: Sequence[str] = None,
         write_token: The write token of the backend.
         **kwargs: The keyword arguments to pass to the backend.
     """
+    import requests
+    from opentelemetry.exporter.otlp.proto.http import Compression
+    from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+
     if backend == "console":
         set_metric_provider(OpentelemetryMetricProvider())
     elif backend == "logfire":
-        from opentelemetry.exporter.otlp.proto.http import Compression
-        from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
         base_url = base_url or "https://logfire-us.pydantic.dev"
-        headers = {'User-Agent': f'logfire/3.14.0', 'Authorization': write_token}
+        headers = {'User-Agent': f'logfire/3.14.0',
+                   'Authorization': write_token}
         session = requests.Session()
         session.headers.update(headers)
         exporter = OTLPMetricExporter(
@@ -294,19 +302,21 @@ def configure_otlp_provider(backend: Sequence[str] = None,
         )
         set_metric_provider(OpentelemetryMetricProvider(exporter))
     elif backend == "antmonitor":
-        from opentelemetry.exporter.otlp.proto.http import Compression
-        from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
         ant_otlp_endpoint = os.getenv("ANT_OTEL_ENDPOINT")
         base_url = base_url or ant_otlp_endpoint
         session = requests.Session()
+        session.timeout = 30
         exporter = OTLPMetricExporter(
             endpoint=base_url,
             session=session,
-            compression=Compression.Gzip
+            compression=Compression.Gzip,
+            timeout=30
         )
         set_metric_provider(OpentelemetryMetricProvider(exporter))
-        
-    if os.getenv("METRICS_SYSTEM_ENABLED") == "true":
+
+    metrics_system_enabled = kwargs.get("metrics_system_enabled") or os.getenv(
+        "METRICS_SYSTEM_ENABLED") or "false"
+    if metrics_system_enabled.lower() == "true":
         instrument_system_metrics()
 
 
@@ -330,6 +340,7 @@ def instrument_system_metrics():
     instrumentor = SystemMetricsInstrumentor(config=config)
     otel_provider = get_metric_provider()._otel_provider
     instrumentor.instrument(meter_provider=otel_provider)
+
 
 def build_otel_resource():
     """

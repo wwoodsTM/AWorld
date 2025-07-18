@@ -3,13 +3,13 @@
 
 from typing import Any, Dict, Union, List
 
-from aworld.config.common import Agents, Tools
-from aworld.core.agent.base import Agent, AgentFactory
+from examples.tools.common import Agents, Tools
+from aworld.core.agent.base import AgentFactory
 from aworld.config.conf import AgentConfig, ConfigDict
+from aworld.agents.llm_agent import Agent
 from aworld.core.common import Observation, ActionModel
 
 
-@AgentFactory.register(name=Agents.GYM.value, desc="gym agent")
 class GymDemoAgent(Agent):
     """Example agent"""
 
@@ -21,11 +21,11 @@ class GymDemoAgent(Agent):
         import numpy as np
 
         env_id = observation.info.get('env_id')
-        if env_id != 'CartPole-v1':
+        if env_id and env_id != 'CartPole-v1':
             raise ValueError("Unsupported env")
 
         res = np.random.randint(2)
-        action = [ActionModel(tool_name=Tools.GYM.value, action_name="play", params={"result": res})]
+        action = [ActionModel(agent_name=self.id(), tool_name=Tools.GYM.value, action_name="play", params={"result": res})]
         if observation.info.get("done"):
             self._finished = True
         return action

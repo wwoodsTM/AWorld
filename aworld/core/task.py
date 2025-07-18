@@ -3,26 +3,27 @@
 import abc
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Union, List, Dict, Callable
+from typing import Any, Union, List, Dict, Callable, Optional
 
 from pydantic import BaseModel
 
-from aworld.core.agent.base import Agent
+from aworld.agents.llm_agent import Agent
 from aworld.core.agent.swarm import Swarm
 from aworld.core.common import Config
 from aworld.core.context.base import Context
-from aworld.core.envs.tool import Tool, AsyncTool
-from aworld.output.outputs import Outputs, StreamingOutputs, DefaultOutputs
+from aworld.core.tool.base import Tool, AsyncTool
+from aworld.output.outputs import Outputs, DefaultOutputs
 
 
 @dataclass
 class Task:
-    id: str = uuid.uuid1().hex
-    name: str = uuid.uuid1().hex
-    session_id: str = None
-    input: Any = None
+    id: str = field(default_factory=lambda: uuid.uuid1().hex)
+    name: str = field(default_factory=lambda: uuid.uuid1().hex)
+    user_id: str = field(default=None)
+    session_id: str = field(default=None)
+    input: Any = field(default=None)
     # task config
-    conf: Config = None
+    conf: Config = field(default=None)
     # global tool instance
     tools: List[Union[Tool, AsyncTool]] = field(default_factory=list)
     # global tool names
@@ -31,21 +32,33 @@ class Task:
     tools_conf: Config = field(default_factory=dict)
     # custom mcp servers conf
     mcp_servers_conf: Config = field(default_factory=dict)
-    swarm: Swarm = None
-    agent: Agent = None
+    swarm: Optional[Swarm] = field(default=None)
+    agent: Optional[Agent] = field(default=None)
+    event_driven: bool = field(default=True)
     # for loop detect
-    endless_threshold: int = 3
+    endless_threshold: int = field(default=3)
     # task_outputs
     outputs: Outputs = field(default_factory=DefaultOutputs)
+    # task special runner class, for example: package.XXRunner
+    runner_cls: Optional[str] = field(default=None)
+    # such as: {"start": ["init_tool", "init_context", ...]}
+    hooks: Dict[str, List[str]] = field(default_factory=dict)
+    # task specified context
+    context: 'Context' = field(default=None)
+    is_sub_task: bool = field(default=False)
+    group_id: str = field(default=None)
+    max_retry_count: int = 0
 
 
-class TaskResponse(BaseModel):
-    id: str
-    answer: str | None
-    usage: Dict[str, Any] | None = None
-    time_cost: float | None = None
-    success: bool = False
-    msg: str | None = None
+@dataclass
+class TaskResponse:
+    id: str = field(default=None)
+    answer: str | None = field(default=None)
+    context: Context | None = field(default_factory=Context)
+    usage: Dict[str, Any] | None = field(default_factory=dict)
+    time_cost: float | None = field(default=0.0)
+    success: bool = field(default=False)
+    msg: str | None = field(default=None)
 
 
 class Runner(object):

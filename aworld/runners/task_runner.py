@@ -1,41 +1,54 @@
 # coding: utf-8
 # Copyright (c) 2025 inclusionAI.
 import abc
+import time
 import uuid
+from typing import Callable, Any
 
 from pydantic import BaseModel
 
+import aworld.tools
 from aworld.config import ConfigDict
 from aworld.config.conf import ToolConfig
-from aworld.core.agent.base import is_agent_by_name
 from aworld.core.agent.swarm import Swarm
-from aworld.core.common import Observation, ActionModel, StatefulObservation
+from aworld.core.common import Observation
 from aworld.core.context.base import Context
 from aworld.core.context.session import Session
-from aworld.core.envs.tool import Tool, AsyncTool
-from aworld.core.task import Runner, Task, TaskResponse
+from aworld.core.tool.base import Tool, AsyncTool
+from aworld.core.task import Task, TaskResponse, Runner
 from aworld.logs.util import logger
 from aworld import trace
-from aworld.memory.main import Memory
 
 
 class TaskRunner(Runner):
-    """Task based runner base class."""
+    """Task based runner api class."""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, task: Task, *args, **kwargs):
+    def __init__(self,
+                 task: Task,
+                 *,
+                 agent_oriented: bool = True,
+                 daemon_target: Callable[..., Any] = None):
+        """Task runner initialize.
+
+        Args:
+            task: Task entity to be executed.
+            agent_oriented: Is it an agent oriented task, default is True.
+        """
         if task.tools is None:
             task.tools = []
         if task.tool_names is None:
             task.tool_names = []
 
-        if not task.agent and not task.swarm:
-            raise ValueError("agent and swarm all is None.")
-        if task.agent and task.swarm:
-            raise ValueError("agent and swarm choose one only.")
-        if task.agent:
-            # uniform agent
-            task.swarm = Swarm(task.agent)
+        if agent_oriented:
+            if not task.agent and not task.swarm:
+                raise ValueError("agent and swarm all is None.")
+            if task.agent and task.swarm:
+                logger.warning("agent and swarm all is not None.")
+                raise ValueError("agent and swarm choose one only.")
+            if task.agent:
+                # uniform agent
+                task.swarm = Swarm(task.agent)
 
         if task.conf is None:
             task.conf = dict()
@@ -45,14 +58,16 @@ class TaskRunner(Runner):
         if check_input and not task.input:
             raise ValueError("task no input")
 
-        self.context = Context()
+        self.context = task.context if task.context else Context()
         self.task = task
-        self.daemon_target = kwargs.pop('daemon_target', None)
-        self._use_demon = False if not task.conf else task.conf.get('use_demon', False)
+        self.context.set_task(task)
+        self.agent_oriented = agent_oriented
+        self.daemon_target = daemon_target
+        self._use_demon = False if not task.conf else task.conf.get(
+            'use_demon', False)
         self._exception = None
+        self.start_time = time.time()
         self.step_agent_counter = {}
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
     async def pre_run(self):
         task = self.task
@@ -61,7 +76,8 @@ class TaskRunner(Runner):
         self.outputs = task.outputs
         self.name = task.name
         self.conf = task.conf if task.conf else ConfigDict()
-        self.tools = {tool.name(): tool for tool in task.tools} if task.tools else {}
+        self.tools = {
+            tool.name(): tool for tool in task.tools} if task.tools else {}
         task.tool_names.extend(self.tools.keys())
         # lazy load
         self.tool_names = task.tool_names
@@ -76,11 +92,13 @@ class TaskRunner(Runner):
         if task.session_id:
             session = Session(session_id=task.session_id)
         else:
-            session = Session(session_id=uuid.uuid1().hex)
-        trace_id = uuid.uuid1().hex if trace.get_current_span() is None else trace.get_current_span().get_trace_id()
-        self.context.task_id = self.name
+            session = Session(session_id=uuid.uuid4().hex)
+        trace_id = uuid.uuid1().hex if trace.get_current_span(
+        ) is None else trace.get_current_span().get_trace_id()
+        self.context.task_id = self.task.id
         self.context.trace_id = trace_id
         self.context.session = session
+        self.context.swarm = self.swarm
 
         # init tool state by reset(), and ignore them observation
         observation = None
@@ -101,20 +119,16 @@ class TaskRunner(Runner):
         else:
             observation = Observation(content=self.input)
 
-        # query task and session from memory
-        self.memory = Memory.from_config({"memory_store": self.conf.get("memory_store", "inmemory")})
-        histories = self.memory.get_all()
-        if histories:
-            observation = StatefulObservation(context=histories, **observation.model_dump())
         self.observation = observation
-        self.swarm.reset(observation.content, context=self.context, tools=self.tool_names)
+        if self.swarm:
+            self.swarm.event_driven = task.event_driven
+            self.swarm.reset(observation.content,
+                             context=self.context, tools=self.tool_names)
+        logger.info(f'{"sub task: " if self.task.is_sub_task else "main task: "}{self.task.id} started...')
 
     async def post_run(self):
-        self.context.reset()
+        pass
 
     @abc.abstractmethod
     async def do_run(self, context: Context = None) -> TaskResponse:
         """Task do run."""
-
-    def is_agent(self, policy: ActionModel):
-        return is_agent_by_name(policy.tool_name) or (not policy.tool_name and not policy.action_name)
