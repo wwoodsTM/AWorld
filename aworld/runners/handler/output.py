@@ -3,6 +3,7 @@ import json
 from typing import AsyncGenerator
 from aworld.core.task import TaskResponse
 from aworld.models.model_response import ModelResponse
+from aworld.runners import HandlerFactory
 from aworld.runners.handler.base import DefaultHandler
 from aworld.output.base import StepOutput, MessageOutput, Output
 from aworld.core.common import TaskItem
@@ -10,6 +11,7 @@ from aworld.core.event.base import Message, Constants, TopicType
 from aworld.logs.util import logger
 
 
+@HandlerFactory.register(name=f'__{Constants.OUTPUT}__')
 class DefaultOutputHandler(DefaultHandler):
     def __init__(self, runner):
         self.runner = runner

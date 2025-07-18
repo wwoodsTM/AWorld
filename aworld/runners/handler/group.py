@@ -12,6 +12,7 @@ from aworld.core.context.base import Context
 from aworld.core.event.base import Message, Constants, TopicType, GroupMessage
 from aworld.logs.util import logger
 from aworld.output.base import StepOutput
+from aworld.runners import HandlerFactory
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.handler.tool import DefaultToolHandler
 from aworld.runners.state_manager import RuntimeStateManager, RunNodeStatus
@@ -32,6 +33,7 @@ class GroupHandler(DefaultHandler):
         return "_group_handler"
 
 
+@HandlerFactory.register(name=f'__{Constants.GROUP}__')
 class DefaultGroupHandler(GroupHandler):
     def is_valid(self, message: Message):
         if message.category != Constants.GROUP:

@@ -12,6 +12,7 @@ from aworld.core.event.base import Message, Constants, TopicType
 from aworld.core.task import TaskResponse
 from aworld.logs.util import logger
 from aworld.output import Output
+from aworld.runners import HandlerFactory
 from aworld.runners.handler.base import DefaultHandler
 from aworld.runners.hook.hook_factory import HookFactory
 from aworld.runners.hook.hooks import HookPoint
@@ -37,6 +38,7 @@ class TaskHandler(DefaultHandler):
         return "_task_handler"
 
 
+@HandlerFactory.register(name=f'__{Constants.TASK}__')
 class DefaultTaskHandler(TaskHandler):
     def is_valid(self, message: Message):
         if message.category != Constants.TASK:

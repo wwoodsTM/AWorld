@@ -452,7 +452,7 @@ class Agent(BaseAgent[Observation, List[ActionModel]]):
                                caller=caller,
                                sender=self.id(),
                                receiver=actions[0].tool_name,
-                               category=Constants.MULTI_AGENT_TEAM,
+                               category=Constants.PLAN,
                                session_id=self.context.session_id if self.context else "",
                                headers=self._update_headers(input_message))
 

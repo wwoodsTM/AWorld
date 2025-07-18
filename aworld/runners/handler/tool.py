@@ -9,6 +9,7 @@ from aworld.core.common import ActionModel, TaskItem
 from aworld.core.event.base import Message, Constants, TopicType
 from aworld.core.tool.base import AsyncTool, Tool, ToolFactory
 from aworld.logs.util import logger
+from aworld.runners import HandlerFactory
 from aworld.runners.handler.base import DefaultHandler
 
 
@@ -24,6 +25,7 @@ class ToolHandler(DefaultHandler):
         return "_tool_handler"
 
 
+@HandlerFactory.register(name=f'__{Constants.TOOL}__')
 class DefaultToolHandler(ToolHandler):
     def is_valid(self, message: Message):
         if message.category != Constants.TOOL:
