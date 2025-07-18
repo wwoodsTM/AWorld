@@ -15,7 +15,7 @@ from examples.tools.common import Tools
 from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig, ModelConfig
 
-from examples.deepresearch.prompts import *
+from examples.multi_agents.deepresearch.prompts import *
 
 # os.environ["LLM_MODEL_NAME"] = "qwen/qwen3-8b"
 # os.environ["LLM_BASE_URL"] = "http://localhost:1234/v1"

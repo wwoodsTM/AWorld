@@ -5,8 +5,6 @@ import sys
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from aworld.planner.plan import DefaultPlanner
-
 from aworld.core.agent.swarm import TeamSwarm
 from aworld.runner import Runners
 from examples.tools.common import Tools
@@ -14,7 +12,7 @@ from examples.tools.common import Tools
 from aworld.agents.llm_agent import Agent
 from aworld.config.conf import AgentConfig, ModelConfig
 
-from examples.master_worker.prompts_multi_actions import (
+from examples.multi_agents.master_worker.prompts_single_action import (
     plan_sys_prompt, 
     search_sys_prompt,
     summary_sys_prompt
@@ -25,9 +23,9 @@ os.environ["LLM_MODEL_NAME"] = "YOUR_LLM_MODEL_NAME"
 os.environ["LLM_BASE_URL"] = "YOUR_LLM_BASE_URL"
 os.environ["LLM_API_KEY"] = "YOUR_LLM_API_KEY"
 
-def get_multi_action_team_swarm(user_input):
+def get_single_action_team_swarm(user_input):
     """
-    Create a multi-action version of TeamSwarm, consisting of PlanAgent, SearchAgent, and SummaryAgent
+    Create a single-action version of TeamSwarm, consisting of PlanAgent, SearchAgent, and SummaryAgent
     
     In this version, PlanAgent generates only one action at a time, deciding whether to execute a search or summary based on the current context
     
@@ -81,10 +79,10 @@ def get_multi_action_team_swarm(user_input):
 
 if __name__ == "__main__":
     # User input example
-    user_input = "Research the future development plans of Horizon Robotics and Momenta"
+    user_input = "Please provide me with information about the latest developments in large language models"
     
-    # Create multi-action version of TeamSwarm
-    swarm = get_multi_action_team_swarm(user_input)
+    # Create single-action version of TeamSwarm
+    swarm = get_single_action_team_swarm(user_input)
     
     # Run TeamSwarm
     result = Runners.sync_run(
@@ -92,4 +90,4 @@ if __name__ == "__main__":
         swarm=swarm
     )
     
-    print("Parallel-action TeamSwarm execution result: ", result)
+    print("Single-action TeamSwarm execution result: ", result) 
