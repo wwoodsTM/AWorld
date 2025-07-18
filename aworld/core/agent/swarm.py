@@ -112,6 +112,7 @@ class Swarm(object):
             logger.warning("No valid agent in swarm.")
             return
 
+        self.build_type = agent_graph.build_type
         _, has_cycle = agent_graph.topological_sequence()
         # Coordination mode, ordered_agents only requires the master node
         if self.build_type == GraphBuildType.TEAM.value:
@@ -382,6 +383,7 @@ class AgentGraph:
     """The agent's graph is a directed graph, and can update the topology at runtime."""
 
     def __init__(self,
+                 build_type: str,
                  ordered_agents: List[BaseAgent] = None,
                  agents: Dict[str, BaseAgent] = None,
                  predecessor: Dict[str, Dict[str, EdgeInfo]] = None,
@@ -394,6 +396,7 @@ class AgentGraph:
             predecessor: The direct predecessor of the agent.
             successor: The direct successor of the agent.
         """
+        self.build_type = build_type
         self.ordered_agents = ordered_agents if ordered_agents else []
         self.agents = agents if agents else {}
         self.predecessor = predecessor if predecessor else {}
@@ -611,6 +614,10 @@ class WorkflowBuilder(TopologyBuilder):
     but agent3 and agent5 are executed sequentially, and agent2 and agent4 are also executed in sequentially,
     then agent6 and agent7 are executed in parallel after the sequential execution of agent2 and agent4, and
     agent8 is executed after completion.
+
+    If the topology is constructed in this way, it will be automatically recognized as team swarm.
+    >>> Swarm((agent1, agent2), (agent1, agent3), (agent1, agent4), (agent1, agent5))
+    So the star topology will be built and executed in a team swarm.
     """
 
     def build(self):
@@ -623,16 +630,25 @@ class WorkflowBuilder(TopologyBuilder):
         from aworld.agents.parallel_llm_agent import ParallelizableAgent
         from aworld.agents.serial_llm_agent import SerialableAgent
 
-        agent_graph = AgentGraph()
+        agent_graph = AgentGraph(GraphBuildType.WORKFLOW.value)
         single_agents = []
+        all_tuple = True
         for agent in self.agent_list:
-            if isinstance(agent, (BaseAgent, tuple, list)):
+            if isinstance(agent, (BaseAgent, list)):
+                single_agents.append(agent)
+                all_tuple = False
+            elif isinstance(agent, tuple):
                 single_agents.append(agent)
             else:
                 raise RuntimeError(f"agent in {agent} is not a agent or agent tuple or list, please check it.")
 
         if not single_agents:
             raise RuntimeError(f"no valid agent in swarm to build execution graph.")
+
+        if self._is_star(single_agents, all_tuple):
+            # star topology means team
+            builder = TeamBuilder(self.agent_list, [], self.max_steps)
+            return builder.build()
 
         last_agent = None
         for agent in single_agents:
@@ -656,6 +672,21 @@ class WorkflowBuilder(TopologyBuilder):
                 agent_graph.add_edge(last_agent, agent)
             last_agent = agent
         return agent_graph
+
+    def _is_star(self, single_agents: list, all_tuple: bool) -> bool:
+        if all_tuple:
+            # special process, identify whether it is a star topology
+            same_agent = True
+            last = None
+            for agent in single_agents:
+                if not last:
+                    last = agent[0].id()
+                else:
+                    if last != agent[0].id():
+                        same_agent = False
+                        break
+            return same_agent
+        return False
 
     def _flatten_agent(self, agents: Union[tuple, list]) -> List[BaseAgent]:
         """Flatten the nesting of agents and recursively construct corresponding agents."""
@@ -714,7 +745,7 @@ class HandoffBuilder(TopologyBuilder):
             raise RuntimeError(f"no valid agent pair to build execution graph.")
 
         # agent handoffs graph build.
-        agent_graph = AgentGraph()
+        agent_graph = AgentGraph(GraphBuildType.HANDOFF.value)
         for pair in valid_agent_pair:
             TopologyBuilder.register_agent(pair[0])
             TopologyBuilder.register_agent(pair[1])
@@ -754,9 +785,7 @@ class TeamBuilder(TopologyBuilder):
     """
 
     def build(self):
-        from aworld.agents.parallel_llm_agent import ParallelizableAgent
-
-        agent_graph = AgentGraph()
+        agent_graph = AgentGraph(GraphBuildType.TEAM.value)
         valid_agents = []
         root_agent = self.agent_list[0]
         if isinstance(root_agent, tuple):
