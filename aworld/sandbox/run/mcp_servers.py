@@ -35,6 +35,11 @@ class McpServers:
             return []
         try:
             self.tool_list = await sandbox_mcp_tool_desc_transform(self.mcp_servers, self.mcp_config)
+            
+            # Filter tool list to only keep tools that contain specified server names
+            if self.tool_list and self.mcp_servers:
+                self.tool_list = self._filter_tools_by_server_names(self.tool_list, self.mcp_servers)
+            
             return self.tool_list
         except Exception as e:
             traceback.print_exc()
@@ -220,6 +225,40 @@ class McpServers:
 
         except Exception as e:
             logging.warning(f"Failed to update sandbox metadata: {e}")
+
+    def _filter_tools_by_server_names(self, tool_list: List[Dict[str, Any]], server_names: List[str]) -> List[Dict[str, Any]]:
+        """
+        Filter tools based on server names in tool function names.
+        
+        Args:
+            tool_list: List of tools to filter
+            server_names: List of server names to match against
+            
+        Returns:
+            Filtered list of tools
+        """
+        filtered_tool_list = []
+        for tool in tool_list:
+            if 'function' in tool and 'name' in tool['function']:
+                tool_name = tool['function']['name']
+                # Check if tool name contains any of the specified server names
+                should_keep = False
+                # Split tool name format: mcp__server_name__tool_name--function_name
+                if '__' in tool_name and '--' in tool_name:
+                    # Split by __ and take the last part
+                    parts = tool_name.split('__')
+                    if len(parts) >= 2:
+                        last_part = parts[-1]  # Get the last part
+                        # Split by -- and take the first part
+                        if '--' in last_part:
+                            server_part = last_part.split('--')[0]  # Get server name part
+                            for server_name in server_names:
+                                if server_name in server_part:
+                                    should_keep = True
+                                    break
+                if should_keep:
+                    filtered_tool_list.append(tool)
+        return filtered_tool_list
 
     # Add cleanup method, called when Sandbox is destroyed
     async def cleanup(self):
