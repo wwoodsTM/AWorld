@@ -89,7 +89,7 @@ class DefaultToolResultParser(BaseToolResultParser):
 """
 
 
-class GooglePseSearchToolResultParser(BaseToolResultParser):
+class SearchToolResultParser(BaseToolResultParser):
 
     @override
     async def parse(self, output: ToolResultOutput, workspace: WorkSpace):
@@ -143,7 +143,7 @@ class GooglePseSearchToolResultParser(BaseToolResultParser):
         )
 
         return f"""\
-\n\n**🔎 Google Search**\n\n
+\n\n**🔎 Search Results**\n\n
 ```tool_card
 {json.dumps(tool_card.model_dump(), ensure_ascii=False, indent=2)}
 ```\n
@@ -152,8 +152,8 @@ class GooglePseSearchToolResultParser(BaseToolResultParser):
 
 class ToolResultParserFactory:
     def get_parser(self, tool_type: str, tool_name: str):
-        if "search" in tool_name:
-            return GooglePseSearchToolResultParser()
+        if "search" in tool_name and ("search" in tool_name or tool_name == None):
+            return SearchToolResultParser()
         else:
             return DefaultToolResultParser()
 

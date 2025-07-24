@@ -390,7 +390,7 @@ async def sandbox_mcp_tool_desc_transform(
     # todo sandbox mcp_config get from registry
 
     if not mcp_config:
-        return None
+        return []
     config = mcp_config
     mcp_servers_config = config.get("mcpServers", {})
     server_configs = []
@@ -527,6 +527,7 @@ async def sandbox_mcp_tool_desc_transform(
                 logging.error(
                     f"Failed to get tools for MCP server '{server_config['name']}'.\n"
                     f"Error: {err}\n"
+                    f"Traceback:\n{traceback.format_exc()}"
                 )
 
         mcp_openai_tools = await run(servers)

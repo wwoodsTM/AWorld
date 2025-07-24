@@ -20,6 +20,7 @@
 
 
   .react-flow__node {
+    width: 300px;
     min-width: 14.5%;
     text-align: center;
     max-width: 30%;
@@ -32,7 +33,7 @@
     background: @node-bg;
     box-shadow: @node-shadow;
     font-size: 10px;
-    transition: @transition;
+    // transition: @transition;
     margin-bottom: 25px;
 
     &:hover {
@@ -49,9 +50,11 @@
       font-size: 12px;
     }
   }
-
+  .react-flow__handle{
+    background-color: #ccc;
+  }
   .react-flow__edge-path {
-    stroke: #a3b1bf;
+    stroke: #ddd;
     stroke-width: 2;
     animation: dashdraw 0.5s linear;
   }
@@ -101,6 +104,14 @@
   }
 }
 
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #888;
+}
+
 //edge click no changes
 .virtual-node-edge,
 .node-edge {
@@ -114,13 +125,13 @@
 }
 
 //virtual-node hidden handle
-.react-flow__handle {
-  background-color: #999;
-  &.virtual-handle-target {
-    width: 0px;
-    height: 0px;
-    min-width: 0;
-    min-height: 0;
-    border: none;
-  }
-}
+// .react-flow__handle {
+//   background-color: #999;
+//   &.virtual-handle-target {
+//     width: 0px;
+//     height: 0px;
+//     min-width: 0;
+//     min-height: 0;
+//     border: none;
+//   }
+// }

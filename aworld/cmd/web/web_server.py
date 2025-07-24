@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
 import uvicorn
 import os
-import subprocess
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from aworld.cmd.utils.agent_server import AgentServer
@@ -21,7 +20,7 @@ async def root():
 
 
 def get_user_id_from_jwt(request: Request) -> str:
-    return f"default_user_{request.client.host}"
+    return f"default_user_001"
 
 
 agent_server = AgentServer(
@@ -39,9 +38,7 @@ app.include_router(sessions.router, prefix=sessions.prefix)
 app.include_router(traces.router, prefix=traces.prefix)
 
 
-
-
-static_path = build_webui(force_rebuild=False)
+static_path = build_webui(force_rebuild=os.getenv("AWORLD_WEB_UI_FORCE_REBUILD", False))
 logger.info(f"Mounting static files from {static_path}")
 app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
 
